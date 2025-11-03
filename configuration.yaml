@@ -1,0 +1,168 @@
+
+# Loads default set of integrations. Do not remove.
+default_config:
+#=======================================================================================
+# Load frontend themes from the themes folder
+#=======================================================================================
+frontend:
+  themes: !include_dir_merge_named themes
+  extra_module_url:
+    - /hacsfiles/lovelace-card-mod/card-mod.js
+# ==============================================================================
+# Text to Speech
+# ==============================================================================
+tts:
+  - platform: google_translate  
+    service_name: google_say
+# ==============================================================================
+# Load Automations, Scripts, Scenes, etc.
+# ==============================================================================
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+template: !include template.yaml
+group: !include groups.yaml
+#=======================================================================================
+#The homeassistant packages will become the standard of loading configs going forward
+#be sure to add the packages folder and the 2 lines
+homeassistant:
+  # Basic instance information
+  name: "Smart Home - Pierre van Ryneveld"
+  latitude: -25.84051
+  longitude: 28.24814
+  elevation: 1519
+  unit_system: metric
+  time_zone: Africa/Johannesburg
+  country: ZA
+  currency: ZAR
+  
+  # Network configuration for your static IP setup
+  internal_url: "http://192.168.1.30:8123"
+  external_url: "http://192.168.1.30:8123"  # Update if you have external access
+  
+  # File system access
+  allowlist_external_dirs:
+    - "/config/sensor_reports"
+    - "/config/scripts"
+    - "/tmp"
+    - "/config/exports"
+    - "/config/entity_exports"
+  # Packages configuration - This will now be loaded correctly.
+  packages: !include_dir_named packages
+#=======================================================================================
+# SmartHome Integrations
+# https://github.com/tomatensaus/DeyeSolarDesktop/blob/main/configuration.yaml
+sensor:
+  - platform: integration
+    name: deyeinvertermaster_summary_total_battery_charge_grid
+    source: sensor.deyeinvertermaster_battery_charge_grid_power
+    method: left
+
+  - platform: integration
+    name: deyeinverterslave_summary_total_battery_charge_grid
+    source: sensor.deyeinverterslave_battery_charge_grid_power
+    method: left
+#=======================================================================================
+# The sensor below keeps the minimum soc of the battery for the last 12 hours,
+# only removed from DeyeSolarDesktop, not important
+
+  - platform: statistics
+    name: "min_soc_battery"
+    entity_id: sensor.deyeinverter_battery_soc
+    state_characteristic: value_min
+    max_age:
+      hours: 12
+    sampling_size: 144
+#=======================================================================================
+# SmartHome Integrations
+# https://github.com/tomatensaus/DeyeSolarDesktop/blob/main/configuration.yaml
+
+utility_meter:
+  master_energy_battery_charge_grid:
+    name: deyeinvertermaster_summary_day_battery_charge_grid
+    source: sensor.deyeinvertermaster_summary_total_battery_charge_grid
+    cycle: daily
+
+  slave_energy_battery_charge_grid:
+    name: deyeinverterslave_summary_day_battery_charge_grid
+    source: sensor.deyeinverterslave_summary_total_battery_charge_grid
+    cycle:
+      daily
+#=======================================================================================
+# ==============================================================================
+# HTTP Configuration - Secure and Optimized
+# ==============================================================================
+http:
+  # Core security settings
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 192.168.1.0/24
+    - 127.0.0.1
+    - ::1
+  
+  # CORS configuration for your static IP and local access
+  cors_allowed_origins:
+    - "https://192.168.1.30:8123"
+    - "http://192.168.1.30:8123"
+    - "http://localhost:8123"
+    - "http://127.0.0.1:8123"
+    - "https://my.home-assistant.io"
+  
+  # Security settings
+  login_attempts_threshold: 5
+  ip_ban_enabled: true
+  use_x_frame_options: true
+  
+  # SSL profile for better security
+  ssl_profile: modern
+
+# ==============================================================================
+# Pyscript Integration
+# ==============================================================================  
+pyscript:
+  allow_all_imports: true
+  hass_is_global: true
+
+# ==============================================================================
+# Command Line Sensor
+# ==============================================================================
+command_line:
+  - sensor:
+      name: Badlogin
+      command: "grep -c 'Login attempt' /home/hass/.homeassistant/home-assistant.log"
+# ==============================================================================
+# Shell Commands
+# ==============================================================================
+shell_command:
+  git_commit: '/config/scripts/git_commit.sh'
+  backup_config: >
+    cp -r /config /backup/ha-config-$(date +%Y%m%d_%H%M%S)
+  check_system_status: >
+    echo "System check at $(date)" > /config/system_check.log
+  extract_sensors: >
+    python3 /config/scripts/extract_sensors.py
+  restart_deye_integration: >
+    curl -X POST -H "Authorization: Bearer !secret ha_long_lived_token" \
+    -H "Content-Type: application/json" \
+    http://192.168.1.30:8123/api/config/config_entries/reload
+  restart_homeassistant: >
+    curl -X POST -H "Authorization: Bearer !secret ha_long_lived_token" \
+    -H "Content-Type: application/json" \
+    http://192.168.1.30:8123/api/services/homeassistant/restart
+  cleanup_logs: >
+    find /config -name "home-assistant.log*" -mtime +7 -delete && 
+    find /config -name "*.log" -size +10M -delete
+  check_log_size: >
+    du -sh /config/home-assistant.log 2>/dev/null | cut -f1 > /config/log_size.txt || echo "0" > /config/log_size.txt
+  cleanup_sensor_reports: >
+    find /config/sensor_reports -type f -name "sensors_*" -mtime +14 -delete &&
+    echo "Sensor reports older than 14 days deleted"
+
+# ==============================================================================
+# Other Integrations
+# ==============================================================================
+duckdns:
+  domain: !secret duckdns_domain
+  access_token: !secret duckdns_token
+
+mobile_app:

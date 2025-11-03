@@ -1,0 +1,43 @@
+# Home Assistant core
+secrets.yaml
+home-assistant_v2.db
+home-assistant_v2.db-shm
+home-assistant_v2.db-wal
+*.db
+*.db-shm
+*.db-wal
+*.log
+*.log.*
+
+# UI state, tokens, and runtime caches (do not commit)
+.storage/
+.cloud/
+deps/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Add-on and system artifacts that may appear in /config
+.ipynb_checkpoints/
+.idea/
+.vscode/
+.DS_Store
+
+# Media, TTS, backups
+tts/
+www/.cache/
+backup/
+
+# HACS data cache (HACS settings live in .storage and are already ignored)
+.custom_components-cache/
+
+# If you use Blueprints, Themes, or custom_components, keep them tracked (do not ignore):
+# blueprints/
+# themes/
+# custom_components/
+#
+# Note: We intentionally DO track custom_components to allow full restore of HACS items.
+# If you prefer to reinstall HACS content after restore, you may ignore custom_components/
+# but the recommended approach for a turnkey restore is to keep it versioned.
