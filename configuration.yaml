@@ -163,9 +163,9 @@ shell_command:
 # ==============================================================================
 # Other Integrations
 # ==============================================================================
-duckdns:
-  domain: !secret duckdns_domain
-  access_token: !secret duckdns_token
+#duckdns:
+#  domain: !secret duckdns_domain
+#  access_token: !secret duckdns_token
 
 mobile_app:
 
