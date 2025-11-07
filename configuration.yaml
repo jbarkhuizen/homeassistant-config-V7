@@ -50,6 +50,7 @@ homeassistant:
     - "/config/entity_exports"
   # Packages configuration - This will now be loaded correctly.
   packages: !include_dir_named packages
+
 #=======================================================================================
 # SmartHome Integrations
 # https://github.com/tomatensaus/DeyeSolarDesktop/blob/main/configuration.yaml
@@ -167,7 +168,7 @@ duckdns:
   access_token: !secret duckdns_token
 
 mobile_app:
-  
+
 # ==============================================================================
 # Logger Configuration
 # ==============================================================================
