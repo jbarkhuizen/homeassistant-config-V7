@@ -1,0 +1,68 @@
+# Bad Login Monitoring Automations
+#
+# NOTE: This file is merged because configuration.yaml uses:
+# automation: !include_dir_merge_list automations/
+#
+# Make sure the filename is placed under /config/automations/ as shown.
+
+- id: badlogin_initialize_baseline
+  alias: "Security - Badlogin Initialize Baseline"
+  description: "Set the baseline for bad login attempts on startup if not already meaningful."
+  mode: single
+  trigger:
+    - platform: homeassistant
+      event: start
+  condition: []
+  action:
+    - variables:
+        current: "{{ states('sensor.badlogin') | int }}"
+        stored: "{{ states('input_number.badlogin_previous_count') | int }}"
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ stored == 0 and current > 0 }}"
+          sequence:
+            - service: input_number.set_value
+              data:
+                value: "{{ current }}"
+              target:
+                entity_id: input_number.badlogin_previous_count
+      default: []
+
+- id: badlogin_daily_check
+  alias: "Security - Badlogin Daily 09h00 Check"
+  description: "At 09:00 compare current bad login count to yesterday's baseline. Notify if increased."
+  mode: single
+  trigger:
+    - platform: time
+      at: "09:00:00"
+  condition: []
+  action:
+    - variables:
+        current: "{{ states('sensor.badlogin') | int }}"
+        baseline: "{{ states('input_number.badlogin_previous_count') | int }}"
+        diff: "{{ (states('sensor.badlogin') | int) - (states('input_number.badlogin_previous_count') | int) }}"
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ current > baseline }}"
+          sequence:
+            - service: persistent_notification.create
+              data:
+                title: "Security Alert: Bad Login Attempts Increased"
+                message: >
+                  Bad login attempts increased since yesterday's 09h00 baseline.
+                  Previous baseline: {{ baseline }}
+                  Current count: {{ current }}
+                  Increase: {{ diff }}
+                  Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+            # (Optional) Uncomment and adjust to send mobile notification
+            # - service: notify.mobile_app_your_device
+            #   data:
+            #     title: "Bad Login Attempts Increased"
+            #     message: "Increase: {{ diff }} (Now: {{ current }}, Previous: {{ baseline }})"
+    - service: input_number.set_value
+      data:
+        value: "{{ current }}"
+      target:
+        entity_id: input_number.badlogin_previous_count

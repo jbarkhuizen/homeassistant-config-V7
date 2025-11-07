@@ -127,6 +127,7 @@ pyscript:
 
 # ==============================================================================
 # Command Line Sensor
+# (1) UPDATED: Correct log path + stable counting + value template + units + scan interval
 # ==============================================================================
 command_line:
   - sensor:
@@ -136,6 +137,18 @@ command_line:
       unit_of_measurement: "events"
       scan_interval: 300
 
+# ==============================================================================
+# INPUT NUMBERS
+# (2) ADDED: Store previous day baseline for Badlogin comparisons
+# ==============================================================================
+input_number:
+  badlogin_previous_count:
+    name: Badlogin Previous Count
+    min: 0
+    max: 100000
+    step: 1
+    mode: box
+    icon: mdi:shield-key
 # Shell Commands
 # ==============================================================================
 shell_command:
