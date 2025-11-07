@@ -39,7 +39,7 @@ homeassistant:
   
   # Network configuration for your static IP setup
   internal_url: "http://192.168.1.30:8123"
-  external_url: "http://192.168.1.30:8123"  # Update if you have external access
+  external_url: "https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/"
   
   # File system access
   allowlist_external_dirs:
@@ -70,7 +70,8 @@ sensor:
 
   - platform: statistics
     name: "min_soc_battery"
-    entity_id: sensor.deyeinverter_battery_soc
+#    entity_id: sensor.deyeinverter_battery_soc
+    entity_id: sensor.deyeinvertercombined_battery_soc
     state_characteristic: value_min
     max_age:
       hours: 12
@@ -88,8 +89,7 @@ utility_meter:
   slave_energy_battery_charge_grid:
     name: deyeinverterslave_summary_day_battery_charge_grid
     source: sensor.deyeinverterslave_summary_total_battery_charge_grid
-    cycle:
-      daily
+    cycle: daily
 #=======================================================================================
 # ==============================================================================
 # HTTP Configuration - Secure and Optimized
@@ -131,8 +131,11 @@ pyscript:
 command_line:
   - sensor:
       name: Badlogin
-      command: "grep -c 'Login attempt' /home/hass/.homeassistant/home-assistant.log"
-# ==============================================================================
+      command: "grep 'Login attempt' /config/home-assistant.log | wc -l"
+      value_template: "{{ value | int }}"
+      unit_of_measurement: "events"
+      scan_interval: 300
+
 # Shell Commands
 # ==============================================================================
 shell_command:
