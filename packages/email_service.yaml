@@ -1,0 +1,103 @@
+#===============================================================================
+# Email Notification Services - Consolidated
+# File: packages/email_service.yaml
+# Purpose: All email notification services in one place
+# Updated: 2025-10-24 - Fixed after Home Assistant breaking changes
+#===============================================================================
+
+notify:
+  # Primary email service for all notifications
+  - name: email_notification_jbarkhuizen@gmail.com
+    platform: smtp
+    server: smtp.gmail.com
+    port: 587
+    timeout: 15
+    sender: jbarkhuizen@gmail.com
+    encryption: starttls
+    username: jbarkhuizen@gmail.com
+    password: !secret gmail_app_password
+    recipient: jbarkhuizen@gmail.com
+    sender_name: "Home Assistant"
+
+  # Alternative email service for general reports
+  - name: email_ha_jbarkhuizen@gmail.com
+    platform: smtp
+    server: smtp.gmail.com
+    port: 587
+    timeout: 15
+    sender: jbarkhuizen@gmail.com
+    encryption: starttls
+    username: jbarkhuizen@gmail.com
+    password: !secret gmail_app_password
+    recipient: jbarkhuizen@gmail.com
+    sender_name: "Home Assistant General Reports"
+
+  # Email service for sensor reports
+  - name: email_sensors_jbarkhuizen@gmail.com
+    platform: smtp
+    server: smtp.gmail.com
+    port: 587
+    timeout: 15
+    sender: jbarkhuizen@gmail.com
+    encryption: starttls
+    username: jbarkhuizen@gmail.com
+    password: !secret gmail_app_password
+    recipient: jbarkhuizen@gmail.com
+    sender_name: "Home Assistant Sensor Reports"
+
+  # Email service for system alerts
+  - name: email_alerts_jbarkhuizen@gmail.com
+    platform: smtp
+    server: smtp.gmail.com
+    port: 587
+    timeout: 15
+    sender: jbarkhuizen@gmail.com
+    encryption: starttls
+    username: jbarkhuizen@gmail.com
+    password: !secret gmail_app_password
+    recipient: jbarkhuizen@gmail.com
+    sender_name: "Home Assistant Alert System"
+
+  - name: email_notify_jbarkhuizen@gmail.com
+    platform: smtp
+    server: smtp.gmail.com
+    port: 587
+    timeout: 15
+    sender: jbarkhuizen@gmail.com
+    encryption: starttls
+    username: jbarkhuizen@gmail.com
+    password: !secret gmail_app_password
+    recipient:
+      - jbarkhuizen@gmail.com
+    sender_name: "Home Assistant - Smart Home"
+
+#===============================================================================
+#Disabled  - Could not get working
+#===============================================================================
+
+#  - name: email_notify_homeassistant@barkie.co.za_465
+#    platform: smtp
+#    server: mail@barkie.co.za
+#    port: 465
+#    timeout: 15
+#    sender: homeassistant@barkie.co.za
+#    encryption: starttls
+#    username: homeassistant@barkie.co.za
+#    password: Gl@diator23.0157.1965
+#    recipient:
+#      - homeassistant@barkie.co.za
+#    sender_name: "Home Assistant - Smart Home from homeassistant@barkie.co.za"
+
+#  - name: email_notify_homeassistant@barkie.co.za_587
+#    platform: smtp
+#    server: mail@barkie.co.za
+#    port: 587
+#    timeout: 15
+#    sender: homeassistant@barkie.co.za
+#    encryption: starttls
+#    username: homeassistant@barkie.co.za
+#    password: Gl@diator23.0157.1965
+#    recipient:
+#      - homeassistant@barkie.co.za
+#    sender_name: "Home Assistant - Smart Home from homeassistant@barkie.co.za"
+#===============================================================================

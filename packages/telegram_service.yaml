@@ -1,0 +1,11 @@
+# Telegram Bot is now configured via UI (Settings > Devices & Services)
+# YAML configuration deprecated from 2025.12.0
+
+notify:
+  - name: BarkieHome
+    platform: telegram
+    chat_id: !secret telegram_chat_id_1
+
+  - name: JohanBarkhuizen
+    platform: telegram
+    chat_id: !secret telegram_chat_id_2

@@ -1,0 +1,44 @@
+#network_scanner:
+#  ip_range: "10.1.1.0/24, 192.168.0.1/24, 192.168.1.1/24, 192.168.2.1/24, 192.168.3.1/24, 192.168.4.1/24, 192.168.5.1/24, 192.168.56.1/24, 172.25.80.1/24"
+#  mac_mapping_1: "84:d3:43:da:cc:d7;Calix Router;Internet Connectivity"
+#  mac_mapping_2: "00:08:9b:c2:e5:13;Johanba-Server Port 1"
+#  mac_mapping_3: "00:08:9b:c2:e5:14;Johanba-Server Port 2"    
+  
+device_tracker:
+  # NMAP Network Scanner - Primary tracking method
+  - platform: nmap_tracker
+    hosts:
+      - 192.168.1.0/24     # Primary network subnet
+      - 192.168.0.0/24     # Secondary network
+      - 192.168.2.0/24     # Additional subnets
+      - 192.168.3.0/24
+      - 192.168.4.0/24
+      - 192.168.5.0/24
+      - 192.168.56.0/24
+      - 172.25.80.0/24
+      - 10.0.0.0/24
+      - 10.1.1.0/24
+    scan_options: "-F --host-timeout 5s"
+    home_interval: 10
+    consider_home: 180
+    new_device_defaults:
+      track_new_devices: true
+      
+  # PING Device Tracker - Backup tracking method
+  - platform: ping
+    hosts:
+      ping_192_168_1_1: 192.168.1.1      # Router/Gateway
+      ping_192_168_1_30: 192.168.1.30    # Home Assistant Server
+      ping_192_168_1_144: 192.168.1.144  # DVR Inside
+      ping_192_168_1_151: 192.168.1.151  # DVR Outside
+    count: 3
+    consider_home: 180
+
+#===============================================================================
+# NOTES:
+# 1. NMAP scans are resource-intensive - runs every 10 minutes
+# 2. Ping tracker provides faster updates for critical devices
+# 3. All tracked devices will appear as device_tracker entities
+# 4. Configure device names in Home Assistant UI under Configuration > Devices
+#===============================================================================
+  

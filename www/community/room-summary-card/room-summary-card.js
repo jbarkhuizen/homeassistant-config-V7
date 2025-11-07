@@ -3208,8 +3208,8 @@ class $e4f1b26747081709$export$90a7a1e0555e0bc9 extends (0, $ab210b2da7b39b9d$ex
         const matchingArea = areas.find(([areaId, area])=>{
             const areaName = area.area_id.toLowerCase().replace(/\s+/g, '_');
             // Check if either entity exists for this area
-            const hasLight = `light.${areaName}_light` in hass.entities;
-            const hasFan = `switch.${areaName}_fan` in hass.entities;
+            const hasLight = `light.${areaName}_light` in hass.entities || `light.${areaName}` in hass.entities;
+            const hasFan = `switch.${areaName}_fan` in hass.entities || `fan.${areaName}` in hass.entities;
             // Return true if either entity exists
             return hasLight || hasFan;
         });
@@ -3354,9 +3354,12 @@ const $7a9f070414cbf86a$var$climateIcons = {
 };
 const $7a9f070414cbf86a$export$a2d3d3a06f345f20 = (hass, config)=>{
     // Define base entities for the area
+    // Support both naming conventions: light.{area}_light / light.{area} and switch.{area}_fan / fan.{area}
     const baseEntities = [
         `light.${config.area}_light`,
-        `switch.${config.area}_fan`
+        `light.${config.area}`,
+        `switch.${config.area}_fan`,
+        `fan.${config.area}`
     ];
     const configEntities = config.entities || [];
     // Combine base and config entities unless fan is removed
@@ -3539,7 +3542,7 @@ const $5b9da589bbdb01f3$export$5edf3a158822b217 = (hass, entity, isActive, image
         '--icon-color': styleData.cssColor,
         '--icon-opacity': `var(--opacity-icon-${styleData.activeClass})`,
         '--background-color-icon': styleData.cssColor,
-        '--background-opacity-icon': image ? '1' : `var(--opacity-icon-fill-${styleData.activeClass})`,
+        '--background-opacity-icon': image && styleData.active ? '1' : `var(--opacity-icon-fill-${styleData.activeClass})`,
         '--state-color-icon-theme': styleData.themeOverride,
         '--background-image': image ? `url(${image})` : undefined
     });
@@ -3876,6 +3879,16 @@ const $aaed684be42fb62e$export$6b5316c1eb8ef7e7 = (averagedSensor)=>`${$aaed684b
     weather: 'mdi:weather-partly-cloudy',
     zone: 'mdi:map-marker-radius'
 };
+
+
+
+const $a950251b49a6f795$export$f11d5335cd202cec = (hass, entity, attribute, className = '')=>(0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`<ha-attribute-value
+    hide-unit
+    .hass=${hass}
+    .stateObj=${entity}
+    .attribute=${attribute}
+    class=${className}
+  ></ha-attribute-value>`;
 
 
 
@@ -4236,7 +4249,7 @@ class $caca5106d54ff8e3$export$265e5e10b1eff6c6 extends (0, $216640a6cb8d8606$ex
         .actionHandler=${(0, $57febad8376708f1$export$8a44987212de21b)(info)}
       >
         ${this.renderStateIcon(state, result?.icon)}
-        ${this.renderSensorLabel(state, label)}
+        ${this.renderSensorLabel(state, label, sensorConfig)}
       </div>
     `;
     }
@@ -4244,10 +4257,13 @@ class $caca5106d54ff8e3$export$265e5e10b1eff6c6 extends (0, $216640a6cb8d8606$ex
    * Renders the sensor label with proper fallback logic
    * @param state - The entity state
    * @param label - The configured label (if any)
-   * @returns The label content, state display, or nothing if labels are hidden
-   */ renderSensorLabel(state, label) {
+   * @param sensorConfig - The sensor configuration (if any)
+   * @returns The label content, attribute value, state display, or nothing if labels are hidden
+   */ renderSensorLabel(state, label, sensorConfig) {
         if (this._hideLabels) return 0, $f58f44579a4747ac$export$45b790e32b2810ee;
         if (label) return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`${label}`;
+        // If attribute is specified, display the attribute value instead of state
+        if (sensorConfig?.attribute) return (0, $a950251b49a6f795$export$f11d5335cd202cec)(this._hass, state, sensorConfig.attribute);
         return (0, $1ed74ce23f0ef067$export$c18c768bbe3223b7)(this._hass, state);
     }
     /**
@@ -5190,7 +5206,7 @@ class $b642db848cc622aa$export$be1ca41262ce011e extends (0, $ab210b2da7b39b9d$ex
 
 
 var $b06602ab53bd58a3$exports = {};
-$b06602ab53bd58a3$exports = JSON.parse("{\"name\":\"room-summary-card\",\"version\":\"0.45.0\",\"author\":\"Patrick Masters\",\"license\":\"ISC\",\"description\":\"Custom card Home Assistant which can show a summary of room entities.\",\"source\":\"src/index.ts\",\"module\":\"dist/room-summary-card.js\",\"targets\":{\"module\":{\"includeNodeModules\":true}},\"scripts\":{\"watch\":\"parcel watch\",\"build\":\"parcel build\",\"format\":\"prettier --write .\",\"test\":\"TS_NODE_PROJECT='./tsconfig.test.json' mocha\",\"test:coverage\":\"nyc npm run test\",\"test:watch\":\"TS_NODE_PROJECT='./tsconfig.test.json' mocha --watch\",\"update\":\"npx npm-check-updates -u && yarn install\"},\"devDependencies\":{\"@istanbuljs/nyc-config-typescript\":\"^1.0.2\",\"@open-wc/testing\":\"^4.0.0\",\"@parcel/transformer-inline-string\":\"^2.16.0\",\"@testing-library/dom\":\"^10.4.1\",\"@trivago/prettier-plugin-sort-imports\":\"^5.2.2\",\"@types/chai\":\"^5.2.3\",\"@types/jsdom\":\"^27.0.0\",\"@types/mocha\":\"^10.0.10\",\"@types/sinon\":\"^17.0.4\",\"chai\":\"^6.2.0\",\"jsdom\":\"^27.0.1\",\"mocha\":\"^11.7.4\",\"nyc\":\"^17.1.0\",\"parcel\":\"^2.16.0\",\"prettier\":\"3.6.2\",\"prettier-plugin-organize-imports\":\"^4.3.0\",\"proxyquire\":\"^2.1.3\",\"sinon\":\"^21.0.0\",\"ts-node\":\"^10.9.2\",\"tsconfig-paths\":\"^4.2.0\",\"typescript\":\"^5.9.3\"},\"dependencies\":{\"@lit/task\":\"^1.0.3\",\"async-memoize-one\":\"^1.1.9\",\"fast-deep-equal\":\"^3.1.3\",\"lit\":\"^3.3.1\",\"memoize-one\":\"^6.0.0\"}}");
+$b06602ab53bd58a3$exports = JSON.parse("{\"name\":\"room-summary-card\",\"version\":\"0.46.0\",\"author\":\"Patrick Masters\",\"license\":\"ISC\",\"description\":\"Custom card Home Assistant which can show a summary of room entities.\",\"source\":\"src/index.ts\",\"module\":\"dist/room-summary-card.js\",\"targets\":{\"module\":{\"includeNodeModules\":true}},\"scripts\":{\"watch\":\"parcel watch\",\"build\":\"parcel build\",\"format\":\"prettier --write .\",\"test\":\"TS_NODE_PROJECT='./tsconfig.test.json' mocha\",\"test:coverage\":\"nyc npm run test\",\"test:watch\":\"TS_NODE_PROJECT='./tsconfig.test.json' mocha --watch\",\"update\":\"npx npm-check-updates -u && yarn install\"},\"devDependencies\":{\"@istanbuljs/nyc-config-typescript\":\"^1.0.2\",\"@open-wc/testing\":\"^4.0.0\",\"@parcel/transformer-inline-string\":\"^2.16.0\",\"@testing-library/dom\":\"^10.4.1\",\"@trivago/prettier-plugin-sort-imports\":\"^5.2.2\",\"@types/chai\":\"^5.2.3\",\"@types/jsdom\":\"^27.0.0\",\"@types/mocha\":\"^10.0.10\",\"@types/sinon\":\"^17.0.4\",\"chai\":\"^6.2.0\",\"jsdom\":\"^27.1.0\",\"mocha\":\"^11.7.4\",\"nyc\":\"^17.1.0\",\"parcel\":\"^2.16.0\",\"prettier\":\"3.6.2\",\"prettier-plugin-organize-imports\":\"^4.3.0\",\"proxyquire\":\"^2.1.3\",\"sinon\":\"^21.0.0\",\"ts-node\":\"^10.9.2\",\"tsconfig-paths\":\"^4.2.0\",\"typescript\":\"^5.9.3\"},\"dependencies\":{\"@lit/task\":\"^1.0.3\",\"async-memoize-one\":\"^1.1.9\",\"fast-deep-equal\":\"^3.1.3\",\"lit\":\"^3.3.1\",\"memoize-one\":\"^6.0.0\"}}");
 
 
 // Register the custom element with the browser

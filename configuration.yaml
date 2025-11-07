@@ -1,4 +1,5 @@
 
+
 # Loads default set of integrations. Do not remove.
 default_config:
 #=======================================================================================
@@ -166,3 +167,62 @@ duckdns:
   access_token: !secret duckdns_token
 
 mobile_app:
+  
+# ==============================================================================
+# Logger Configuration
+# ==============================================================================
+logger:
+  default: warning
+  logs:
+    # Core Components - Set to info for better debugging
+    homeassistant.core: info
+    homeassistant.components.http: warning
+    homeassistant.loader: warning
+    homeassistant.setup: info
+    homeassistant.config: info
+    
+    # Automation & Scripts - Info level for troubleshooting
+    homeassistant.components.automation: info
+    homeassistant.components.script: info
+    
+    # Integration-specific
+    homeassistant.components.mqtt: info
+    homeassistant.components.tuya: info
+    homeassistant.components.telegram: info
+    homeassistant.components.notify: info
+    
+    # Custom Components - Reduce only problematic ones to error
+    custom_components.alexa_media: warning
+    custom_components.localtuya: warning
+    custom_components.powercalc: warning
+    custom_components.solcast_solar: info
+    custom_components.deye: info
+    custom_components.sunsunk: info
+    custom_components.sonoff: info
+    custom_components.hacs: info
+    
+    # Database & History - Keep at warning
+    homeassistant.components.recorder: warning
+    homeassistant.components.history: warning
+    homeassistant.components.influxdb: info
+    
+    # Network - Info for device tracking
+    homeassistant.components.network: info
+    homeassistant.components.websocket: warning
+    
+    # System Health
+    homeassistant.components.system_health: warning
+    homeassistant.components.updater: warning
+    homeassistant.components.homeassistant: info
+    
+    # Utilities
+    homeassistant.util.dt: warning
+    homeassistant.util.yaml: warning
+    homeassistant.helpers.entity: warning
+    homeassistant.helpers.entity_registry: warning
+    homeassistant.helpers.device_registry: warning
+    
+    # External Libraries
+    urllib3.connectionpool: error
+    requests.packages.urllib3.connectionpool: error
+    aiohttp.access: error

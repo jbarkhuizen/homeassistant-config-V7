@@ -1,0 +1,228 @@
+#===============================================================================
+# GDACS (Global Disaster Alert and Coordination System) Alert Automation
+# File: /config/automations/gdacs_alert.yaml
+# Purpose: Monitor and notify about natural disasters and emergencies
+# Updated: 2025-10-27 - Fixed all syntax errors and modernized configuration
+#===============================================================================
+
+- id: gdacs_disaster_alert_notification
+  alias: "Alert: GDACS Disaster Notification"
+  description: "Sends Telegram and Email notifications when GDACS disaster alerts are received for South Africa region"
+  
+  #=============================================================================
+  # TRIGGER: When GDACS sensor state changes
+  #=============================================================================
+  trigger:
+    - platform: state
+      entity_id: sensor.gdacs_my_location  # CHANGE THIS to your actual GDACS entity ID
+      
+  #=============================================================================
+  # CONDITIONS: Ensure valid alert data exists
+  #=============================================================================
+  condition:
+    # Condition 1: State is not unknown or unavailable
+    - condition: template
+      value_template: "{{ trigger.to_state.state not in ['unknown', 'unavailable', 'none', 'None'] }}"
+    
+    # Condition 2: State is not zero (meaning there are active alerts)
+    - condition: template
+      value_template: "{{ trigger.to_state.state | int(0) > 0 }}"
+    
+    # Condition 3: Ensure previous state was different (prevent duplicate notifications)
+    - condition: template
+      value_template: "{{ trigger.from_state.state != trigger.to_state.state }}"
+  
+  #=============================================================================
+  # ACTIONS: Send comprehensive notifications
+  #=============================================================================
+  action:
+    # Action 1: Log alert to system
+    - service: system_log.write
+      data:
+        message: >
+          GDACS Disaster Alert triggered: {{ trigger.to_state.state }} active alerts
+          at {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+        level: warning
+    
+    # Action 2: Send Telegram notification with detailed information
+    - service: telegram_bot.send_message
+      data:
+        config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
+        message: |
+          🚨 *GDACS DISASTER ALERT*
+          
+          ⚠️ *Active Alerts:* {{ trigger.to_state.state }}
+          
+          {% if trigger.to_state.attributes.alerts is defined and trigger.to_state.attributes.alerts | length > 0 %}
+          {% for alert in trigger.to_state.attributes.alerts[:3] %}
+          
+          *Alert {{ loop.index }}:*
+          📍 Location: {{ alert.country | default('Unknown') }}
+          🌐 Event: {{ alert.event_type | default('Unknown') }}
+          📊 Severity: {{ alert.severity | default('Unknown') }}
+          🔴 Alert Level: {{ alert.alert_level | default('Unknown') }}
+          👥 Population Affected: {{ alert.population | default('Unknown') }}
+          📅 Date: {{ alert.from_date | default('Unknown') }}
+          🔗 More Info: {{ alert.url | default('No URL') }}
+          {% endfor %}
+          {% else %}
+          *Alert Details:*
+          📍 Country: {{ trigger.to_state.attributes.country | default('Unknown') }}
+          🌐 Type: {{ trigger.to_state.attributes.event_type | default('Unknown') }}
+          📊 Severity: {{ trigger.to_state.attributes.severity | default('Unknown') }}
+          🔴 Level: {{ trigger.to_state.attributes.alert_level | default('Unknown') }}
+          👥 Population: {{ trigger.to_state.attributes.population | default('Unknown') }}
+          🔗 Info: {{ trigger.to_state.attributes.url | default('No URL available') }}
+          {% endif %}
+          
+          ⏰ Alert Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+          
+          🌐 Home Assistant: http://192.168.1.30:8123
+        parse_mode: markdown
+    
+    # Action 3: Send Email notification with comprehensive details
+    - service: email_notification_jbarkhuizen_gmail_com
+      data:
+        title: "🚨 GDACS Disaster Alert - {{ trigger.to_state.state }} Active Alerts"
+        message: >
+          GLOBAL DISASTER ALERT AND COORDINATION SYSTEM (GDACS)
+          
+          ACTIVE DISASTER ALERTS DETECTED
+          
+          Date and Time: {{ now().strftime('%A, %d %B %Y at %H:%M:%S') }}
+          
+          ================================================================================
+          
+          ALERT SUMMARY
+          
+          Number of Active Alerts: {{ trigger.to_state.state }}
+          
+          {% if trigger.to_state.attributes.alerts is defined and trigger.to_state.attributes.alerts | length > 0 %}
+          {% for alert in trigger.to_state.attributes.alerts %}
+          
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          ALERT {{ loop.index }}
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          
+          Location: {{ alert.country | default('Unknown') }}
+          Event Type: {{ alert.event_type | default('Unknown') }}
+          Severity Level: {{ alert.severity | default('Unknown') }}
+          Alert Level: {{ alert.alert_level | default('Unknown') }}
+          Population Affected: {{ alert.population | default('Unknown') }}
+          Date From: {{ alert.from_date | default('Unknown') }}
+          Date To: {{ alert.to_date | default('Ongoing') }}
+          
+          More Information: {{ alert.url | default('No URL available') }}
+          
+          {% if alert.description is defined %}
+          Description:
+          {{ alert.description }}
+          {% endif %}
+          
+          {% endfor %}
+          {% else %}
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          ALERT DETAILS
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          
+          Country: {{ trigger.to_state.attributes.country | default('Unknown') }}
+          Event Type: {{ trigger.to_state.attributes.event_type | default('Unknown') }}
+          Severity: {{ trigger.to_state.attributes.severity | default('Unknown') }}
+          Alert Level: {{ trigger.to_state.attributes.alert_level | default('Unknown') }}
+          Population Affected: {{ trigger.to_state.attributes.population | default('Unknown') }}
+          
+          More Information: {{ trigger.to_state.attributes.url | default('No URL available') }}
+          {% endif %}
+          
+          ================================================================================
+          
+          IMPORTANT NOTES:
+          
+          - This is an automated alert from the Global Disaster Alert and Coordination System
+          - Please check the provided URL for detailed information and updates
+          - Take appropriate precautions based on the severity and type of disaster
+          - Monitor official news sources and local emergency services
+          
+          ================================================================================
+          
+          Home Assistant System: http://192.168.1.30:8123
+          Cloud URL: https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/
+    
+    # Action 4: Create persistent notification in Home Assistant UI
+    - service: persistent_notification.create
+      data:
+        title: "🚨 GDACS Disaster Alert"
+        message: >
+          **{{ trigger.to_state.state }} active disaster alerts detected**
+          
+          {% if trigger.to_state.attributes.alerts is defined and trigger.to_state.attributes.alerts | length > 0 %}
+          {% for alert in trigger.to_state.attributes.alerts[:3] %}
+          
+          **Alert {{ loop.index }}:**
+          - Location: {{ alert.country | default('Unknown') }}
+          - Type: {{ alert.event_type | default('Unknown') }}
+          - Severity: {{ alert.severity | default('Unknown') }}
+          - Population: {{ alert.population | default('Unknown') }}
+          
+          {% endfor %}
+          {% else %}
+          - Country: {{ trigger.to_state.attributes.country | default('Unknown') }}
+          - Type: {{ trigger.to_state.attributes.event_type | default('Unknown') }}
+          - Severity: {{ trigger.to_state.attributes.severity | default('Unknown') }}
+          {% endif %}
+          
+          Check notifications for full details.
+        notification_id: "gdacs_disaster_alert_{{ now().strftime('%Y%m%d_%H%M%S') }}"
+
+            # Action 4: Create persistent notification in Home Assistant UI
+    - alias: "Create GDACS Persistent Notification"
+      service: persistent_notification.create
+      data:
+        notification_id: "gdacs_disaster_alert_{{ now().strftime('%Y%m%d_%H%M%S') }}"
+        title: "🚨 GDACS Disaster Alert"
+        message: >-
+          **{{ trigger.to_state.state }} active disaster alerts detected**
+          
+          {% if trigger.to_state.attributes.alerts is defined and trigger.to_state.attributes.alerts | length > 0 %}
+          {% for alert in trigger.to_state.attributes.alerts[:3] %}
+          
+          **Alert {{ loop.index }}:**
+          - Location: {{ alert.country | default('Unknown') }}
+          - Type: {{ alert.event_type | default('Unknown') }}
+          - Severity: {{ alert.severity | default('Unknown') }}
+          - Population: {{ alert.population | default('Unknown') }}
+          
+          {% endfor %}
+          {% else %}
+          - Country: {{ trigger.to_state.attributes.country | default('Unknown') }}
+          - Type: {{ trigger.to_state.attributes.event_type | default('Unknown') }}
+          - Severity: {{ trigger.to_state.attributes.severity | default('Unknown') }}
+          {% endif %}
+          
+          Check notifications for full details.
+  
+  #=============================================================================
+  # AUTOMATION MODE: Allow parallel execution for multiple alerts
+  #=============================================================================
+  mode: queued
+  max: 5
+
+#===============================================================================
+# CONFIGURATION NOTES:
+#
+# 1. CRITICAL: Update entity_id on line 17 to match your actual GDACS sensor
+# 2. The automation uses your existing Telegram config_entry_id
+# 3. Email uses notify.email_notification (from your email_service.yaml)
+# 4. Handles both single alert and multiple alerts format
+# 5. Creates persistent notification in HA interface
+# 6. Logs to system_log for troubleshooting
+# 7. Mode set to "queued" to handle multiple simultaneous alerts
+# 8. Maximum 5 alerts can be queued at once
+#
+# To find your GDACS entity ID:
+# 1. Go to Developer Tools → States
+# 2. Search for "gdacs"
+# 3. Copy the exact entity_id
+# 4. Replace on line 17
+#
+#===============================================================================

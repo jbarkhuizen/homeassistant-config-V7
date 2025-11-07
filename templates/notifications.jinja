@@ -1,0 +1,634 @@
+{#
+===============================================================================
+CENTRALIZED NOTIFICATION MESSAGES
+File: /config/templates/notifications.jinja
+Purpose: Single source of truth for all notification message templates
+Updated: 2025-10-28
+===============================================================================
+
+This file contains all notification message templates used across your
+Home Assistant automations. Messages are defined as Jinja2 macros that can
+be called from any automation with dynamic parameters.
+
+USAGE IN AUTOMATIONS:
+  {% from 'notifications.jinja' import message_name %}
+  {{ message_name(param1='value1', param2='value2') }}
+
+TELEGRAM vs EMAIL:
+  - Each message type has two versions: _telegram and _email
+  - Telegram uses markdown formatting (* for bold, etc.)
+  - Email uses plain text with separators or HTML formatting
+
+PARAMETER NAMING:
+  - device_name: Name of the device triggering the alert
+  - battery_level: Current battery percentage
+  - threshold: Battery threshold value
+  - alert_count: Number of alerts
+  - timestamp: Date/time of the alert
+  - And more specific to each message type
+#}
+
+{# ========================================================================== #}
+{# BATTERY MONITORING MESSAGES                                                #}
+{# ========================================================================== #}
+
+{#
+MESSAGE: Low Battery Alert - Telegram
+PARAMETERS:
+  - device_name: Name of the device (string)
+  - battery_level: Current battery level (float)
+  - threshold: Low battery threshold (float)
+  - timestamp: Alert timestamp (datetime)
+#}
+{% macro low_battery_alert_telegram(device_name, battery_level, threshold, timestamp) %}
+🟡 *LOW BATTERY ALERT*
+
+⚠️ *Device Battery Running Low*
+
+📱 *Device:* {{ device_name }}
+🔋 *Battery Level:* {{ battery_level | round(1) }}%
+📊 *Threshold:* {{ threshold | round(1) }}%
+
+💡 *Action Required:*
+• Order replacement battery
+• Plan battery replacement soon
+• Monitor device functionality
+
+🏠 System: 192.168.1.30:8123
+📅 {{ timestamp.strftime('%A, %d %B %Y %H:%M') }}
+{% endmacro %}
+
+{#
+MESSAGE: Low Battery Alert - Email
+PARAMETERS:
+  - device_name: Name of the device (string)
+  - battery_level: Current battery level (float)
+  - threshold: Low battery threshold (float)
+  - entity_id: Entity ID of the device (string)
+  - timestamp: Alert timestamp (datetime)
+#}
+{% macro low_battery_alert_email(device_name, battery_level, threshold, entity_id, timestamp) %}
+================================================================================
+LOW BATTERY ALERT
+================================================================================
+
+Device Battery Running Low
+
+--------------------------------------------------------------------------------
+DEVICE INFORMATION
+--------------------------------------------------------------------------------
+
+Device Name: {{ device_name }}
+Current Battery Level: {{ battery_level | round(1) }}%
+Low Battery Threshold: {{ threshold | round(1) }}%
+Status: Battery level has dropped below threshold
+
+--------------------------------------------------------------------------------
+ACTION REQUIRED
+--------------------------------------------------------------------------------
+
+Please take the following actions:
+
+1. Order replacement battery for this device
+2. Plan for battery replacement within the next few days
+3. Continue monitoring device functionality
+4. Check device is still operating correctly
+
+--------------------------------------------------------------------------------
+DEVICE DETAILS
+--------------------------------------------------------------------------------
+
+Entity ID: {{ entity_id }}
+Battery Percentage: {{ battery_level | round(1) }}%
+Alert Triggered: {{ timestamp.strftime('%A, %d %B %Y at %H:%M:%S') }}
+
+--------------------------------------------------------------------------------
+SYSTEM INFORMATION
+--------------------------------------------------------------------------------
+
+Home Assistant System: http://192.168.1.30:8123
+Cloud Access: https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/
+
+This is an automated notification from your Home Assistant battery monitoring system.
+
+================================================================================
+{% endmacro %}
+
+{#
+MESSAGE: Critical Battery Alert - Telegram
+PARAMETERS:
+  - device_name: Name of the device (string)
+  - battery_level: Current battery level (float)
+  - threshold: Critical battery threshold (float)
+  - timestamp: Alert timestamp (datetime)
+#}
+{% macro critical_battery_alert_telegram(device_name, battery_level, threshold, timestamp) %}
+🔴 *CRITICAL BATTERY ALERT*
+
+⛔ *IMMEDIATE ACTION REQUIRED*
+
+📱 *Device:* {{ device_name }}
+🔋 *Battery Level:* {{ battery_level | round(1) }}% ⚠️ CRITICAL
+📊 *Critical Threshold:* {{ threshold | round(1) }}%
+
+⚡ *URGENT ACTIONS:*
+• Replace battery IMMEDIATELY
+• Device may stop functioning soon
+• Order replacement battery NOW
+• Monitor device closely
+
+🏠 System: 192.168.1.30:8123
+📅 {{ timestamp.strftime('%A, %d %B %Y %H:%M') }}
+{% endmacro %}
+
+{#
+MESSAGE: Critical Battery Alert - Email
+PARAMETERS:
+  - device_name: Name of the device (string)
+  - battery_level: Current battery level (float)
+  - threshold: Critical battery threshold (float)
+  - entity_id: Entity ID of the device (string)
+  - timestamp: Alert timestamp (datetime)
+#}
+{% macro critical_battery_alert_email(device_name, battery_level, threshold, entity_id, timestamp) %}
+================================================================================
+CRITICAL BATTERY ALERT - IMMEDIATE ACTION REQUIRED
+================================================================================
+
+Device Battery Critically Low
+
+--------------------------------------------------------------------------------
+DEVICE INFORMATION
+--------------------------------------------------------------------------------
+
+Device Name: {{ device_name }}
+Current Battery Level: {{ battery_level | round(1) }}% ⚠️ CRITICAL
+Critical Battery Threshold: {{ threshold | round(1) }}%
+Status: CRITICAL - Device may stop functioning soon
+
+--------------------------------------------------------------------------------
+URGENT ACTION REQUIRED
+--------------------------------------------------------------------------------
+
+IMMEDIATE ACTIONS NEEDED:
+
+1. Replace battery IMMEDIATELY
+2. Device may stop functioning at any moment
+3. Order replacement battery NOW if not already ordered
+4. Monitor device closely for functionality issues
+5. Consider temporary backup if device is critical
+
+--------------------------------------------------------------------------------
+DEVICE DETAILS
+--------------------------------------------------------------------------------
+
+Entity ID: {{ entity_id }}
+Battery Percentage: {{ battery_level | round(1) }}%
+Alert Triggered: {{ timestamp.strftime('%A, %d %B %Y at %H:%M:%S') }}
+Alert Level: CRITICAL
+
+--------------------------------------------------------------------------------
+SYSTEM INFORMATION
+--------------------------------------------------------------------------------
+
+Home Assistant System: http://192.168.1.30:8123
+Cloud Access: https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/
+
+This is a CRITICAL automated notification from your Home Assistant battery monitoring system.
+
+================================================================================
+{% endmacro %}
+
+{# ========================================================================== #}
+{# SYSTEM HEALTH MESSAGES                                                     #}
+{# ========================================================================== #}
+
+{#
+MESSAGE: High CPU Usage Alert - Telegram
+PARAMETERS:
+  - cpu_usage: Current CPU percentage (float)
+  - memory_usage: Current memory percentage (float)
+  - disk_usage: Current disk percentage (float)
+  - health_score: System health score (int)
+  - timestamp: Alert timestamp (datetime)
+#}
+{% macro high_cpu_alert_telegram(cpu_usage, memory_usage, disk_usage, health_score, timestamp) %}
+🔴 *HIGH CPU USAGE ALERT*
+
+⚠️ *System Performance Issue Detected*
+
+📊 *Current Metrics:*
+🖥️ CPU Usage: {{ cpu_usage | round(1) }}%
+🧠 Memory: {{ memory_usage | round(1) }}%
+💾 Disk: {{ disk_usage | round(1) }}%
+
+⏱️ *Duration:* 5+ minutes
+🏥 *Health Score:* {{ health_score }}/100
+
+*Recommended Actions:*
+• Check running add-ons in Supervisor
+• Review recent automations/integrations
+• Check system logs for errors
+• Consider restarting HA if issue persists
+
+🌐 IP: 192.168.1.30:8123
+📅 {{ timestamp.strftime('%A, %d %B %Y %H:%M') }}
+{% endmacro %}
+
+{#
+MESSAGE: High CPU Usage Alert - Email
+PARAMETERS:
+  - cpu_usage: Current CPU percentage (float)
+  - memory_usage: Current memory percentage (float)
+  - disk_usage: Current disk percentage (float)
+  - health_score: System health score (int)
+  - timestamp: Alert timestamp (datetime)
+#}
+{% macro high_cpu_alert_email(cpu_usage, memory_usage, disk_usage, health_score, timestamp) %}
+================================================================================
+HIGH CPU USAGE ALERT
+================================================================================
+
+System Performance Issue Detected
+
+Your Home Assistant system is experiencing high CPU usage.
+
+--------------------------------------------------------------------------------
+CURRENT METRICS
+--------------------------------------------------------------------------------
+
+CPU Usage: {{ cpu_usage | round(1) }}%
+Memory Usage: {{ memory_usage | round(1) }}%
+Disk Usage: {{ disk_usage | round(1) }}%
+System Health Score: {{ health_score }}/100
+
+Duration: 5+ minutes
+
+--------------------------------------------------------------------------------
+RECOMMENDED ACTIONS
+--------------------------------------------------------------------------------
+
+1. Check Supervisor for resource-intensive add-ons
+2. Review recent automation changes
+3. Check system logs for errors
+4. Consider restarting if issue persists
+
+--------------------------------------------------------------------------------
+SYSTEM INFORMATION
+--------------------------------------------------------------------------------
+
+Time: {{ timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+IP: 192.168.1.30:8123
+Cloud: https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/
+
+================================================================================
+{% endmacro %}
+
+{# ========================================================================== #}
+{# SOLAR/INVERTER MESSAGES                                                    #}
+{# ========================================================================== #}
+
+{#
+MESSAGE: Daily Solar Production Report - Telegram
+PARAMETERS:
+  - pv1_production: PV1 production in kWh (float)
+  - pv2_production: PV2 production in kWh (float)
+  - total_production: Total production in kWh (float)
+  - target: Daily target in kWh (float)
+  - achievement: Achievement percentage (float)
+  - battery_charge: Battery charged in kWh (float)
+  - grid_export: Grid export in kWh (float)
+  - timestamp: Report timestamp (datetime)
+#}
+{% macro daily_solar_report_telegram(pv1_production, pv2_production, total_production, target, achievement, battery_charge, grid_export, timestamp) %}
+☀️ *DAILY SOLAR PRODUCTION REPORT*
+
+📅 {{ timestamp.strftime('%A, %d %B %Y') }}
+
+*PV STRING PRODUCTION*
+🔆 PV1: {{ pv1_production | round(2) }} kWh
+🔆 PV2: {{ pv2_production | round(2) }} kWh
+⚡ Total: {{ total_production | round(2) }} kWh
+
+*PERFORMANCE*
+🎯 Target: {{ target | round(1) }} kWh
+📊 Achievement: {{ achievement | round(1) }}%
+
+*ENERGY FLOW*
+🔋 Battery Charged: {{ battery_charge | round(2) }} kWh
+🔌 Grid Export: {{ grid_export | round(2) }} kWh
+
+🌐 http://192.168.1.30:8123
+{% endmacro %}
+
+{#
+MESSAGE: Daily Solar Production Report - Email
+PARAMETERS:
+  - pv1_production: PV1 production in kWh (float)
+  - pv2_production: PV2 production in kWh (float)
+  - total_production: Total production in kWh (float)
+  - pv1_total: PV1 cumulative total (float)
+  - pv2_total: PV2 cumulative total (float)
+  - target: Daily target in kWh (float)
+  - achievement: Achievement percentage (float)
+  - battery_charge: Battery charged in kWh (float)
+  - grid_export: Grid export in kWh (float)
+  - timestamp: Report timestamp (datetime)
+#}
+{% macro daily_solar_report_email(pv1_production, pv2_production, total_production, pv1_total, pv2_total, target, achievement, battery_charge, grid_export, timestamp) %}
+================================================================================
+DAILY SOLAR PRODUCTION REPORT
+================================================================================
+
+Date: {{ timestamp.strftime('%A, %d %B %Y') }}
+
+--------------------------------------------------------------------------------
+PV STRING PRODUCTION
+--------------------------------------------------------------------------------
+
+PV1: {{ pv1_production | round(2) }} kWh
+PV2: {{ pv2_production | round(2) }} kWh
+Total: {{ total_production | round(2) }} kWh
+
+--------------------------------------------------------------------------------
+CUMULATIVE TOTALS
+--------------------------------------------------------------------------------
+
+PV1 Total: {{ pv1_total | round(1) }} kWh
+PV2 Total: {{ pv2_total | round(1) }} kWh
+
+--------------------------------------------------------------------------------
+PERFORMANCE METRICS
+--------------------------------------------------------------------------------
+
+Daily Target: {{ target | round(1) }} kWh
+Achievement: {{ achievement | round(1) }}%
+
+Status: {% if achievement >= 100 %}Target Met ✅{% elif achievement >= 80 %}Near Target 📍{% else %}Below Target ⚠️{% endif %}
+
+--------------------------------------------------------------------------------
+ENERGY FLOW
+--------------------------------------------------------------------------------
+
+Battery Charged: {{ battery_charge | round(2) }} kWh
+Grid Export: {{ grid_export | round(2) }} kWh
+
+--------------------------------------------------------------------------------
+SYSTEM INFORMATION
+--------------------------------------------------------------------------------
+
+System: http://192.168.1.30:8123
+Cloud: https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/
+
+================================================================================
+{% endmacro %}
+
+{# ========================================================================== #}
+{# PREPAID METER MESSAGES                                                     #}
+{# ========================================================================== #}
+
+{#
+MESSAGE: Prepaid Meter Daily Status - Telegram
+PARAMETERS:
+  - units_left: Units remaining (float)
+  - daily_usage: Yesterday's usage in kWh (float)
+  - days_remaining: Estimated days remaining (float)
+  - warning_threshold: Warning threshold value (float)
+  - critical_threshold: Critical threshold value (float)
+  - emergency_threshold: Emergency threshold value (float)
+  - timestamp: Report timestamp (datetime)
+#}
+{% macro prepaid_meter_status_telegram(units_left, daily_usage, days_remaining, warning_threshold, critical_threshold, emergency_threshold, timestamp) %}
+⚡ *PREPAID METER DAILY STATUS*
+
+📊 *Current Balance:*
+🔋 Units Remaining: {{ units_left | round(1) }} kWh
+
+📈 *Usage Statistics:*
+📅 Yesterday: {{ daily_usage | round(2) }} kWh
+⏱️ Days Remaining: ~{{ days_remaining | round(1) }} days
+
+🎯 *Alert Thresholds:*
+🟡 Warning: {{ warning_threshold | round(0) }} kWh
+🟠 Critical: {{ critical_threshold | round(0) }} kWh
+🔴 Emergency: {{ emergency_threshold | round(0) }} kWh
+
+{% if units_left < critical_threshold %}⚠️ *ACTION REQUIRED* - Balance is critically low!
+{% elif units_left < warning_threshold %}⚠️ Consider recharging soon
+{% else %}✅ Balance is healthy
+{% endif %}
+
+📅 {{ timestamp.strftime('%A, %d %B %Y') }}
+{% endmacro %}
+
+{#
+MESSAGE: Prepaid Meter Daily Status - Email
+PARAMETERS:
+  - units_left: Units remaining (float)
+  - daily_usage: Yesterday's usage in kWh (float)
+  - days_remaining: Estimated days remaining (float)
+  - warning_threshold: Warning threshold value (float)
+  - critical_threshold: Critical threshold value (float)
+  - emergency_threshold: Emergency threshold value (float)
+  - timestamp: Report timestamp (datetime)
+#}
+{% macro prepaid_meter_status_email(units_left, daily_usage, days_remaining, warning_threshold, critical_threshold, emergency_threshold, timestamp) %}
+================================================================================
+PREPAID ELECTRICITY METER DAILY STATUS
+================================================================================
+
+Date: {{ timestamp.strftime('%A, %d %B %Y') }}
+
+--------------------------------------------------------------------------------
+CURRENT BALANCE
+--------------------------------------------------------------------------------
+
+Units Remaining: {{ units_left | round(1) }} kWh
+
+--------------------------------------------------------------------------------
+USAGE STATISTICS
+--------------------------------------------------------------------------------
+
+Yesterday's Usage: {{ daily_usage | round(2) }} kWh
+Estimated Days Remaining: ~{{ days_remaining | round(1) }} days
+Average Daily Usage: {{ daily_usage | round(2) }} kWh
+
+--------------------------------------------------------------------------------
+ALERT THRESHOLDS
+--------------------------------------------------------------------------------
+
+Warning Level: {{ warning_threshold | round(0) }} kWh
+Critical Level: {{ critical_threshold | round(0) }} kWh
+Emergency Level: {{ emergency_threshold | round(0) }} kWh
+
+--------------------------------------------------------------------------------
+STATUS
+--------------------------------------------------------------------------------
+
+{% if units_left < critical_threshold %}
+STATUS: CRITICAL - ACTION REQUIRED
+Balance is critically low. Please recharge immediately to avoid disconnection.
+
+{% elif units_left < warning_threshold %}
+STATUS: WARNING
+Balance is running low. Consider recharging soon to maintain continuous service.
+
+{% else %}
+STATUS: HEALTHY
+Balance is sufficient for estimated {{ days_remaining | round(1) }} days at current usage rate.
+
+{% endif %}
+
+--------------------------------------------------------------------------------
+SYSTEM INFORMATION
+--------------------------------------------------------------------------------
+
+Home Assistant: http://192.168.1.30:8123
+Cloud Access: https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/
+
+================================================================================
+{% endmacro %}
+
+{# ========================================================================== #}
+{# GDACS DISASTER ALERT MESSAGES                                              #}
+{# ========================================================================== #}
+
+{#
+MESSAGE: GDACS Disaster Alert - Telegram
+PARAMETERS:
+  - alert_count: Number of active alerts (int)
+  - alerts: List of alert objects (list)
+  - timestamp: Alert timestamp (datetime)
+#}
+{% macro gdacs_alert_telegram(alert_count, alerts, timestamp) %}
+🚨 *GDACS DISASTER ALERT*
+
+⚠️ *Active Alerts:* {{ alert_count }}
+
+{% if alerts | length > 0 %}
+{% for alert in alerts[:3] %}
+
+*Alert {{ loop.index }}:*
+📍 Location: {{ alert.country | default('Unknown') }}
+🌐 Event: {{ alert.event_type | default('Unknown') }}
+📊 Severity: {{ alert.severity | default('Unknown') }}
+🔴 Alert Level: {{ alert.alert_level | default('Unknown') }}
+👥 Population Affected: {{ alert.population | default('Unknown') }}
+📅 Date: {{ alert.from_date | default('Unknown') }}
+🔗 More Info: {{ alert.url | default('No URL') }}
+{% endfor %}
+{% else %}
+*Alert Details:*
+📍 Country: Unknown
+🌐 Type: Unknown
+📊 Severity: Unknown
+{% endif %}
+
+⏰ Alert Time: {{ timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+
+🌐 Home Assistant: http://192.168.1.30:8123
+{% endmacro %}
+
+{#
+MESSAGE: GDACS Disaster Alert - Email
+PARAMETERS:
+  - alert_count: Number of active alerts (int)
+  - alerts: List of alert objects (list)
+  - timestamp: Alert timestamp (datetime)
+#}
+{% macro gdacs_alert_email(alert_count, alerts, timestamp) %}
+================================================================================
+GLOBAL DISASTER ALERT AND COORDINATION SYSTEM (GDACS)
+================================================================================
+
+ACTIVE DISASTER ALERTS DETECTED
+
+Date and Time: {{ timestamp.strftime('%A, %d %B %Y at %H:%M:%S') }}
+
+--------------------------------------------------------------------------------
+ALERT SUMMARY
+--------------------------------------------------------------------------------
+
+Number of Active Alerts: {{ alert_count }}
+
+{% if alerts | length > 0 %}
+{% for alert in alerts %}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ALERT {{ loop.index }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Location: {{ alert.country | default('Unknown') }}
+Event Type: {{ alert.event_type | default('Unknown') }}
+Severity Level: {{ alert.severity | default('Unknown') }}
+Alert Level: {{ alert.alert_level | default('Unknown') }}
+Population Affected: {{ alert.population | default('Unknown') }}
+Date From: {{ alert.from_date | default('Unknown') }}
+Date To: {{ alert.to_date | default('Ongoing') }}
+
+More Information: {{ alert.url | default('No URL available') }}
+
+{% if alert.description is defined %}
+Description:
+{{ alert.description }}
+{% endif %}
+
+{% endfor %}
+{% else %}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ALERT DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Country: Unknown
+Event Type: Unknown
+Severity: Unknown
+
+{% endif %}
+
+--------------------------------------------------------------------------------
+IMPORTANT NOTES
+--------------------------------------------------------------------------------
+
+- This is an automated alert from the Global Disaster Alert and Coordination System
+- Please check the provided URL for detailed information and updates
+- Take appropriate precautions based on the severity and type of disaster
+- Monitor official news sources and local emergency services
+
+--------------------------------------------------------------------------------
+SYSTEM INFORMATION
+--------------------------------------------------------------------------------
+
+Home Assistant System: http://192.168.1.30:8123
+Cloud URL: https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/
+
+================================================================================
+{% endmacro %}
+
+{# ========================================================================== #}
+{# END OF NOTIFICATION MESSAGES                                               #}
+{# ========================================================================== #}
+
+{#
+TO ADD NEW MESSAGES:
+1. Create two macros: one for Telegram (_telegram) and one for Email (_email)
+2. Define parameters clearly in the comment block above each macro
+3. Use Jinja2 syntax for dynamic content: {{ variable_name }}
+4. Use filters for formatting: | round(2), | default('Unknown'), etc.
+5. Telegram uses markdown: * for bold, • for bullets
+6. Email uses plain text with separators: ==== and ----
+7. Test the macro before deploying to production
+
+EXAMPLE USAGE IN AUTOMATION:
+  - service: telegram_bot.send_message
+    data:
+      config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
+      message: >
+        {% from 'notifications.jinja' import low_battery_alert_telegram %}
+        {{ low_battery_alert_telegram(
+             device_name=repeat.item.name | replace(' Battery', ''),
+             battery_level=repeat.item.battery,
+             threshold=states('input_number.battery_low_threshold') | float,
+             timestamp=now()
+        ) }}
+      parse_mode: markdown
+#}

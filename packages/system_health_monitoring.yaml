@@ -1,0 +1,581 @@
+#===============================================================================
+# SYSTEM HEALTH MONITORING PACKAGE
+#===============================================================================
+# Purpose: Monitor Home Assistant system performance and send alerts
+# Created: 2025-10-14
+# Monitors: CPU, Memory, Disk Space, Database Size, Recorder Performance
+# Notifications: Telegram + Email
+#===============================================================================
+
+#===============================================================================
+# TEMPLATE SENSORS - System Health Metrics
+#===============================================================================
+template:
+  - sensor:
+      # CPU Status Sensor with Color Coding
+      - name: "System CPU Status"
+        unique_id: system_cpu_status
+        state: >
+          {% set cpu = states('sensor.home_assistant_supervisor_cpu_percent') | float(0) %}
+          {% if cpu < 50 %}
+            Normal
+          {% elif cpu < 70 %}
+            Moderate
+          {% elif cpu < 85 %}
+            High
+          {% else %}
+            Critical
+          {% endif %}
+        attributes:
+          cpu_percent: "{{ states('sensor.home_assistant_supervisor_cpu_percent') }}"
+          status_color: >
+            {% set cpu = states('sensor.home_assistant_supervisor_cpu_percent') | float(0) %}
+            {% if cpu < 50 %}
+              green
+            {% elif cpu < 70 %}
+              yellow
+            {% elif cpu < 85 %}
+              orange
+            {% else %}
+              red
+            {% endif %}
+          last_updated: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+        icon: >
+          {% set cpu = states('sensor.home_assistant_supervisor_cpu_percent') | float(0) %}
+          {% if cpu < 50 %}
+            mdi:chip
+          {% elif cpu < 70 %}
+            mdi:alert-circle-outline
+          {% else %}
+            mdi:alert-octagon
+          {% endif %}
+
+      # Memory Status Sensor
+      - name: "System Memory Status"
+        unique_id: system_memory_status
+        state: >
+          {% set mem = states('sensor.memory_use_percent') | float(0) %}
+          {% if mem < 70 %}
+            Normal
+          {% elif mem < 85 %}
+            High
+          {% else %}
+            Critical
+          {% endif %}
+        attributes:
+          memory_percent: "{{ states('sensor.memory_use_percent') }}"
+          status_color: >
+            {% set mem = states('sensor.memory_use_percent') | float(0) %}
+            {% if mem < 70 %}
+              green
+            {% elif mem < 85 %}
+              orange
+            {% else %}
+              red
+            {% endif %}
+        icon: >
+          {% set mem = states('sensor.memory_use_percent') | float(0) %}
+          {% if mem < 70 %}
+            mdi:memory
+          {% else %}
+            mdi:alert-octagon
+          {% endif %}
+
+      # Overall System Health Score
+      - name: "System Health Score"
+        unique_id: template_system_health_score_v1
+        state: >
+          {% set cpu = states('sensor.home_assistant_supervisor_cpu_percent') | float(0) %}
+          {% set mem = states('sensor.memory_use_percent') | float(0) %}
+          {% set disk = states('sensor.disk_use_percent') | float(0) %}
+          {% set score = 100 %}
+          {% if cpu > 80 %}
+            {% set score = score - 30 %}
+          {% elif cpu > 60 %}
+            {% set score = score - 15 %}
+          {% endif %}
+          {% if mem > 85 %}
+            {% set score = score - 30 %}
+          {% elif mem > 70 %}
+            {% set score = score - 15 %}
+          {% endif %}
+          {% if disk > 85 %}
+            {% set score = score - 20 %}
+          {% elif disk > 75 %}
+            {% set score = score - 10 %}
+          {% endif %}
+          {{ score }}
+        unit_of_measurement: "%"
+        attributes:
+          rating: >
+            {% set score = states('sensor.system_health_score') | float(100) %}
+            {% if score >= 90 %}
+              Excellent
+            {% elif score >= 75 %}
+              Good
+            {% elif score >= 60 %}
+              Fair
+            {% elif score >= 40 %}
+              Poor
+            {% else %}
+              Critical
+            {% endif %}
+          cpu_contribution: "{{ states('sensor.home_assistant_supervisor_cpu_percent') }}%"
+          memory_contribution: "{{ states('sensor.memory_use_percent') }}%"
+          disk_contribution: "{{ states('sensor.disk_use_percent') }}%"
+        icon: mdi:heart-pulse
+
+  - binary_sensor:
+      # Critical System Alert Sensor
+      - name: "System Health Critical"
+        unique_id: system_health_critical
+        state: >
+          {% set cpu = states('sensor.home_assistant_supervisor_cpu_percent') | float(0) %}
+          {% set mem = states('sensor.memory_use_percent') | float(0) %}
+          {% set disk = states('sensor.disk_use_percent') | float(0) %}
+          {{ cpu > 90 or mem > 90 or disk > 90 }}
+        device_class: problem
+        attributes:
+          issues: >
+            {% set issues = [] %}
+            {% set cpu = states('sensor.home_assistant_supervisor_cpu_percent') | float(0) %}
+            {% set mem = states('sensor.memory_use_percent') | float(0) %}
+            {% set disk = states('sensor.disk_use_percent') | float(0) %}
+            {% if cpu > 90 %}
+              {% set issues = issues + ['CPU Critical: ' ~ cpu ~ '%'] %}
+            {% endif %}
+            {% if mem > 90 %}
+              {% set issues = issues + ['Memory Critical: ' ~ mem ~ '%'] %}
+            {% endif %}
+            {% if disk > 90 %}
+              {% set issues = issues + ['Disk Critical: ' ~ disk ~ '%'] %}
+            {% endif %}
+            {{ issues | join(', ') if issues else 'None' }}
+
+#===============================================================================
+# AUTOMATIONS - System Health Monitoring
+#===============================================================================
+automation:
+  #-----------------------------------------------------------------------------
+  # HIGH CPU USAGE ALERT - Immediate Response
+  #-----------------------------------------------------------------------------
+  - id: system_high_cpu_usage_alert
+    alias: "System Health: High CPU Usage Alert"
+    description: "Send immediate alert when CPU usage exceeds 80% for 5 minutes"
+
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.home_assistant_supervisor_cpu_percent
+        above: 80
+        for:
+          minutes: 5
+
+    condition: []
+
+    action:
+      # Send Telegram Alert
+      - service: telegram_bot.send_message
+        data:
+          config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
+          message: |
+            🔴 *HIGH CPU USAGE ALERT*
+
+            ⚠️ *System Performance Issue Detected*
+
+            📊 *Current Metrics:*
+            🖥️ CPU Usage: {{ states('sensor.home_assistant_supervisor_cpu_percent') }}%
+            🧠 Memory: {{ states('sensor.memory_use_percent') }}%
+            💾 Disk: {{ states('sensor.disk_use_percent') }}%
+
+            ⏱️ *Duration:* 5+ minutes
+            🏥 *Health Score:* {{ states('sensor.system_health_score') }}/100
+
+            *Recommended Actions:*
+            • Check running add-ons in Supervisor
+            • Review recent automations/integrations
+            • Check system logs for errors
+            • Consider restarting HA if issue persists
+
+            🌐 IP: 192.168.1.30:8123
+            📅 {{ now().strftime('%A, %d %B %Y %H:%M') }}
+          parse_mode: markdown
+
+      # Send Email Alert
+      - service: notify.email_alerts_jbarkhuizen_gmail_com
+        data:
+          title: "🔴 Home Assistant - High CPU Usage Alert"
+          message: >
+            HIGH CPU USAGE DETECTED
+
+            Your Home Assistant system is experiencing high CPU usage.
+
+            Current CPU Usage: {{ states('sensor.home_assistant_supervisor_cpu_percent') }}%
+            Duration: 5+ minutes
+            Memory Usage: {{ states('sensor.memory_use_percent') }}%
+            Disk Usage: {{ states('sensor.disk_use_percent') }}%
+            System Health Score: {{ states('sensor.system_health_score') }}/100
+
+            RECOMMENDED ACTIONS:
+            1. Check Supervisor for resource-intensive add-ons
+            2. Review recent automation changes
+            3. Check system logs for errors
+            4. Consider restarting if issue persists
+
+            Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+            IP: 192.168.1.30:8123
+
+      # Log to System
+      - service: system_log.write
+        data:
+          message: "High CPU usage detected: {{ states('sensor.home_assistant_supervisor_cpu_percent') }}% for 5+ minutes"
+          level: warning
+
+    mode: single
+
+  #-----------------------------------------------------------------------------
+  # CRITICAL CPU USAGE ALERT - Severe Issue
+  #-----------------------------------------------------------------------------
+  - id: system_critical_cpu_usage_alert
+    alias: "System Health: Critical CPU Usage Alert"
+    description: "Send critical alert when CPU usage exceeds 95% for 2 minutes"
+
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.home_assistant_supervisor_cpu_percent
+        above: 95
+        for:
+          minutes: 2
+
+    condition: []
+
+    action:
+      # Send Urgent Telegram Alert
+      - service: telegram_bot.send_message
+        data:
+          config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
+          message: |
+            🚨 *CRITICAL CPU ALERT*
+
+            ⛔ *IMMEDIATE ATTENTION REQUIRED*
+
+            📊 *System Status:*
+            🖥️ CPU: {{ states('sensor.home_assistant_supervisor_cpu_percent') }}% ⚠️ CRITICAL
+            🧠 Memory: {{ states('sensor.memory_use_percent') }}%
+            💾 Disk: {{ states('sensor.disk_use_percent') }}%
+
+            ⏱️ Duration: 2+ minutes at critical level
+            🏥 Health Score: {{ states('sensor.system_health_score') }}/100
+
+            *URGENT ACTIONS NEEDED:*
+            ⚠️ System may become unresponsive
+            ⚠️ Check add-ons immediately
+            ⚠️ Consider emergency restart
+
+            📅 {{ now().strftime('%A, %d %B %Y %H:%M') }}
+          parse_mode: markdown
+
+      # Send Critical Email
+      - service: notify.email_alerts_jbarkhuizen_gmail_com
+        data:
+          title: "🚨 CRITICAL - Home Assistant CPU Emergency"
+          message: >
+            CRITICAL CPU USAGE - IMMEDIATE ACTION REQUIRED
+
+            Your Home Assistant system is in critical state.
+
+            CPU Usage: {{ states('sensor.home_assistant_supervisor_cpu_percent') }}% - CRITICAL
+            Duration: 2+ minutes
+
+            IMMEDIATE ACTIONS:
+            1. Access Supervisor NOW
+            2. Stop resource-intensive add-ons
+            3. Check for runaway automations
+            4. Emergency restart may be necessary
+
+            Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+
+      # Log Critical Event
+      - service: system_log.write
+        data:
+          message: "CRITICAL: CPU usage at {{ states('sensor.home_assistant_supervisor_cpu_percent') }}% - System may become unresponsive"
+          level: critical
+
+    mode: single
+
+  #-----------------------------------------------------------------------------
+  # HIGH MEMORY USAGE ALERT
+  #-----------------------------------------------------------------------------
+  - id: system_high_memory_usage_alert
+    alias: "System Health: High Memory Usage Alert"
+    description: "Alert when memory usage exceeds 85% for 5 minutes"
+
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.memory_use_percent
+        above: 85
+        for:
+          minutes: 5
+
+    condition: []
+
+    action:
+      # Send Telegram Alert
+      - service: telegram_bot.send_message
+        data:
+          config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
+          message: |
+            🟠 *HIGH MEMORY USAGE ALERT*
+
+            ⚠️ *Memory Resources Running Low*
+
+            📊 *Current Status:*
+            🧠 Memory: {{ states('sensor.memory_use_percent') }}%
+            🖥️ CPU: {{ states('sensor.home_assistant_supervisor_cpu_percent') }}%
+            💾 Disk: {{ states('sensor.disk_use_percent') }}%
+
+            *Actions to Consider:*
+            • Restart resource-heavy add-ons
+            • Clear recorder database if large
+            • Check for memory leaks
+            • Consider system restart
+
+            📅 {{ now().strftime('%A, %d %B %Y %H:%M') }}
+          parse_mode: markdown
+
+      # Log Warning
+      - service: system_log.write
+        data:
+          message: "High memory usage: {{ states('sensor.memory_use_percent') }}%"
+          level: warning
+
+    mode: single
+
+  #-----------------------------------------------------------------------------
+  # DAILY SYSTEM HEALTH REPORT - 09:00
+  #-----------------------------------------------------------------------------
+  - id: system_daily_health_report
+    alias: "System Health: Daily Status Report"
+    description: "Daily system health report sent at 09:00"
+
+    trigger:
+      - platform: time
+        at: "09:00:00"
+
+    condition: []
+
+    action:
+      # Send Daily Telegram Report
+      - service: telegram_bot.send_message
+        data:
+          config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
+          message: |
+            📊 *DAILY SYSTEM HEALTH REPORT*
+
+            🏥 *Health Score:* {{ states('sensor.system_health_score') }}/100
+            Rating: {{ state_attr('sensor.system_health_score', 'rating') }}
+
+            📈 *Current Metrics:*
+            🖥️ CPU Usage: {{ states('sensor.home_assistant_supervisor_cpu_percent') }}%
+            🧠 Memory Usage: {{ states('sensor.memory_use_percent') }}%
+            💾 Disk Usage: {{ states('sensor.disk_use_percent') }}%
+
+            💡 *System Status:*
+            CPU: {{ states('sensor.system_cpu_status') }}
+            Memory: {{ states('sensor.system_memory_status') }}
+            {% if is_state('binary_sensor.system_health_critical', 'on') %}
+            ⚠️ *Critical Issues Detected:*
+            {{ state_attr('binary_sensor.system_health_critical', 'issues') }}
+            {% else %}
+            ✅ No critical issues detected
+            {% endif %}
+
+            🌐 System: 192.168.1.30:8123
+            📅 {{ now().strftime('%A, %d %B %Y') }}
+          parse_mode: markdown
+
+      # Send Daily Email Report
+      - service: notify.email_alerts_jbarkhuizen_gmail_com
+        data:
+          title: "Home Assistant - Daily System Health Report"
+          message: >
+            DAILY SYSTEM HEALTH REPORT
+
+            Date: {{ now().strftime('%A, %d %B %Y') }}
+            Time: 09:00
+
+            ================================================================================
+
+            OVERALL HEALTH SCORE: {{ states('sensor.system_health_score') }}/100
+            Rating: {{ state_attr('sensor.system_health_score', 'rating') }}
+
+            SYSTEM METRICS:
+            - CPU Usage: {{ states('sensor.home_assistant_supervisor_cpu_percent') }}%
+            - Memory Usage: {{ states('sensor.memory_use_percent') }}%
+            - Disk Usage: {{ states('sensor.disk_use_percent') }}%
+
+            COMPONENT STATUS:
+            - CPU Status: {{ states('sensor.system_cpu_status') }}
+            - Memory Status: {{ states('sensor.system_memory_status') }}
+
+            {% if is_state('binary_sensor.system_health_critical', 'on') %}
+            CRITICAL ISSUES DETECTED:
+            {{ state_attr('binary_sensor.system_health_critical', 'issues') }}
+
+            IMMEDIATE ACTION REQUIRED
+            {% else %}
+            SYSTEM STATUS: All systems operating normally
+            No critical issues detected
+            {% endif %}
+
+            ================================================================================
+
+            Home Assistant: http://192.168.1.30:8123
+
+      # Log Daily Report
+      - service: system_log.write
+        data:
+          message: "Daily health report: Score {{ states('sensor.system_health_score') }}/100 - {{ state_attr('sensor.system_health_score', 'rating') }}"
+          level: info
+
+    mode: single
+
+  #-----------------------------------------------------------------------------
+  # HIGH DISK USAGE ALERT
+  #-----------------------------------------------------------------------------
+  - id: system_high_disk_usage_alert
+    alias: "System Health: High Disk Usage Alert"
+    description: "Alert when disk usage exceeds 85%"
+
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.disk_use_percent
+        above: 85
+
+    condition: []
+
+    action:
+      # Send Telegram Alert
+      - service: telegram_bot.send_message
+        data:
+          config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
+          message: |
+            🟠 *HIGH DISK USAGE ALERT*
+
+            ⚠️ *Storage Space Running Low*
+
+            📊 *Current Status:*
+            💾 Disk Usage: {{ states('sensor.disk_use_percent') }}%
+            🖥️ CPU: {{ states('sensor.home_assistant_supervisor_cpu_percent') }}%
+            🧠 Memory: {{ states('sensor.memory_use_percent') }}%
+
+            *Recommended Actions:*
+            • Review and delete old backups
+            • Clear recorder database history
+            • Check for large log files
+            • Remove unused add-ons
+            • Clean up /config folder
+
+            📅 {{ now().strftime('%A, %d %B %Y %H:%M') }}
+          parse_mode: markdown
+
+      # Send Email Alert
+      - service: notify.email_alerts_jbarkhuizen_gmail_com
+        data:
+          title: "🟠 Home Assistant - High Disk Usage Alert"
+          message: >
+            HIGH DISK USAGE DETECTED
+
+            Your Home Assistant storage is running low.
+
+            Disk Usage: {{ states('sensor.disk_use_percent') }}%
+
+            RECOMMENDED ACTIONS:
+            1. Review and delete old backups
+            2. Reduce recorder database retention period
+            3. Check for large log files in /config
+            4. Remove unused add-ons
+            5. Clean up temporary files
+
+            Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+
+      # Log Warning
+      - service: system_log.write
+        data:
+          message: "High disk usage: {{ states('sensor.disk_use_percent') }}%"
+          level: warning
+
+    mode: single
+
+  #-----------------------------------------------------------------------------
+  # CRITICAL DISK USAGE ALERT
+  #-----------------------------------------------------------------------------
+  - id: system_critical_disk_usage_alert
+    alias: "System Health: Critical Disk Usage Alert"
+    description: "Alert when disk usage exceeds 95%"
+
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.disk_use_percent
+        above: 95
+
+    condition: []
+
+    action:
+      # Send Critical Telegram Alert
+      - service: telegram_bot.send_message
+        data:
+          config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
+          message: |
+            🚨 *CRITICAL DISK USAGE ALERT*
+
+            ⛔ *IMMEDIATE ACTION REQUIRED*
+
+            📊 *System Status:*
+            💾 Disk: {{ states('sensor.disk_use_percent') }}% ⚠️ CRITICAL
+            🖥️ CPU: {{ states('sensor.home_assistant_supervisor_cpu_percent') }}%
+            🧠 Memory: {{ states('sensor.memory_use_percent') }}%
+
+            *URGENT ACTIONS:*
+            ⚠️ System may fail to write data
+            ⚠️ Delete old backups NOW
+            ⚠️ Clear recorder database IMMEDIATELY
+            ⚠️ Remove large files
+
+            Risk: Database corruption possible
+
+            📅 {{ now().strftime('%A, %d %B %Y %H:%M') }}
+          parse_mode: markdown
+
+      # Send Critical Email
+      - service: notify.email_alerts_jbarkhuizen_gmail_com
+        data:
+          title: "🚨 CRITICAL - Home Assistant Disk Full"
+          message: >
+            CRITICAL DISK USAGE - IMMEDIATE ACTION REQUIRED
+
+            Your Home Assistant storage is nearly full.
+
+            Disk Usage: {{ states('sensor.disk_use_percent') }}% - CRITICAL
+
+            URGENT ACTIONS REQUIRED:
+            1. Delete old backups IMMEDIATELY
+            2. Reduce recorder retention to 1 day
+            3. Clear /config/home-assistant.log
+            4. Remove unused add-ons
+            5. Free up space NOW to prevent system failure
+
+            WARNING: System may become unstable or fail to write data.
+            Database corruption possible if not addressed immediately.
+
+            Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+
+      # Log Critical Event
+      - service: system_log.write
+        data:
+          message: "CRITICAL: Disk usage at {{ states('sensor.disk_use_percent') }}% - Immediate action required"
+          level: critical
+
+    mode: single
+#===============================================================================
+# END OF SYSTEM HEALTH MONITORING PACKAGE
+#===============================================================================
