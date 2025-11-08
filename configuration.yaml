@@ -1,31 +1,12 @@
-
+# ==============================================================================
+# Home Assistant Main Configuration
+# File: configuration.yaml
+# Updated: 2025-10-21
+# ==============================================================================
 
 # Loads default set of integrations. Do not remove.
 default_config:
-#=======================================================================================
-# Load frontend themes from the themes folder
-#=======================================================================================
-frontend:
-  themes: !include_dir_merge_named themes
-  extra_module_url:
-    - /hacsfiles/lovelace-card-mod/card-mod.js
-# ==============================================================================
-# Text to Speech
-# ==============================================================================
-tts:
-  - platform: google_translate  
-    service_name: google_say
-# ==============================================================================
-# Load Automations, Scripts, Scenes, etc.
-# ==============================================================================
-automation: !include automations.yaml
-script: !include scripts.yaml
-scene: !include scenes.yaml
-template: !include template.yaml
-group: !include groups.yaml
-#=======================================================================================
-#The homeassistant packages will become the standard of loading configs going forward
-#be sure to add the packages folder and the 2 lines
+
 homeassistant:
   # Basic instance information
   name: "Smart Home - Pierre van Ryneveld"
@@ -48,9 +29,30 @@ homeassistant:
     - "/tmp"
     - "/config/exports"
     - "/config/entity_exports"
+    - "/config/backup"
   # Packages configuration - This will now be loaded correctly.
   packages: !include_dir_named packages
-
+#=======================================================================================
+# Load frontend themes from the themes folder
+#=======================================================================================
+frontend:
+  themes: !include_dir_merge_named themes
+  extra_module_url:
+    - /hacsfiles/lovelace-card-mod/card-mod.js
+# ==============================================================================
+# Text to Speech
+# ==============================================================================
+tts:
+  - platform: google_translate  
+    service_name: google_say
+# ==============================================================================
+# Load Automations, Scripts, Scenes, etc.
+# ==============================================================================
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+template: !include template.yaml
+group: !include groups.yaml
 #=======================================================================================
 # SmartHome Integrations
 # https://github.com/tomatensaus/DeyeSolarDesktop/blob/main/configuration.yaml
@@ -127,19 +129,28 @@ pyscript:
 
 # ==============================================================================
 # Command Line Sensor
-# (1) UPDATED: Correct log path + stable counting + value template + units + scan interval
 # ==============================================================================
 command_line:
+#  - sensor:
+#      name: Badlogin
+#      command: "grep -c 'Login attempt' /home/hass/.homeassistant/home-assistant.log"
   - sensor:
       name: Badlogin
       command: "grep 'Login attempt' /config/home-assistant.log | wc -l"
       value_template: "{{ value | int }}"
       unit_of_measurement: "events"
       scan_interval: 300
+  - sensor:
+      name: Homeassistant DB Size MB
+      command: "stat -c %s /config/home-assistant_v2.db 2>/dev/null || echo 0"
+      value_template: "{{ (value | int / 1048576) | round(2) }}"
+      unit_of_measurement: "MB"
+      scan_interval: 600
 
 # ==============================================================================
 # INPUT NUMBERS
-# (2) ADDED: Store previous day baseline for Badlogin comparisons
+# (4) ADDED: DB baseline
+# (5) ADDED: Growth threshold percent (adjustable)
 # ==============================================================================
 input_number:
   badlogin_previous_count:
@@ -149,6 +160,23 @@ input_number:
     step: 1
     mode: box
     icon: mdi:shield-key
+  homeassistant_db_baseline_mb:
+    name: HA DB Baseline MB
+    min: 0
+    max: 100000
+    step: 0.01
+    mode: box
+    icon: mdi:database
+  homeassistant_db_growth_threshold_percent:
+    name: HA DB Growth Threshold %
+    min: 5
+    max: 100
+    step: 1
+    mode: slider
+    icon: mdi:chart-line
+    # Default threshold (20%) will be set manually after restart if needed.
+
+# ==============================================================================
 # Shell Commands
 # ==============================================================================
 shell_command:
@@ -168,13 +196,17 @@ shell_command:
     -H "Content-Type: application/json" \
     http://192.168.1.30:8123/api/services/homeassistant/restart
   cleanup_logs: >
-    find /config -name "home-assistant.log*" -mtime +7 -delete && 
+    find /config -name "home-assistant.log*" -mtime +7 -delete &&
     find /config -name "*.log" -size +10M -delete
   check_log_size: >
     du -sh /config/home-assistant.log 2>/dev/null | cut -f1 > /config/log_size.txt || echo "0" > /config/log_size.txt
   cleanup_sensor_reports: >
     find /config/sensor_reports -type f -name "sensors_*" -mtime +14 -delete &&
     echo "Sensor reports older than 14 days deleted"
+  db_monthly_backup: >
+    cp /config/home-assistant_v2.db /backup/home-assistant_v2-$(date +%Y%m%d)_monthly.sqlite && echo "/backup/home-assistant_v2-$(date +%Y%m%d)_monthly.sqlite" > /backup/db-monthly-latest.txt
+    db_monthly_checksum: >
+    md5sum /backup/home-assistant_v2-$(date +%Y%m%d)_monthly.sqlite | awk '{print $1}' > /backup/home-assistant_v2-$(date +%Y%m%d)_monthly.md5
 
 # ==============================================================================
 # Other Integrations
@@ -243,3 +275,82 @@ logger:
     urllib3.connectionpool: error
     requests.packages.urllib3.connectionpool: error
     aiohttp.access: error
+
+recorder:
+  purge_keep_days: 360
+  auto_purge: true
+  auto_repack: true
+  commit_interval: 10
+  include:
+    domains:
+      - climate
+      - person
+      - device_tracker
+      - sensor
+      - switch
+      - light
+      - automation
+      - script
+    entities:
+      - sensor.badlogin
+      - sensor.homeassistant_db_size_mb
+      - sensor.deyeinvertermaster_battery_soc
+      - sensor.deyeinverterslave_battery_soc
+      - sensor.deyeinvertermaster_pv_power
+      - sensor.deyeinverterslave_pv_power
+      - sensor.deyeinvertermaster_inverter_output_power
+      - sensor.deyeinverterslave_inverter_output_power
+      - sensor.deyeinvertermaster_non_essential_load
+      - sensor.deyeinverterslave_non_essential_load
+      - sensor.deyeinvertermaster_grid_power_ct_clamp
+      - sensor.deyeinverterslave_grid_power_ct_clamp
+      - sensor.deyeinvertermaster_battery_output_power
+      - sensor.deyeinverterslave_battery_output_power
+      - sensor.deyeinvertermaster_generator_port_power
+      - sensor.deyeinvertermaster_today_energy_bought
+      - sensor.deyeinvertermaster_today_energy_sold
+      - sensor.deyeinvertermaster_today_load_consumption
+      - sensor.deyeinverterslave_today_energy_bought
+      - sensor.deyeinverterslave_today_energy_sold
+      - sensor.deyeinverterslave_today_load_consumption
+    entity_globs:
+      - sensor.deyeinverter*_pv_power
+      - sensor.deyeinverter*_inverter_output_power
+      - sensor.deyeinverter*_non_essential_load
+      - sensor.deyeinverter*_grid_power_ct_clamp
+      - sensor.deyeinverter*_battery_output_power
+      - sensor.deyeinverter*_battery_soc
+  exclude:
+    domains:
+      - updater
+      - sun
+      - media_player
+    entities:
+      - sensor.date_time
+      - sensor.time
+      - sensor.date_time_utc
+      - sensor.date_time_iso
+      - sensor.time_date
+      - sensor.uptime
+      - sensor.time_utc
+      - sensor.last_boot
+      - sensor.processor_use
+      - sensor.processor_temperature
+      - sensor.memory_use_percent
+      - sensor.swap_use_percent
+      - sensor.load_1m
+      - sensor.load_5m
+      - sensor.load_15m
+      - sensor.speedtest_download
+      - sensor.speedtest_upload
+      - sensor.speedtest_ping
+    entity_globs:
+      - sensor.*_update_available
+      - sensor.hacs_*
+      - binary_sensor.hacs_*
+      - sensor.openweathermap_*
+      - sensor.weather_*
+      - device_tracker.unknown_*
+      - sensor.node_red_*
+      - sensor.telegram_*
+      - sensor.spotify_*

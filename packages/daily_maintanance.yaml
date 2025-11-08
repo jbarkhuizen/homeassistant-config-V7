@@ -1,7 +1,5 @@
 # Package: Daily maintenance and housekeeping tasks
 # All tasks triggered at 09:00, per your requirement.
-# NOTE: The former 'file sensor' approach is now deprecated for YAML.
-# We keep the original block commented out for reference and provide a command_line sensor replacement.
 
 automation:
   - id: daily_maintenance_0900
@@ -32,42 +30,116 @@ automation:
       - service: homeassistant.restart
     mode: single
 
-# ----------------------------------------------------------------------------------
+  - id: recorder_initialize_baseline
+    alias: "Database - Initialize Baseline (Startup)"
+    description: "Set initial DB size baseline and default threshold after restart if not set."
+    mode: single
+    trigger:
+      - platform: homeassistant
+        event: start
+    action:
+      - variables:
+          current: "{{ states('sensor.homeassistant_db_size_mb') | float(0) }}"
+          baseline: "{{ states('input_number.homeassistant_db_baseline_mb') | float(0) }}"
+          threshold: "{{ states('input_number.homeassistant_db_growth_threshold_percent') | float(0) }}"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ baseline == 0 and current > 0 }}"
+            sequence:
+              - service: input_number.set_value
+                target:
+                  entity_id: input_number.homeassistant_db_baseline_mb
+                data:
+                  value: "{{ current }}"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ threshold == 0 or threshold < 5 }}"
+            sequence:
+              - service: input_number.set_value
+                target:
+                  entity_id: input_number.homeassistant_db_growth_threshold_percent
+                data:
+                  value: 20
+
+  - id: recorder_daily_growth_check
+    alias: "Database - Daily 09h00 Growth Check"
+    description: "Evaluate DB growth; purge & repack if abnormal; then refresh baseline."
+    mode: single
+    trigger:
+      - platform: time
+        at: "09:00:00"
+    action:
+      - variables:
+          current: "{{ states('sensor.homeassistant_db_size_mb') | float(0) }}"
+          baseline: "{{ states('input_number.homeassistant_db_baseline_mb') | float(0) }}"
+          threshold_percent: "{{ states('input_number.homeassistant_db_growth_threshold_percent') | float(20) }}"
+          diff_mb: "{{ (current - baseline) | round(2) }}"
+          pct_growth: >
+            {% if baseline > 0 %}
+              {{ ((current - baseline) / baseline * 100) | round(2) }}
+            {% else %}
+              0
+            {% endif %}
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ pct_growth > threshold_percent and diff_mb > 250 }}"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "Database Growth Alert"
+                  message: >
+                    Home Assistant DB size increased abnormally.
+                    Previous baseline (09h00 yesterday): {{ baseline }} MB
+                    Current size: {{ current }} MB
+                    Increase: {{ diff_mb }} MB ({{ pct_growth }}%)
+                    Threshold: {{ threshold_percent }}%
+                    Action: Initiating purge & repack (keep 360 days).
+                    Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+              - service: recorder.purge
+                data:
+                  keep_days: 360
+                  repack: true
+          - conditions:
+              - condition: template
+                value_template: "{{ pct_growth <= threshold_percent or diff_mb <= 250 }}"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "Database Daily Check"
+                  message: >
+                    Database size within normal range.
+                    Baseline: {{ baseline }} MB
+                    Current: {{ current }} MB
+                    Change: {{ diff_mb }} MB ({{ pct_growth }}%)
+                    Threshold: {{ threshold_percent }}%
+                    Retention: 360 days
+                    Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.homeassistant_db_baseline_mb
+        data:
+          value: "{{ current }}"
+
 # ORIGINAL (NOW INVALID) FILE SENSOR BLOCK — COMMENTED OUT, DO NOT DELETE
-# Kept for historical context per your instruction not to remove existing code.
-#
+# (Historical context kept)
 # sensor:
 #   - platform: file
 #     name: Home Assistant Log Size
 #     file_path: /config/log_size.txt
 #     value_template: "{{ value | trim }}"
 #     scan_interval: 300
-#
-# Reason for deprecation error:
-# Home Assistant reports "Unused YAML configuration" because 'platform: file'
-# is no longer a valid method for configuring a file-based sensor.
-# ----------------------------------------------------------------------------------
 
-# ----------------------------------------------------------------------------------
-# REPLACEMENT: Use command_line sensor to read the log_size.txt contents
-# This is fully supported and will populate a sensor with the same value.
-# The shell_command.check_log_size (run at 09:00) writes /config/log_size.txt.
-# scan_interval ensures periodic refresh if you manually run the shell command or
-# if other processes update the file.
-# ----------------------------------------------------------------------------------
 command_line:
   - sensor:
       name: Home Assistant Log Size
       command: "cat /config/log_size.txt 2>/dev/null || echo 0"
-      # Keep output as-is; you can still template it later if you want to normalize units.
       scan_interval: 300
       unique_id: home_assistant_log_size_sensor
-      # No value_template required since file already stores a plain string like '2.3M'
 
-# ----------------------------------------------------------------------------------
-# OPTIONAL FUTURE IMPROVEMENT (COMMENTED FOR NOW):
-# You could create a template sensor to convert sizes (e.g. 2.3M -> 2.3) or classify:
-#
+# OPTIONAL FUTURE IMPROVEMENT (COMMENTED):
 # template:
 #   - sensor:
 #       - name: "Home Assistant Log Size (MB)"
@@ -84,4 +156,3 @@ command_line:
 #           {% else %}
 #             0
 #           {% endif %}
-# ----------------------------------------------------------------------------------
