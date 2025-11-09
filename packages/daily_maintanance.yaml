@@ -1,5 +1,7 @@
 # Package: Daily maintenance and housekeeping tasks
 # All tasks triggered at 09:00, per your requirement.
+# NOTE: The former 'file sensor' approach is now deprecated for YAML.
+# We keep the original block commented out for reference and provide a command_line sensor replacement.
 
 automation:
   - id: daily_maintenance_0900
@@ -30,6 +32,7 @@ automation:
       - service: homeassistant.restart
     mode: single
 
+  # Database baseline initializer (Startup)
   - id: recorder_initialize_baseline
     alias: "Database - Initialize Baseline (Startup)"
     description: "Set initial DB size baseline and default threshold after restart if not set."
@@ -63,6 +66,7 @@ automation:
                 data:
                   value: 20
 
+  # Daily 09h00 DB growth check
   - id: recorder_daily_growth_check
     alias: "Database - Daily 09h00 Growth Check"
     description: "Evaluate DB growth; purge & repack if abnormal; then refresh baseline."
@@ -123,8 +127,254 @@ automation:
         data:
           value: "{{ current }}"
 
+  # Monthly DB backup & compaction — First Monday 06:30
+  - id: recorder_monthly_backup_compaction
+    alias: "Database - Monthly Backup & Compaction (First Monday 06:30)"
+    description: "Create monthly DB backup with checksum, then compact (repack)."
+    mode: single
+    trigger:
+      - platform: time
+        at: "06:30:00"
+    condition:
+      - condition: time
+        weekday:
+          - mon
+      - condition: template
+        value_template: "{{ now().day <= 7 }}"   # First Monday window (day 1–7)
+    action:
+      - variables:
+          pre_size: "{{ states('sensor.homeassistant_db_size_mb') | float(0) }}"
+      - service: shell_command.db_monthly_backup
+      - service: shell_command.db_monthly_checksum
+      - delay: "00:00:05"
+      - service: recorder.purge
+        data:
+          keep_days: 360
+          repack: true
+      - delay: "00:00:05"
+      - variables:
+          post_size: "{{ states('sensor.homeassistant_db_size_mb') | float(0) }}"
+      - service: persistent_notification.create
+        data:
+          title: "Monthly DB Backup & Compaction Complete"
+          message: >
+            Monthly database maintenance finished.
+            Size before: {{ pre_size }} MB
+            Size after: {{ post_size }} MB
+            Backup path recorded in /backup/db-monthly-latest.txt
+            Retention: 360 days
+            Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+
+  # Daily InfluxDB data flow verification — 08:00
+  - id: influxdb_flow_verification_0800
+    alias: "InfluxDB Data Flow Verification 08h00"
+    description: "Verify critical inverter sensors updated recently (proxy for data feed & write)."
+    mode: single
+    trigger:
+      - platform: time
+        at: "08:00:00"
+    action:
+      - variables:
+          sensors: >
+            {{ [
+              'sensor.deyeinvertermaster_pv_power',
+              'sensor.deyeinverterslave_pv_power',
+              'sensor.deyeinvertermaster_inverter_output_power',
+              'sensor.deyeinverterslave_inverter_output_power',
+              'sensor.deyeinvertermaster_battery_soc',
+              'sensor.deyeinverterslave_battery_soc'
+            ] }}
+          stale_list: >
+            {% set cutoff = (now() - timedelta(minutes=15)) %}
+            {% set bad = [] %}
+            {% for s in sensors %}
+              {% set st = states[s] %}
+              {% if st is not none %}
+                {% if st.last_changed < cutoff or st.state in ['unknown','unavailable',''] %}
+                  {% set _ = bad.append(s) %}
+                {% endif %}
+              {% else %}
+                {% set _ = bad.append(s) %}
+              {% endif %}
+            {% endfor %}
+            {{ bad }}
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ stale_list | length > 0 }}"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "InfluxDB Data Flow Warning"
+                  message: >
+                    One or more critical inverter sensors have stale or invalid states
+                    in the last 15 minutes (08h00 check).
+                    Stale sensors: {{ stale_list }}
+                    Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+              - service: homeassistant.update_entity
+                target:
+                  entity_id: sensor.influxdb_flow_status
+          - conditions:
+              - condition: template
+                value_template: "{{ stale_list | length == 0 }}"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "InfluxDB Data Flow OK"
+                  message: >
+                    All critical inverter sensors updated within the last 15 minutes.
+                    Data flow healthy as of 08h00.
+                    Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+              - service: homeassistant.update_entity
+                target:
+                  entity_id: sensor.influxdb_flow_status
+      - delay: "00:00:02"
+
+  # Security: IP ban delta & summary — 06:15
+  - id: security_ip_bans_summary_0615
+    alias: "Security - IP Ban Daily Summary (06:15)"
+    description: "Report new IP bans vs baseline; send Telegram if increased."
+    mode: single
+    trigger:
+      - platform: time
+        at: "06:15:00"
+    action:
+      - variables:
+          current: "{{ states('sensor.home_assistant_ip_bans_count') | int(0) }}"
+          baseline: "{{ states('input_number.ipbans_previous_count') | int(0) }}"
+          diff: "{{ (current - baseline) | int }}"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ diff > 0 }}"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "Security: New IP bans detected"
+                  message: >
+                    IP bans increased since yesterday.
+                    Previous: {{ baseline }} | Current: {{ current }} | Increase: {{ diff }}
+                    Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+              - service: notify.barkiehome
+                data:
+                  title: "Security: New IP bans"
+                  message: "Increase: {{ diff }} (Now: {{ current }}, Prev: {{ baseline }})"
+              - service: notify.johanbarkhuizen
+                data:
+                  title: "Security: New IP bans"
+                  message: "Increase: {{ diff }} (Now: {{ current }}, Prev: {{ baseline }})"
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.ipbans_previous_count
+        data:
+          value: "{{ current }}"
+
+  # Node-RED & Grafana health — 08:15
+  - id: addons_health_check_0815
+    alias: "Add-ons Health Check & Restart if needed (08:15)"
+    description: "Checks Node-RED and Grafana HTTP health; restarts add-on on failure."
+    mode: single
+    trigger:
+      - platform: time
+        at: "08:15:00"
+    action:
+      - variables:
+          node_status: "{{ states('sensor.node_red_http_status_code') | int(0) }}"
+          graf_status: "{{ states('sensor.grafana_http_status_code') | int(0) }}"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ node_status != 200 }}"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "Node-RED Health Alert"
+                  message: "HTTP status: {{ node_status }}. Attempting restart..."
+              - service: hassio.addon_restart
+                data:
+                  addon: "a0d7b954_nodered"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ graf_status != 200 }}"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "Grafana Health Alert"
+                  message: "HTTP status: {{ graf_status }}. Attempting restart..."
+              - service: hassio.addon_restart
+                data:
+                  addon: "a0d7b954_grafana"
+
+  # Sunsunk/Deye stale data detection — 06:35 and 08:35
+  - id: deye_stale_data_recovery
+    alias: "Sunsunk Inverters - Stale Data Recovery (06:35 & 08:35)"
+    description: "If key inverter sensors are stale >10 min, reload Deye integration."
+    mode: single
+    trigger:
+      - platform: time
+        at: "06:35:00"
+      - platform: time
+        at: "08:35:00"
+    action:
+      - variables:
+          keys: >
+            {{ [
+              'sensor.deyeinvertermaster_pv_power',
+              'sensor.deyeinverterslave_pv_power',
+              'sensor.deyeinvertermaster_inverter_output_power',
+              'sensor.deyeinverterslave_inverter_output_power',
+              'sensor.deyeinvertermaster_battery_soc',
+              'sensor.deyeinverterslave_battery_soc'
+            ] }}
+          stale: >
+            {% set cutoff = (now() - timedelta(minutes=10)) %}
+            {% set bad = [] %}
+            {% for s in keys %}
+              {% set st = states[s] %}
+              {% if st is none or st.state in ['unknown','unavailable',''] or st.last_changed < cutoff %}
+                {% set _ = bad.append(s) %}
+              {% endif %}
+            {% endfor %}
+            {{ bad }}
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ stale | length > 0 }}"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "Sunsunk Inverter Data Stale"
+                  message: >
+                    Stale sensors detected (>10 min): {{ stale }}.
+                    Reloading Deye integration.
+                    Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+              - service: shell_command.restart_deye_integration
+
+# Template sensor summarizing last Influx verification
+template:
+  - sensor:
+      - name: "influxdb_flow_status"
+        unique_id: influxdb_flow_status
+        state: >
+          {% set pn = states.persistent_notification %}
+          {% set warn = 'InfluxDB Data Flow Warning' %}
+          {% set ok = 'InfluxDB Data Flow OK' %}
+          {% if warn in (pn | string) %}
+            warning
+          {% elif ok in (pn | string) %}
+            ok
+          {% else %}
+            pending
+          {% endif %}
+        icon: >
+          {% if this.state == 'ok' %}mdi:database-check
+          {% elif this.state == 'warning' %}mdi:database-alert
+          {% else %}mdi:database-clock{% endif %}
+
 # ORIGINAL (NOW INVALID) FILE SENSOR BLOCK — COMMENTED OUT, DO NOT DELETE
-# (Historical context kept)
+# Kept for historical context per your instruction not to remove existing code.
+#
 # sensor:
 #   - platform: file
 #     name: Home Assistant Log Size
@@ -132,6 +382,7 @@ automation:
 #     value_template: "{{ value | trim }}"
 #     scan_interval: 300
 
+# Replacement for the old file sensor
 command_line:
   - sensor:
       name: Home Assistant Log Size

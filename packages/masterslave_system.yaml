@@ -443,3 +443,44 @@ template:
         state_class: measurement
         availability: >-
           {{ has_value('sensor.deyeinvertercombined_inverter_output_power') and has_value('sensor.deyeinvertercombined_battery_output_power') }}
+
+      # ---------- NEW: Daily KPI sensors ----------
+      - name: "deyeinvertercombined_daily_charge_efficiency_percent"
+        unique_id: deyeinvertercombined_daily_charge_efficiency_percent
+        state: >-
+          {% set ch = states('sensor.deyeinvertercombined_summary_day_battery_charge') | float(0) %}
+          {% set dis = states('sensor.deyeinvertercombined_summary_day_battery_discharge') | float(0) %}
+          {% if ch > 0 %}
+            {{ (dis / ch * 100) | round(1) }}
+          {% else %}
+            0
+          {% endif %}
+        unit_of_measurement: "%"
+        icon: mdi:battery-clock
+
+      - name: "deyeinvertercombined_pv_utilization_ratio_percent"
+        unique_id: deyeinvertercombined_pv_utilization_ratio_percent
+        state: >-
+          {% set pv = states('sensor.deyeinvertercombined_summary_day_pv') | float(0) %}
+          {% set load = states('sensor.deyeinvertercombined_summary_day_load') | float(0) %}
+          {% set ch = states('sensor.deyeinvertercombined_summary_day_battery_charge') | float(0) %}
+          {% if pv > 0 %}
+            {{ ( ((load + ch) / pv) * 100 ) | round(1) }}
+          {% else %}
+            0
+          {% endif %}
+        unit_of_measurement: "%"
+        icon: mdi:solar-power
+
+      - name: "deyeinvertercombined_grid_dependency_ratio_percent"
+        unique_id: deyeinvertercombined_grid_dependency_ratio_percent
+        state: >-
+          {% set load = states('sensor.deyeinvertercombined_summary_day_load') | float(0) %}
+          {% set grid = states('sensor.deyeinvertercombined_summary_day_grid_import_buy') | float(0) %}
+          {% if load > 0 %}
+            {{ (grid / load * 100) | round(1) }}
+          {% else %}
+            0
+          {% endif %}
+        unit_of_measurement: "%"
+        icon: mdi:transmission-tower

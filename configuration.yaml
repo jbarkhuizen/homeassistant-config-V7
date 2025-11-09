@@ -146,6 +146,36 @@ command_line:
       value_template: "{{ (value | int / 1048576) | round(2) }}"
       unit_of_measurement: "MB"
       scan_interval: 600
+# ==============================================================================
+  # Count of banned IPs (lines with 'ip_address' in ip_bans.yaml)
+  # Added with GitHib Copilot GPT 5 on 9 Nov 2025
+# ==============================================================================
+  - sensor:
+      name: Home Assistant IP Bans Count
+      command: "grep -c 'ip_address' /config/ip_bans.yaml 2>/dev/null || echo 0"
+      value_template: "{{ value | int }}"
+      unit_of_measurement: "bans"
+      scan_interval: 600
+# ==============================================================================
+  # Node-RED HTTP health (expects 200)
+  # Added with GitHib Copilot GPT 5 on 9 Nov 2025
+# ==============================================================================
+  - sensor:
+      name: Node-RED HTTP Status Code
+      command: "curl -s -o /dev/null -w '%{http_code}' http://a0d7b954-nodered:1880/ || echo 000"
+      value_template: "{{ value | int }}"
+      unit_of_measurement: "code"
+      scan_interval: 300
+# ==============================================================================
+  # Grafana HTTP health (expects 200)
+  # Added with GitHib Copilot GPT 5 on 9 Nov 2025
+# ==============================================================================
+  - sensor:
+      name: Grafana HTTP Status Code
+      command: "curl -s -o /dev/null -w '%{http_code}' http://a0d7b954-grafana:3000/api/health || echo 000"
+      value_template: "{{ value | int }}"
+      unit_of_measurement: "code"
+      scan_interval: 300
 
 # ==============================================================================
 # INPUT NUMBERS
@@ -177,6 +207,17 @@ input_number:
     # Default threshold (20%) will be set manually after restart if needed.
 
 # ==============================================================================
+# Added with GitHib Copilot GPT 5 on 9 Nov 2025
+# ==============================================================================
+  ipbans_previous_count:
+    name: IP Bans Previous Count
+    min: 0
+    max: 100000
+    step: 1
+    mode: box
+    icon: mdi:shield-alert
+
+# ==============================================================================
 # Shell Commands
 # ==============================================================================
 shell_command:
@@ -203,6 +244,7 @@ shell_command:
   cleanup_sensor_reports: >
     find /config/sensor_reports -type f -name "sensors_*" -mtime +14 -delete &&
     echo "Sensor reports older than 14 days deleted"
+# Monthly DB maintenance helpers (first Monday 06:30) 
   db_monthly_backup: >
     cp /config/home-assistant_v2.db /backup/home-assistant_v2-$(date +%Y%m%d)_monthly.sqlite && echo "/backup/home-assistant_v2-$(date +%Y%m%d)_monthly.sqlite" > /backup/db-monthly-latest.txt
     db_monthly_checksum: >
@@ -292,8 +334,13 @@ recorder:
       - automation
       - script
     entities:
+      # Security / Monitoring
       - sensor.badlogin
       - sensor.homeassistant_db_size_mb
+      - sensor.home_assistant_ip_bans_count
+      - sensor.node_red_http_status_code
+      - sensor.grafana_http_status_code
+      # Inverter SoC and Power (Master/Slave/Combined)
       - sensor.deyeinvertermaster_battery_soc
       - sensor.deyeinverterslave_battery_soc
       - sensor.deyeinvertermaster_pv_power
@@ -307,6 +354,7 @@ recorder:
       - sensor.deyeinvertermaster_battery_output_power
       - sensor.deyeinverterslave_battery_output_power
       - sensor.deyeinvertermaster_generator_port_power
+      # Daily summaries (if present)
       - sensor.deyeinvertermaster_today_energy_bought
       - sensor.deyeinvertermaster_today_energy_sold
       - sensor.deyeinvertermaster_today_load_consumption

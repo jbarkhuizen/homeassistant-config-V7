@@ -1442,7 +1442,10 @@ function $043ab5348dd51237$export$c0e85c3982a3daa6(stateObj, state) {
         case 'lock':
             return compareState !== 'locked';
         case 'media_player':
-            return compareState !== 'standby';
+            return ![
+                'standby',
+                'paused'
+            ].includes(compareState);
         case 'vacuum':
             return ![
                 'idle',
@@ -2368,7 +2371,7 @@ const $6914dc426cdafe87$export$4aa0a1b480cdb1b6 = (0, $def2de46b9306e8a$export$d
   --opacity-icon-inactive: 0.2;
 `;
 const $6914dc426cdafe87$export$38d2ecc76f0c2959 = (0, $def2de46b9306e8a$export$dbf350e5966cf602)`
-  --opacity-background-active: 1;
+  --opacity-background-active: 0.1;
   --opacity-background-inactive: 1;
 
   --opacity-icon-fill-active: 0.2;
@@ -2646,12 +2649,12 @@ const $2d4b3d1e878a5c64$export$abc50289182506e4 = (config, active)=>{
 
 const $2a931dbd84666c62$export$6675fe814017d7b1 = (hass, config, entity, isOccupied, image, isActive)=>{
     const { state: state } = entity;
-    const active = hass.themes.darkMode && (isActive ?? false);
+    const active = isActive ?? false;
     const themeOverride = (0, $81b7b9da9d23fa76$export$de96a622725f4284)(hass, entity, active);
     const skipStyles = (0, $a64cd1666b27644b$export$805ddaeeece0413e)(config, 'skip_entity_styles');
     const opacity = (0, $2d4b3d1e878a5c64$export$abc50289182506e4)(config, active);
     const occupancy = (0, $7cf9926046a85a8c$export$a44444e2ac55f0e7)(isOccupied, config.occupancy);
-    const cssColor = hass.themes.darkMode ? (0, $964034295ca0500a$export$b2779b0e0d1bdfa9)(state, 'card', active) : undefined;
+    const cssColor = (0, $964034295ca0500a$export$b2779b0e0d1bdfa9)(state, 'card', active);
     let backgroundColorCard;
     if (skipStyles) backgroundColorCard = undefined;
     else backgroundColorCard = active ? cssColor : undefined;
@@ -3314,6 +3317,744 @@ class $e4f1b26747081709$export$90a7a1e0555e0bc9 extends (0, $ab210b2da7b39b9d$ex
 
 
 
+
+
+
+/**
+ * @license
+ * Copyright 2020 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */ const { I: $311430566e21b48b$var$t } = (0, $f58f44579a4747ac$export$8613d1ca9052b22e), $311430566e21b48b$export$c3825b437cbdea5c = (o)=>null === o || "object" != typeof o && "function" != typeof o, $311430566e21b48b$export$80c36ae3cab9881d = {
+    HTML: 1,
+    SVG: 2,
+    MATHML: 3
+}, $311430566e21b48b$export$6b6d145ec2a44ca9 = (o, t)=>void 0 === t ? void 0 !== o?._$litType$ : o?._$litType$ === t, $311430566e21b48b$export$6a0e8de894d2fcca = (o)=>null != o?._$litType$?.h, $311430566e21b48b$export$2f448fec17d50a3e = (o)=>void 0 !== o?._$litDirective$, $311430566e21b48b$export$f28e31de6a6eaf32 = (o)=>o?._$litDirective$, $311430566e21b48b$export$7f431ad0fff82fd9 = (o)=>void 0 === o.strings, $311430566e21b48b$var$s = ()=>document.createComment(""), $311430566e21b48b$export$291b2338ad9b0b30 = (o, i, n)=>{
+    const e = o._$AA.parentNode, l = void 0 === i ? o._$AB : i._$AA;
+    if (void 0 === n) {
+        const i = e.insertBefore($311430566e21b48b$var$s(), l), c = e.insertBefore($311430566e21b48b$var$s(), l);
+        n = new $311430566e21b48b$var$t(i, c, o, o.options);
+    } else {
+        const t = n._$AB.nextSibling, i = n._$AM, c = i !== o;
+        if (c) {
+            let t;
+            n._$AQ?.(o), n._$AM = o, void 0 !== n._$AP && (t = o._$AU) !== i._$AU && n._$AP(t);
+        }
+        if (t !== l || c) {
+            let o = n._$AA;
+            for(; o !== t;){
+                const t = o.nextSibling;
+                e.insertBefore(o, l), o = t;
+            }
+        }
+    }
+    return n;
+}, $311430566e21b48b$export$cb8bf9562088e9f4 = (o, t, i = o)=>(o._$AI(t, i), o), $311430566e21b48b$var$u = {}, $311430566e21b48b$export$ea70d9dd5965b1c8 = (o, t = $311430566e21b48b$var$u)=>o._$AH = t, $311430566e21b48b$export$59e9bce518cde500 = (o)=>o._$AH, $311430566e21b48b$export$3133b3144bbba267 = (o)=>{
+    o._$AP?.(!1, !0);
+    let t = o._$AA;
+    const i = o._$AB.nextSibling;
+    for(; t !== i;){
+        const o = t.nextSibling;
+        t.remove(), t = o;
+    }
+}, $311430566e21b48b$export$7f600b8138c094dc = (o)=>{
+    o._$AR();
+};
+
+
+/**
+ * @license
+ * Copyright 2017 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */ const $6db6ff6394e885e6$var$u = (e, s, t)=>{
+    const r = new Map;
+    for(let l = s; l <= t; l++)r.set(e[l], l);
+    return r;
+}, $6db6ff6394e885e6$export$76d90c956114f2c2 = (0, $107bb7d062dde330$export$99b43ad1ed32e735)(class extends (0, $107bb7d062dde330$export$befdefbdce210f91) {
+    constructor(e){
+        if (super(e), e.type !== (0, $107bb7d062dde330$export$9ba3b3f20a85bfa).CHILD) throw Error("repeat() can only be used in text expressions");
+    }
+    dt(e, s, t) {
+        let r;
+        void 0 === t ? t = s : void 0 !== s && (r = s);
+        const l = [], o = [];
+        let i = 0;
+        for (const s of e)l[i] = r ? r(s, i) : i, o[i] = t(s, i), i++;
+        return {
+            values: o,
+            keys: l
+        };
+    }
+    render(e, s, t) {
+        return this.dt(e, s, t).values;
+    }
+    update(s, [t, r, c]) {
+        const d = (0, $311430566e21b48b$export$59e9bce518cde500)(s), { values: p, keys: a } = this.dt(t, r, c);
+        if (!Array.isArray(d)) return this.ut = a, p;
+        const h = this.ut ??= [], v = [];
+        let m, y, x = 0, j = d.length - 1, k = 0, w = p.length - 1;
+        for(; x <= j && k <= w;)if (null === d[x]) x++;
+        else if (null === d[j]) j--;
+        else if (h[x] === a[k]) v[k] = (0, $311430566e21b48b$export$cb8bf9562088e9f4)(d[x], p[k]), x++, k++;
+        else if (h[j] === a[w]) v[w] = (0, $311430566e21b48b$export$cb8bf9562088e9f4)(d[j], p[w]), j--, w--;
+        else if (h[x] === a[w]) v[w] = (0, $311430566e21b48b$export$cb8bf9562088e9f4)(d[x], p[w]), (0, $311430566e21b48b$export$291b2338ad9b0b30)(s, v[w + 1], d[x]), x++, w--;
+        else if (h[j] === a[k]) v[k] = (0, $311430566e21b48b$export$cb8bf9562088e9f4)(d[j], p[k]), (0, $311430566e21b48b$export$291b2338ad9b0b30)(s, d[x], d[j]), j--, k++;
+        else if (void 0 === m && (m = $6db6ff6394e885e6$var$u(a, k, w), y = $6db6ff6394e885e6$var$u(h, x, j)), m.has(h[x])) {
+            if (m.has(h[j])) {
+                const e = y.get(a[k]), t = void 0 !== e ? d[e] : null;
+                if (null === t) {
+                    const e = (0, $311430566e21b48b$export$291b2338ad9b0b30)(s, d[x]);
+                    (0, $311430566e21b48b$export$cb8bf9562088e9f4)(e, p[k]), v[k] = e;
+                } else v[k] = (0, $311430566e21b48b$export$cb8bf9562088e9f4)(t, p[k]), (0, $311430566e21b48b$export$291b2338ad9b0b30)(s, d[x], t), d[e] = null;
+                k++;
+            } else (0, $311430566e21b48b$export$3133b3144bbba267)(d[j]), j--;
+        } else (0, $311430566e21b48b$export$3133b3144bbba267)(d[x]), x++;
+        for(; k <= w;){
+            const e = (0, $311430566e21b48b$export$291b2338ad9b0b30)(s, v[w + 1]);
+            (0, $311430566e21b48b$export$cb8bf9562088e9f4)(e, p[k]), v[k++] = e;
+        }
+        for(; x <= j;){
+            const e = d[x++];
+            null !== e && (0, $311430566e21b48b$export$3133b3144bbba267)(e);
+        }
+        return this.ut = a, (0, $311430566e21b48b$export$ea70d9dd5965b1c8)(s, v), $f58f44579a4747ac$export$9c068ae9cc5db4e8;
+    }
+});
+
+
+
+
+class $18d86f7ebdbf3b5d$export$12e5e4192ee344c7 extends (0, $ab210b2da7b39b9d$export$3f2f9f5909897157) {
+    _getKey(item, index) {
+        // Generate a stable key based on entity_id and index
+        const entityId = typeof item === 'string' ? item : item.entity_id;
+        return `${entityId}-${index}`;
+    }
+    _getEntityId(item) {
+        if (typeof item === 'string') return item;
+        return item.entity_id;
+    }
+    render() {
+        if (!this.hass) return 0, $f58f44579a4747ac$export$45b790e32b2810ee;
+        const items = this.field === 'entities' ? this.entities || [] : this.lights || [];
+        return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+      <label>
+        ${this.label || `${this.hass.localize('ui.panel.lovelace.editor.card.generic.entities')} (${this.hass.localize('ui.panel.lovelace.editor.card.config.optional')})`}
+      </label>
+      <div class="entities">
+        ${(0, $6db6ff6394e885e6$export$76d90c956114f2c2)(items, (item, index)=>this._getKey(item, index), (item, index)=>(0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+            <div class="entity">
+              ${!this.single ? (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+                    <div class="handle">
+                      <ha-icon icon="mdi:drag"></ha-icon>
+                    </div>
+                  ` : (0, $f58f44579a4747ac$export$45b790e32b2810ee)}
+              <ha-entity-picker
+                allow-custom-entity
+                hide-clear-icon
+                .hass=${this.hass}
+                .value=${this._getEntityId(item)}
+                .index=${index}
+                .includeEntities=${this.availableEntities}
+                @value-changed=${this._valueChanged}
+              ></ha-entity-picker>
+              <ha-icon-button
+                .label=${this.hass.localize('ui.components.entity.entity-picker.clear')}
+                class="remove-icon"
+                .index=${index}
+                @click=${this._removeRow}
+              >
+                <ha-icon icon="mdi:close"></ha-icon>
+              </ha-icon-button>
+              <ha-icon-button
+                .label=${this.hass.localize('ui.components.entity.entity-picker.edit')}
+                class="edit-icon"
+                .index=${index}
+                @click=${this._editRow}
+              >
+                <ha-icon icon="mdi:pencil"></ha-icon>
+              </ha-icon-button>
+            </div>
+          `)}
+      </div>
+      ${!this.single || items.length === 0 ? (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+            <ha-entity-picker
+              class="add-entity ${this.single ? 'single-mode' : ''}"
+              .hass=${this.hass}
+              .includeEntities=${this.availableEntities}
+              @value-changed=${this._addEntity}
+            ></ha-entity-picker>
+          ` : (0, $f58f44579a4747ac$export$45b790e32b2810ee)}
+    `;
+    }
+    async _addEntity(ev) {
+        ev.stopPropagation(); // Stop the picker's event from bubbling up
+        const value = ev.detail.value;
+        if (value === '') return;
+        // In single mode, replace instead of add
+        if (this.single) {
+            if (this.field === 'entities') {
+                ev.target.value = '';
+                (0, $9c83ab07519e6203$export$43835e9acf248a15)(this, 'value-changed', {
+                    value: [
+                        value
+                    ]
+                });
+            } else {
+                ev.target.value = '';
+                (0, $9c83ab07519e6203$export$43835e9acf248a15)(this, 'value-changed', {
+                    value: [
+                        value
+                    ]
+                });
+            }
+            return;
+        }
+        if (this.field === 'entities') {
+            const newConfigEntities = [
+                ...this.entities || [],
+                value
+            ];
+            ev.target.value = '';
+            (0, $9c83ab07519e6203$export$43835e9acf248a15)(this, 'value-changed', {
+                value: newConfigEntities
+            });
+        } else {
+            const newConfigLights = [
+                ...this.lights || [],
+                value
+            ];
+            ev.target.value = '';
+            (0, $9c83ab07519e6203$export$43835e9acf248a15)(this, 'value-changed', {
+                value: newConfigLights
+            });
+        }
+    }
+    _removeRow(ev) {
+        const index = ev.currentTarget.index;
+        if (this.field === 'entities') {
+            const newConfigEntities = (this.entities || []).concat();
+            newConfigEntities.splice(index, 1);
+            (0, $9c83ab07519e6203$export$43835e9acf248a15)(this, 'value-changed', {
+                value: newConfigEntities
+            });
+        } else {
+            const newConfigLights = (this.lights || []).concat();
+            newConfigLights.splice(index, 1);
+            (0, $9c83ab07519e6203$export$43835e9acf248a15)(this, 'value-changed', {
+                value: newConfigLights
+            });
+        }
+    }
+    _valueChanged(ev) {
+        const value = ev.detail.value;
+        const index = ev.target.index;
+        if (this.field === 'entities') {
+            const newConfigEntities = (this.entities || []).concat();
+            if (value === '' || value === undefined) newConfigEntities.splice(index, 1);
+            else {
+                const currentItem = newConfigEntities[index];
+                if (typeof currentItem === 'string') newConfigEntities[index] = value;
+                else newConfigEntities[index] = {
+                    ...currentItem,
+                    entity_id: value
+                };
+            }
+            (0, $9c83ab07519e6203$export$43835e9acf248a15)(this, 'value-changed', {
+                value: newConfigEntities
+            });
+        } else {
+            const newConfigLights = (this.lights || []).concat();
+            if (value === '' || value === undefined) newConfigLights.splice(index, 1);
+            else newConfigLights[index] = value;
+            (0, $9c83ab07519e6203$export$43835e9acf248a15)(this, 'value-changed', {
+                value: newConfigLights
+            });
+        }
+    }
+    _editRow(ev) {
+        const index = ev.currentTarget.index;
+        const items = this.field === 'entities' ? this.entities || [] : this.lights || [];
+        const elementConfig = items[index];
+        (0, $9c83ab07519e6203$export$43835e9acf248a15)(this, 'edit-detail-element', {
+            subElementConfig: {
+                index: index,
+                type: 'entity',
+                elementConfig: elementConfig,
+                field: this.field
+            }
+        });
+    }
+    static{
+        this.styles = (0, $def2de46b9306e8a$export$dbf350e5966cf602)`
+    ha-entity-picker {
+      margin-top: 8px;
+    }
+    .add-entity {
+      display: block;
+      margin-left: 31px;
+      margin-right: 71px;
+      margin-inline-start: 31px;
+      margin-inline-end: 71px;
+      direction: var(--direction);
+    }
+    .add-entity.single-mode {
+      margin-left: 0;
+      margin-inline-start: 0;
+    }
+    .entities {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .entity {
+      display: flex;
+      align-items: center;
+    }
+
+    .entity .handle {
+      padding-right: 8px;
+      cursor: move;
+      cursor: grab;
+      padding-inline-end: 8px;
+      padding-inline-start: initial;
+      direction: var(--direction);
+    }
+    .entity .handle > * {
+      pointer-events: none;
+    }
+
+    .entity ha-entity-picker {
+      flex-grow: 1;
+      min-width: 0;
+    }
+
+    .remove-icon,
+    .edit-icon {
+      --mdc-icon-button-size: 36px;
+      color: var(--secondary-text-color);
+    }
+  `;
+    }
+    constructor(...args){
+        super(...args), this.field = 'entities', this.single = false;
+    }
+}
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $9cd908ed2625c047$export$d541bacb2bda4494)({
+        attribute: false
+    })
+], $18d86f7ebdbf3b5d$export$12e5e4192ee344c7.prototype, "hass", void 0);
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $9cd908ed2625c047$export$d541bacb2bda4494)({
+        attribute: false
+    })
+], $18d86f7ebdbf3b5d$export$12e5e4192ee344c7.prototype, "entities", void 0);
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $9cd908ed2625c047$export$d541bacb2bda4494)({
+        attribute: false
+    })
+], $18d86f7ebdbf3b5d$export$12e5e4192ee344c7.prototype, "lights", void 0);
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $9cd908ed2625c047$export$d541bacb2bda4494)()
+], $18d86f7ebdbf3b5d$export$12e5e4192ee344c7.prototype, "label", void 0);
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $9cd908ed2625c047$export$d541bacb2bda4494)()
+], $18d86f7ebdbf3b5d$export$12e5e4192ee344c7.prototype, "field", void 0);
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $9cd908ed2625c047$export$d541bacb2bda4494)({
+        type: Boolean
+    })
+], $18d86f7ebdbf3b5d$export$12e5e4192ee344c7.prototype, "single", void 0);
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $9cd908ed2625c047$export$d541bacb2bda4494)({
+        attribute: false
+    })
+], $18d86f7ebdbf3b5d$export$12e5e4192ee344c7.prototype, "availableEntities", void 0);
+
+
+
+var $9a28a77a5af263d9$exports = {};
+$9a28a77a5af263d9$exports = JSON.parse('{"editor":{"area":{"area":"Area","area_name":"Area name","area_side_entities":"Area side entities","room_entity":"Room entity"},"background":{"background":"Background","background_image":"Background Image","background_image_entity":"Background Image Entity","background_opacity":"Background Opacity","disable_background_image":"Disable Background Image","multi_light_background":"Multi-Light Background","light_entities":"Light Entities","multi_light_background_info":"Configure which light entities should be tracked for the multi-light background feature. When enabled, the card background (dark mode only) and room icon will light up when any of these lights are on. The card automatically discovers all lights in the area if no entities are specified."},"entity":{"entity_id":"Entity","entity_label":"Label","entity_attribute":"Attribute","entity_icon":"Icon","entity_on_color":"On Color","entity_off_color":"Off Color","ignore_entity":"Ignore Entity","show_entity_labels":"Show Entity Labels","use_entity_icon":"Use Entity Icon"},"entities":{"entities_info":"These options are for setting up the right side entities."},"icon":{"disable_icon_animations":"Disable Icon Animations","disable_icon_color":"Disable Icon Color","icon_background":"Icon Background","icon_background_color_occupied":"Icon Background Color (Occupied)","hide_icon_only":"Hide Icon Only","hide_room_icon":"Hide Room Icon"},"card":{"card_border_color_occupied":"Card Border Color (Occupied)","disable_card_border":"Disable Card Border","disable_card_border_animations":"Disable Card Border Animations","skip_card_background_styles":"Skip Card Background Styles"},"sensor":{"sensor_classes":"Sensor classes","hide_sensor_icons":"Hide Sensor icons","hide_sensor_labels":"Hide Sensor labels","hide_sensors":"Hide Sensors","individual_sensor_entities":"Individual sensor entities","sensors_info":"Sensors appear on the top row below the card title. They can be clicked for more info."},"threshold":{"thresholds":"Thresholds","temperature_threshold":"Temperature threshold","temperature_operator":"Temperature Operator","temperature_entity":"Temperature Entity","humidity_threshold":"Humidity threshold","humidity_operator":"Humidity Operator","humidity_entity":"Humidity Entity","mold_threshold":"Mold threshold","operator":{"equal":"Equal (=)","greater_than":"Greater than (>)","greater_than_or_equal":"Greater than or equal (\u2265)","less_than":"Less than (<)","less_than_or_equal":"Less than or equal (\u2264)"}},"interactions":{"interactions":"Interactions","tap_action":"Tap Action","double_tap_action":"Double Tap Action","hold_action":"Hold Action","navigate_path":"Navigate path when card tapped"},"occupancy":{"occupancy_presence_detection":"Occupancy & Presence Detection","motion_occupancy_presence_sensors":"Motion/Occupancy/Presence Sensors","occupancy_options":"Options","occupancy_info":"Configure motion, occupancy, and presence detection sensors. When any sensor detects activity, the card border and room icon can change color to indicate the room is occupied."},"styles":{"styles":"Styles","css_styles":"Your CSS Styles","card_styles":"Card Styles","entities_container_styles":"Entities Container Styles","entity_icon_styles":"Entity Icon Styles","sensor_styles":"Sensor Styles","stats_styles":"Stats Styles","title_styles":"Title Styles","skip_climate_styles":"Skip Climate Styles"},"layout":{"content":"Content","sensor_layout":"Sensor Layout","default_in_label_area":"Default (in label area)","bottom":"Bottom","vertical_stack":"Vertical Stack"},"stats":{"hide_area_stats":"Hide Area Stats"},"features":{"features":"Features","exclude_default_entities":"Exclude Default Entities","options":"Options"}}}');
+
+
+// Import other languages as needed above this line and in order
+// Define supported languages
+const $623ffaa3e77fea87$var$languages = {
+    en: $9a28a77a5af263d9$exports
+};
+const $623ffaa3e77fea87$export$b3bd0bc58e36cd63 = (hass, key, search = '', replace = '')=>{
+    let translated;
+    translated = $623ffaa3e77fea87$var$getNestedTranslation($623ffaa3e77fea87$var$languages[hass.language], key) ?? $623ffaa3e77fea87$var$getNestedTranslation($623ffaa3e77fea87$var$languages.en, key) ?? key;
+    // Replace placeholders
+    if (search !== '' && replace !== '') translated = translated.replace(search, replace);
+    return translated;
+};
+// Helper function to safely navigate nested objects
+function $623ffaa3e77fea87$var$getNestedTranslation(obj, path) {
+    if (!obj) return undefined;
+    const keys = path.split('.');
+    let result = obj;
+    for (const key of keys){
+        if (result === undefined || result === null || typeof result !== 'object') return undefined;
+        result = result[key];
+    }
+    return typeof result === 'string' ? result : undefined;
+}
+
+
+
+
+
+
+class $4e8271826f46045c$export$5062b3ea8745e421 extends (0, $ab210b2da7b39b9d$export$3f2f9f5909897157) {
+    setConfig(config) {
+        if (typeof config === 'string') this._config = {
+            entity_id: config
+        };
+        else this._config = {
+            ...config
+        };
+    }
+    set value(value) {
+        if (!value) {
+            this._config = undefined;
+            return;
+        }
+        this.setConfig(value);
+    }
+    get value() {
+        return this._config;
+    }
+    render() {
+        if (!this.hass || !this._config) return 0, $f58f44579a4747ac$export$45b790e32b2810ee;
+        const schema = this.type === 'entity' ? this._entitiesSchema(this._config.entity_id, this.hass) : this._sensorsSchema(this._config.entity_id, this.hass);
+        return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+      <ha-form
+        .hass=${this.hass}
+        .data=${this._config}
+        .schema=${schema}
+        .computeLabel=${this._computeLabelCallback}
+        @value-changed=${this._valueChanged}
+      ></ha-form>
+    `;
+    }
+    _valueChanged(ev) {
+        console.log('ev.detail.value', ev.detail.value);
+        // @ts-ignore
+        (0, $9c83ab07519e6203$export$43835e9acf248a15)(this, 'config-changed', {
+            config: ev.detail.value
+        });
+    }
+    static{
+        this.styles = (0, $def2de46b9306e8a$export$dbf350e5966cf602)`
+    ha-form {
+      padding: 16px;
+    }
+  `;
+    }
+    constructor(...args){
+        super(...args), this.type = 'entity', this._entitiesSchema = (0, $c106d6426411ff6f$export$2e2bcd8739ae039)((entity_id, hass)=>{
+            return [
+                {
+                    name: 'entity_id',
+                    required: true,
+                    label: 'editor.entity.entity_id',
+                    selector: {
+                        entity: {}
+                    }
+                },
+                {
+                    type: 'grid',
+                    name: '',
+                    label: 'editor.entity.entity_label',
+                    schema: [
+                        {
+                            name: 'label',
+                            label: 'editor.entity.entity_label',
+                            selector: {
+                                text: {}
+                            }
+                        },
+                        {
+                            name: 'attribute',
+                            label: 'editor.entity.entity_attribute',
+                            selector: {
+                                attribute: {
+                                    entity_id: entity_id
+                                }
+                            }
+                        },
+                        {
+                            name: 'icon',
+                            label: 'editor.entity.entity_icon',
+                            selector: {
+                                icon: {}
+                            }
+                        }
+                    ]
+                },
+                {
+                    type: 'grid',
+                    name: '',
+                    label: 'editor.entity.entity_label',
+                    schema: [
+                        {
+                            name: 'on_color',
+                            label: 'editor.entity.entity_on_color',
+                            selector: {
+                                ui_color: {}
+                            }
+                        },
+                        {
+                            name: 'off_color',
+                            label: 'editor.entity.entity_off_color',
+                            selector: {
+                                ui_color: {}
+                            }
+                        }
+                    ]
+                },
+                {
+                    name: 'features',
+                    label: 'editor.features.features',
+                    required: false,
+                    selector: {
+                        select: {
+                            multiple: true,
+                            mode: 'list',
+                            options: [
+                                {
+                                    label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.entity.use_entity_icon'),
+                                    value: 'use_entity_icon'
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    name: 'interactions',
+                    label: 'editor.interactions.interactions',
+                    type: 'expandable',
+                    flatten: true,
+                    icon: 'mdi:gesture-tap',
+                    schema: [
+                        {
+                            name: 'tap_action',
+                            label: 'editor.interactions.tap_action',
+                            required: false,
+                            selector: {
+                                ui_action: {
+                                    default_action: 'toggle'
+                                }
+                            }
+                        },
+                        {
+                            name: 'double_tap_action',
+                            label: 'editor.interactions.double_tap_action',
+                            required: false,
+                            selector: {
+                                ui_action: {
+                                    default_action: 'more-info'
+                                }
+                            }
+                        },
+                        {
+                            name: 'hold_action',
+                            label: 'editor.interactions.hold_action',
+                            required: false,
+                            selector: {
+                                ui_action: {
+                                    default_action: 'none'
+                                }
+                            }
+                        }
+                    ]
+                }
+            ];
+        }), this._sensorsSchema = (0, $c106d6426411ff6f$export$2e2bcd8739ae039)((entity_id, hass)=>{
+            return [
+                {
+                    name: 'entity_id',
+                    required: true,
+                    label: 'editor.entity.entity_id',
+                    selector: {
+                        entity: {}
+                    }
+                },
+                {
+                    type: 'grid',
+                    name: '',
+                    label: 'editor.entity.entity_label',
+                    schema: [
+                        {
+                            name: 'label',
+                            label: 'editor.entity.entity_label',
+                            selector: {
+                                text: {}
+                            }
+                        },
+                        {
+                            name: 'attribute',
+                            label: 'editor.entity.entity_attribute',
+                            selector: {
+                                attribute: {
+                                    entity_id: entity_id
+                                }
+                            }
+                        }
+                    ]
+                }
+            ];
+        }), this._computeLabelCallback = (schema)=>{
+            if (!schema.label) return '';
+            return `${(0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(this.hass, schema.label)} ${schema.required ? `(${this.hass.localize('ui.panel.lovelace.editor.card.config.required')})` : `(${this.hass.localize('ui.panel.lovelace.editor.card.config.optional')})`}`;
+        };
+    }
+}
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $9cd908ed2625c047$export$d541bacb2bda4494)({
+        attribute: false
+    })
+], $4e8271826f46045c$export$5062b3ea8745e421.prototype, "hass", void 0);
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $04c21ea1ce1f6057$export$ca000e230c0caa3e)()
+], $4e8271826f46045c$export$5062b3ea8745e421.prototype, "_config", void 0);
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $9cd908ed2625c047$export$d541bacb2bda4494)({
+        attribute: false
+    })
+], $4e8271826f46045c$export$5062b3ea8745e421.prototype, "type", void 0);
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $9cd908ed2625c047$export$d541bacb2bda4494)({
+        attribute: false
+    })
+], $4e8271826f46045c$export$5062b3ea8745e421.prototype, "value", null);
+
+
+
+
+
+
+class $95e654b727466251$export$ddca213b44fe1587 extends (0, $ab210b2da7b39b9d$export$3f2f9f5909897157) {
+    render() {
+        return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+      <div class="header">
+        <div class="back-title">
+          <ha-icon-button-prev
+            .label=${this.hass.localize('ui.common.back')}
+            @click=${this._goBack}
+          ></ha-icon-button-prev>
+          <span slot="title">
+            ${this.hass.localize(`ui.panel.lovelace.editor.sub-element-editor.types.row`)}
+          </span>
+        </div>
+        <ha-icon-button
+          class="gui-mode-button"
+          @click=${this._toggleMode}
+          .disabled=${!this._guiModeAvailable}
+          .label=${this.hass.localize(this._guiMode ? 'ui.panel.lovelace.editor.edit_card.show_code_editor' : 'ui.panel.lovelace.editor.edit_card.show_visual_editor')}
+        >
+          <ha-icon
+            icon=${this._guiMode ? 'mdi:code-braces' : 'mdi:list-box-outline'}
+          ></ha-icon>
+        </ha-icon-button>
+      </div>
+      ${this._renderEditor()}
+    `;
+    }
+    _renderEditor() {
+        const type = this.config.type;
+        if (type === 'entity' || type === 'sensor') {
+            if (this._guiMode) return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+          <room-summary-entity-detail-editor
+            class="editor"
+            .hass=${this.hass}
+            .value=${this.config.elementConfig}
+            .type=${type}
+            @config-changed=${this._handleConfigChanged}
+          ></room-summary-entity-detail-editor>
+        `;
+            else // YAML mode
+            return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+          <ha-yaml-editor
+            .defaultValue=${this.config.elementConfig || {}}
+            autofocus
+            .hass=${this.hass}
+            @value-changed=${this._handleYAMLChanged}
+            dir="ltr"
+            .showErrors=${false}
+          ></ha-yaml-editor>
+        `;
+        }
+        return 0, $f58f44579a4747ac$export$45b790e32b2810ee;
+    }
+    _handleConfigChanged(ev) {
+        ev.stopPropagation();
+        const value = ev.detail.config;
+        // @ts-ignore
+        (0, $9c83ab07519e6203$export$43835e9acf248a15)(this, 'config-changed', {
+            config: value
+        });
+    }
+    _handleYAMLChanged(ev) {
+        ev.stopPropagation();
+        const value = ev.detail.value;
+        // @ts-ignore
+        (0, $9c83ab07519e6203$export$43835e9acf248a15)(this, 'config-changed', {
+            config: value
+        });
+    }
+    _toggleMode() {
+        this._guiMode = !this._guiMode;
+    }
+    _goBack() {
+        (0, $9c83ab07519e6203$export$43835e9acf248a15)(this, 'go-back', undefined);
+    }
+    static{
+        this.styles = (0, $def2de46b9306e8a$export$dbf350e5966cf602)`
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--divider-color);
+    }
+
+    .back-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .editor {
+      padding: 16px;
+    }
+
+    ha-icon-button-prev {
+      color: var(--primary-color);
+    }
+  `;
+    }
+    constructor(...args){
+        super(...args), this._guiModeAvailable = true, this._guiMode = true;
+    }
+}
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $9cd908ed2625c047$export$d541bacb2bda4494)({
+        attribute: false
+    })
+], $95e654b727466251$export$ddca213b44fe1587.prototype, "config", void 0);
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $04c21ea1ce1f6057$export$ca000e230c0caa3e)()
+], $95e654b727466251$export$ddca213b44fe1587.prototype, "_guiModeAvailable", void 0);
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $04c21ea1ce1f6057$export$ca000e230c0caa3e)()
+], $95e654b727466251$export$ddca213b44fe1587.prototype, "_guiMode", void 0);
+
+
+
+
+
+
 const $216640a6cb8d8606$export$19efda5681568302 = (superClass)=>{
     class HassUpdateClass extends superClass {
         connectedCallback() {
@@ -3533,6 +4274,16 @@ const $ef9a76e14f463d69$export$8c1ece05882a2b32 = (entry, hass)=>{
 
 
 
+const $a950251b49a6f795$export$f11d5335cd202cec = (hass, entity, attribute, className = '')=>(0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`<ha-attribute-value
+    hide-unit
+    .hass=${hass}
+    .stateObj=${entity}
+    .attribute=${attribute}
+    class=${className}
+  ></ha-attribute-value>`;
+
+
+
 
 
 const $5b9da589bbdb01f3$export$5edf3a158822b217 = (hass, entity, isActive, image)=>{
@@ -3697,8 +4448,19 @@ class $6a98a39b7895ac2a$export$8063c4212d705050 extends (0, $216640a6cb8d8606$ex
             ...this._config?.styles?.entity_icon,
             ...thresholdResult?.styles
         };
-        // Get label (priority: state/threshold label > config label > entity name)
-        const label = this._showLabels ? (0, $2cc9f817abd21598$export$9d7fd66a8622e6b5)(this.entity, thresholdResult) || (0, $ef9a76e14f463d69$export$9daa015aff969d71)(state, this._hass) : undefined;
+        // Get label (priority: state/threshold label > config label > attribute value > entity name)
+        let label;
+        if (this._showLabels && !this._hideIconContent) {
+            // First priority: label from state/threshold result
+            const thresholdLabel = (0, $2cc9f817abd21598$export$9d7fd66a8622e6b5)(this.entity, thresholdResult);
+            if (thresholdLabel) label = thresholdLabel;
+            else if (this.entity.config.label) // Second priority: configured label
+            label = this.entity.config.label;
+            else if (this.entity.config.attribute) // Third priority: attribute value if attribute is configured
+            label = (0, $a950251b49a6f795$export$f11d5335cd202cec)(this._hass, state, this.entity.config.attribute);
+            else // Fallback: entity name
+            label = (0, $ef9a76e14f463d69$export$9daa015aff969d71)(state, this._hass);
+        }
         return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
       ${(0, $6fcbc68239868959$export$3703ea65b0ac4726)(iconStyles)}
       <div
@@ -3882,13 +4644,6 @@ const $aaed684be42fb62e$export$6b5316c1eb8ef7e7 = (averagedSensor)=>`${$aaed684b
 
 
 
-const $a950251b49a6f795$export$f11d5335cd202cec = (hass, entity, attribute, className = '')=>(0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`<ha-attribute-value
-    hide-unit
-    .hass=${hass}
-    .stateObj=${entity}
-    .attribute=${attribute}
-    class=${className}
-  ></ha-attribute-value>`;
 
 
 
@@ -3898,49 +4653,6 @@ const $a950251b49a6f795$export$f11d5335cd202cec = (hass, entity, attribute, clas
 
 
 
-
-
-
-
-/**
- * @license
- * Copyright 2020 Google LLC
- * SPDX-License-Identifier: BSD-3-Clause
- */ const { I: $311430566e21b48b$var$t } = (0, $f58f44579a4747ac$export$8613d1ca9052b22e), $311430566e21b48b$export$c3825b437cbdea5c = (o)=>null === o || "object" != typeof o && "function" != typeof o, $311430566e21b48b$export$80c36ae3cab9881d = {
-    HTML: 1,
-    SVG: 2,
-    MATHML: 3
-}, $311430566e21b48b$export$6b6d145ec2a44ca9 = (o, t)=>void 0 === t ? void 0 !== o?._$litType$ : o?._$litType$ === t, $311430566e21b48b$export$6a0e8de894d2fcca = (o)=>null != o?._$litType$?.h, $311430566e21b48b$export$2f448fec17d50a3e = (o)=>void 0 !== o?._$litDirective$, $311430566e21b48b$export$f28e31de6a6eaf32 = (o)=>o?._$litDirective$, $311430566e21b48b$export$7f431ad0fff82fd9 = (o)=>void 0 === o.strings, $311430566e21b48b$var$s = ()=>document.createComment(""), $311430566e21b48b$export$291b2338ad9b0b30 = (o, i, n)=>{
-    const e = o._$AA.parentNode, l = void 0 === i ? o._$AB : i._$AA;
-    if (void 0 === n) {
-        const i = e.insertBefore($311430566e21b48b$var$s(), l), c = e.insertBefore($311430566e21b48b$var$s(), l);
-        n = new $311430566e21b48b$var$t(i, c, o, o.options);
-    } else {
-        const t = n._$AB.nextSibling, i = n._$AM, c = i !== o;
-        if (c) {
-            let t;
-            n._$AQ?.(o), n._$AM = o, void 0 !== n._$AP && (t = o._$AU) !== i._$AU && n._$AP(t);
-        }
-        if (t !== l || c) {
-            let o = n._$AA;
-            for(; o !== t;){
-                const t = o.nextSibling;
-                e.insertBefore(o, l), o = t;
-            }
-        }
-    }
-    return n;
-}, $311430566e21b48b$export$cb8bf9562088e9f4 = (o, t, i = o)=>(o._$AI(t, i), o), $311430566e21b48b$var$u = {}, $311430566e21b48b$export$ea70d9dd5965b1c8 = (o, t = $311430566e21b48b$var$u)=>o._$AH = t, $311430566e21b48b$export$59e9bce518cde500 = (o)=>o._$AH, $311430566e21b48b$export$3133b3144bbba267 = (o)=>{
-    o._$AP?.(!1, !0);
-    let t = o._$AA;
-    const i = o._$AB.nextSibling;
-    for(; t !== i;){
-        const o = t.nextSibling;
-        t.remove(), t = o;
-    }
-}, $311430566e21b48b$export$7f600b8138c094dc = (o)=>{
-    o._$AR();
-};
 
 
 
@@ -4324,34 +5036,6 @@ class $caca5106d54ff8e3$export$265e5e10b1eff6c6 extends (0, $216640a6cb8d8606$ex
 
 
 
-var $9a28a77a5af263d9$exports = {};
-$9a28a77a5af263d9$exports = JSON.parse('{"editor":{"area":"Area","area_name":"Area name","area_side_entities":"Area side entities","background":"Background","background_image":"Background Image","background_image_entity":"Background Image Entity","background_opacity":"Background Opacity","bottom":"Bottom","card_border_color_occupied":"Card Border Color (Occupied)","card_styles":"Card Styles","content":"Content","css_styles":"Your CSS Styles","default_in_label_area":"Default (in label area)","disable_background_image":"Disable Background Image","disable_card_border":"Disable Card Border","disable_card_border_animations":"Disable Card Border Animations","disable_icon_animations":"Disable Icon Animations","disable_icon_color":"Disable Icon Color","entities_container_styles":"Entities Container Styles","entity_icon_styles":"Entity Icon Styles","equal":"Equal (=)","exclude_default_entities":"Exclude Default Entities","features":"Features","greater_than":"Greater than (>)","greater_than_or_equal":"Greater than or equal (\u2265)","hide_area_stats":"Hide Area Stats","hide_icon_only":"Hide Icon Only","hide_room_icon":"Hide Room Icon","hide_sensor_icons":"Hide Sensor icons","hide_sensor_labels":"Hide Sensor labels","hide_sensors":"Hide Sensors","humidity_entity":"Humidity Entity","humidity_operator":"Humidity Operator","humidity_threshold":"Humidity threshold","icon_background":"Icon Background","icon_background_color_occupied":"Icon Background Color (Occupied)","ignore_entity":"Ignore Entity","individual_sensor_entities":"Individual sensor entities","interactions":"Interactions","light_entities":"Light entities (optional for multi-light background)","less_than":"Less than (<)","less_than_or_equal":"Less than or equal (\u2264)","mold_threshold":"Mold threshold","motion_occupancy_presence_sensors":"Motion/Occupancy/Presence Sensors","multi_light_background":"Multi-Light Background","navigate_path":"Navigate path when card tapped","occupancy_options":"Options","occupancy_presence_detection":"Occupancy & Presence Detection","options":"Options","room_entity":"Room entity","sensor_classes":"Sensor classes","sensor_layout":"Sensor Layout","sensor_styles":"Sensor Styles","show_entity_labels":"Show Entity Labels","skip_card_background_styles":"Skip Card Background Styles","skip_climate_styles":"Skip Climate Styles","stats_styles":"Stats Styles","styles":"Styles","temperature_entity":"Temperature Entity","temperature_operator":"Temperature Operator","temperature_threshold":"Temperature threshold","thresholds":"Thresholds","title_styles":"Title Styles","vertical_stack":"Vertical Stack"}}');
-
-
-// Import other languages as needed above this line and in order
-// Define supported languages
-const $623ffaa3e77fea87$var$languages = {
-    en: $9a28a77a5af263d9$exports
-};
-const $623ffaa3e77fea87$export$b3bd0bc58e36cd63 = (hass, key, search = '', replace = '')=>{
-    let translated;
-    translated = $623ffaa3e77fea87$var$getNestedTranslation($623ffaa3e77fea87$var$languages[hass.language], key) ?? $623ffaa3e77fea87$var$getNestedTranslation($623ffaa3e77fea87$var$languages.en, key) ?? key;
-    // Replace placeholders
-    if (search !== '' && replace !== '') translated = translated.replace(search, replace);
-    return translated;
-};
-// Helper function to safely navigate nested objects
-function $623ffaa3e77fea87$var$getNestedTranslation(obj, path) {
-    if (!obj) return undefined;
-    const keys = path.split('.');
-    let result = obj;
-    for (const key of keys){
-        if (result === undefined || result === null || typeof result !== 'object') return undefined;
-        result = result[key];
-    }
-    return typeof result === 'string' ? result : undefined;
-}
-
 
 
 /**
@@ -4368,14 +5052,14 @@ const $2777c354bcb8374f$export$932b0589381997d6 = async (hass)=>{
 
 const $ad31ef27732cde8d$export$76fcdb2ea14db822 = {
     name: 'interactions',
-    label: 'editor.interactions',
+    label: 'editor.interactions.interactions',
     type: 'expandable',
     flatten: true,
     icon: 'mdi:gesture-tap',
     schema: [
         {
             name: 'navigate',
-            label: 'editor.navigate_path',
+            label: 'editor.interactions.navigate_path',
             required: false,
             selector: {
                 navigation: {}
@@ -4404,27 +5088,27 @@ const $30a2f8c2b7ac40e2$export$aff8e21126109cb8 = async (hass, area)=>{
 const $30a2f8c2b7ac40e2$var$schemeStyles = (hass, entities)=>{
     return {
         name: 'styles',
-        label: 'editor.styles',
+        label: 'editor.styles.styles',
         type: 'expandable',
         flatten: true,
         icon: 'mdi:brush-variant',
         schema: [
             {
                 name: 'background',
-                label: 'editor.background',
+                label: 'editor.background.background',
                 type: 'expandable',
                 icon: 'mdi:format-paint',
                 schema: [
                     {
                         name: 'image',
-                        label: 'editor.background_image',
+                        label: 'editor.background.background_image',
                         selector: {
                             image: {}
                         }
                     },
                     {
                         name: 'image_entity',
-                        label: 'editor.background_image_entity',
+                        label: 'editor.background.background_image_entity',
                         selector: {
                             entity: {
                                 filter: {
@@ -4438,7 +5122,7 @@ const $30a2f8c2b7ac40e2$var$schemeStyles = (hass, entities)=>{
                     },
                     {
                         name: 'opacity',
-                        label: 'editor.background_opacity',
+                        label: 'editor.background.background_opacity',
                         required: false,
                         selector: {
                             number: {
@@ -4451,22 +5135,22 @@ const $30a2f8c2b7ac40e2$var$schemeStyles = (hass, entities)=>{
                     },
                     {
                         name: 'options',
-                        label: 'editor.options',
+                        label: 'editor.features.options',
                         selector: {
                             select: {
                                 multiple: true,
                                 mode: 'list',
                                 options: [
                                     {
-                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.disable_background_image'),
+                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.background.disable_background_image'),
                                         value: 'disable'
                                     },
                                     {
-                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.icon_background'),
+                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.icon.icon_background'),
                                         value: 'icon_background'
                                     },
                                     {
-                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.hide_icon_only'),
+                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.icon.hide_icon_only'),
                                         value: 'hide_icon_only'
                                     }
                                 ]
@@ -4477,13 +5161,13 @@ const $30a2f8c2b7ac40e2$var$schemeStyles = (hass, entities)=>{
             },
             {
                 name: 'thresholds',
-                label: 'editor.thresholds',
+                label: 'editor.threshold.thresholds',
                 type: 'expandable',
                 icon: 'mdi:thermometer-alert',
                 schema: [
                     {
                         name: 'temperature',
-                        label: 'editor.temperature_threshold',
+                        label: 'editor.threshold.temperature_threshold',
                         required: false,
                         selector: {
                             number: {
@@ -4494,7 +5178,7 @@ const $30a2f8c2b7ac40e2$var$schemeStyles = (hass, entities)=>{
                     },
                     {
                         name: 'humidity',
-                        label: 'editor.humidity_threshold',
+                        label: 'editor.threshold.humidity_threshold',
                         required: false,
                         selector: {
                             number: {
@@ -4507,7 +5191,7 @@ const $30a2f8c2b7ac40e2$var$schemeStyles = (hass, entities)=>{
                     },
                     {
                         name: 'mold',
-                        label: 'editor.mold_threshold',
+                        label: 'editor.threshold.mold_threshold',
                         required: false,
                         selector: {
                             number: {
@@ -4520,7 +5204,7 @@ const $30a2f8c2b7ac40e2$var$schemeStyles = (hass, entities)=>{
                     },
                     {
                         name: 'temperature_entity',
-                        label: 'editor.temperature_entity',
+                        label: 'editor.threshold.temperature_entity',
                         required: false,
                         selector: {
                             entity: {
@@ -4534,7 +5218,7 @@ const $30a2f8c2b7ac40e2$var$schemeStyles = (hass, entities)=>{
                     },
                     {
                         name: 'temperature_operator',
-                        label: 'editor.temperature_operator',
+                        label: 'editor.threshold.temperature_operator',
                         required: false,
                         selector: {
                             select: {
@@ -4542,23 +5226,23 @@ const $30a2f8c2b7ac40e2$var$schemeStyles = (hass, entities)=>{
                                 options: [
                                     {
                                         value: 'gt',
-                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.greater_than')
+                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.threshold.operator.greater_than')
                                     },
                                     {
                                         value: 'gte',
-                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.greater_than_or_equal')
+                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.threshold.operator.greater_than_or_equal')
                                     },
                                     {
                                         value: 'lt',
-                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.less_than')
+                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.threshold.operator.less_than')
                                     },
                                     {
                                         value: 'lte',
-                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.less_than_or_equal')
+                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.threshold.operator.less_than_or_equal')
                                     },
                                     {
                                         value: 'eq',
-                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.equal')
+                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.threshold.operator.equal')
                                     }
                                 ]
                             }
@@ -4566,7 +5250,7 @@ const $30a2f8c2b7ac40e2$var$schemeStyles = (hass, entities)=>{
                     },
                     {
                         name: 'humidity_entity',
-                        label: 'editor.humidity_entity',
+                        label: 'editor.threshold.humidity_entity',
                         required: false,
                         selector: {
                             entity: {
@@ -4580,7 +5264,7 @@ const $30a2f8c2b7ac40e2$var$schemeStyles = (hass, entities)=>{
                     },
                     {
                         name: 'humidity_operator',
-                        label: 'editor.humidity_operator',
+                        label: 'editor.threshold.humidity_operator',
                         required: false,
                         selector: {
                             select: {
@@ -4588,23 +5272,23 @@ const $30a2f8c2b7ac40e2$var$schemeStyles = (hass, entities)=>{
                                 options: [
                                     {
                                         value: 'gt',
-                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.greater_than')
+                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.threshold.operator.greater_than')
                                     },
                                     {
                                         value: 'gte',
-                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.greater_than_or_equal')
+                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.threshold.operator.greater_than_or_equal')
                                     },
                                     {
                                         value: 'lt',
-                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.less_than')
+                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.threshold.operator.less_than')
                                     },
                                     {
                                         value: 'lte',
-                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.less_than_or_equal')
+                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.threshold.operator.less_than_or_equal')
                                     },
                                     {
                                         value: 'eq',
-                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.equal')
+                                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.threshold.operator.equal')
                                     }
                                 ]
                             }
@@ -4614,37 +5298,13 @@ const $30a2f8c2b7ac40e2$var$schemeStyles = (hass, entities)=>{
             },
             {
                 name: 'styles',
-                label: 'editor.css_styles',
+                label: 'editor.styles.css_styles',
                 type: 'expandable',
                 icon: 'mdi:spray',
                 schema: [
                     {
                         name: 'card',
-                        label: 'editor.card_styles',
-                        required: false,
-                        selector: {
-                            object: {}
-                        }
-                    },
-                    {
-                        name: 'entities',
-                        label: 'editor.entities_container_styles',
-                        required: false,
-                        selector: {
-                            object: {}
-                        }
-                    },
-                    {
-                        name: 'entity_icon',
-                        label: 'editor.entity_icon_styles',
-                        required: false,
-                        selector: {
-                            object: {}
-                        }
-                    },
-                    {
-                        name: 'sensors',
-                        label: 'editor.sensor_styles',
+                        label: 'editor.styles.card_styles',
                         required: false,
                         selector: {
                             object: {}
@@ -4652,7 +5312,7 @@ const $30a2f8c2b7ac40e2$var$schemeStyles = (hass, entities)=>{
                     },
                     {
                         name: 'stats',
-                        label: 'editor.stats_styles',
+                        label: 'editor.styles.stats_styles',
                         required: false,
                         selector: {
                             object: {}
@@ -4660,7 +5320,7 @@ const $30a2f8c2b7ac40e2$var$schemeStyles = (hass, entities)=>{
                     },
                     {
                         name: 'title',
-                        label: 'editor.title_styles',
+                        label: 'editor.styles.title_styles',
                         required: false,
                         selector: {
                             object: {}
@@ -4675,7 +5335,7 @@ const $30a2f8c2b7ac40e2$export$f7981422eaaebd4b = (hass, entities)=>{
     return [
         {
             name: 'entities',
-            label: 'editor.area_side_entities',
+            label: 'editor.area.area_side_entities',
             required: false,
             selector: {
                 entity: {
@@ -4686,7 +5346,7 @@ const $30a2f8c2b7ac40e2$export$f7981422eaaebd4b = (hass, entities)=>{
         },
         {
             name: 'lights',
-            label: 'editor.light_entities',
+            label: 'editor.background.light_entities',
             required: false,
             selector: {
                 entity: {
@@ -4700,14 +5360,86 @@ const $30a2f8c2b7ac40e2$export$f7981422eaaebd4b = (hass, entities)=>{
                     }
                 }
             }
+        },
+        {
+            name: 'styles',
+            label: 'editor.styles.css_styles',
+            type: 'grid',
+            column_min_width: '100%',
+            schema: [
+                {
+                    name: 'entities',
+                    label: 'editor.styles.entities_container_styles',
+                    required: false,
+                    selector: {
+                        object: {}
+                    }
+                },
+                {
+                    name: 'entity_icon',
+                    label: 'editor.styles.entity_icon_styles',
+                    required: false,
+                    selector: {
+                        object: {}
+                    }
+                }
+            ]
         }
+    ];
+};
+const $30a2f8c2b7ac40e2$export$2763e19f10bf2cf8 = ()=>{
+    return {
+        name: 'styles',
+        label: 'editor.styles.css_styles',
+        type: 'grid',
+        column_min_width: '100%',
+        schema: [
+            {
+                name: 'entities',
+                label: 'editor.styles.entities_container_styles',
+                required: false,
+                selector: {
+                    object: {}
+                }
+            },
+            {
+                name: 'entity_icon',
+                label: 'editor.styles.entity_icon_styles',
+                required: false,
+                selector: {
+                    object: {}
+                }
+            }
+        ]
+    };
+};
+const $30a2f8c2b7ac40e2$export$157fbfc8be11fdc6 = (hass, entities)=>{
+    return [
+        {
+            name: 'lights',
+            label: 'editor.background.light_entities',
+            required: false,
+            selector: {
+                entity: {
+                    multiple: true,
+                    include_entities: entities,
+                    filter: {
+                        domain: [
+                            'light',
+                            'switch'
+                        ]
+                    }
+                }
+            }
+        },
+        $30a2f8c2b7ac40e2$export$7f37e4e3829f238c(hass)
     ];
 };
 const $30a2f8c2b7ac40e2$export$40b696e9a591543c = (hass, sensorClasses, entities)=>{
     return [
         {
             name: 'sensors',
-            label: 'editor.individual_sensor_entities',
+            label: 'editor.sensor.individual_sensor_entities',
             required: false,
             selector: {
                 entity: {
@@ -4718,7 +5450,7 @@ const $30a2f8c2b7ac40e2$export$40b696e9a591543c = (hass, sensorClasses, entities
         },
         {
             name: 'sensor_classes',
-            label: 'editor.sensor_classes',
+            label: 'editor.sensor.sensor_classes',
             selector: {
                 select: {
                     reorder: true,
@@ -4730,22 +5462,22 @@ const $30a2f8c2b7ac40e2$export$40b696e9a591543c = (hass, sensorClasses, entities
         },
         {
             name: 'sensor_layout',
-            label: 'editor.sensor_layout',
+            label: 'editor.layout.sensor_layout',
             required: false,
             selector: {
                 select: {
                     mode: 'dropdown',
                     options: [
                         {
-                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.default_in_label_area'),
+                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.layout.default_in_label_area'),
                             value: 'default'
                         },
                         {
-                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.bottom'),
+                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.layout.bottom'),
                             value: 'bottom'
                         },
                         {
-                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.vertical_stack'),
+                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.layout.vertical_stack'),
                             value: 'stacked'
                         }
                     ]
@@ -4754,10 +5486,67 @@ const $30a2f8c2b7ac40e2$export$40b696e9a591543c = (hass, sensorClasses, entities
         }
     ];
 };
+const $30a2f8c2b7ac40e2$export$8709ba19f35e0c23 = (hass, sensorClasses)=>{
+    return [
+        {
+            name: 'sensor_classes',
+            label: 'editor.sensor.sensor_classes',
+            selector: {
+                select: {
+                    reorder: true,
+                    multiple: true,
+                    custom_value: true,
+                    options: sensorClasses
+                }
+            }
+        },
+        {
+            name: 'sensor_layout',
+            label: 'editor.layout.sensor_layout',
+            required: false,
+            selector: {
+                select: {
+                    mode: 'dropdown',
+                    options: [
+                        {
+                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.layout.default_in_label_area'),
+                            value: 'default'
+                        },
+                        {
+                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.layout.bottom'),
+                            value: 'bottom'
+                        },
+                        {
+                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.layout.vertical_stack'),
+                            value: 'stacked'
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            name: 'styles',
+            label: 'editor.styles.css_styles',
+            type: 'grid',
+            column_min_width: '100%',
+            schema: [
+                {
+                    name: 'sensors',
+                    label: 'editor.styles.sensor_styles',
+                    required: false,
+                    selector: {
+                        object: {}
+                    }
+                }
+            ]
+        },
+        $30a2f8c2b7ac40e2$export$e8b24eae43edea4f(hass)
+    ];
+};
 const $30a2f8c2b7ac40e2$export$88e662a4d20309d2 = (hass, entities)=>[
         {
             name: 'area',
-            label: 'editor.area',
+            label: 'editor.area.area',
             required: true,
             selector: {
                 area: {}
@@ -4765,7 +5554,7 @@ const $30a2f8c2b7ac40e2$export$88e662a4d20309d2 = (hass, entities)=>[
         },
         {
             name: 'entity',
-            label: 'editor.room_entity',
+            label: 'editor.area.room_entity',
             required: false,
             selector: {
                 entity: {
@@ -4776,14 +5565,14 @@ const $30a2f8c2b7ac40e2$export$88e662a4d20309d2 = (hass, entities)=>[
         },
         {
             name: 'content',
-            label: 'editor.content',
+            label: 'editor.layout.content',
             type: 'expandable',
             flatten: true,
             icon: 'mdi:text-short',
             schema: [
                 {
                     name: 'area_name',
-                    label: 'editor.area_name',
+                    label: 'editor.area.area_name',
                     required: false,
                     selector: {
                         text: {}
@@ -4795,17 +5584,38 @@ const $30a2f8c2b7ac40e2$export$88e662a4d20309d2 = (hass, entities)=>[
         $30a2f8c2b7ac40e2$var$schemeStyles(hass, entities),
         $30a2f8c2b7ac40e2$var$featuresSchema(hass)
     ];
+const $30a2f8c2b7ac40e2$export$9b953466d2b38742 = ()=>({
+        name: 'area',
+        label: 'editor.area.area',
+        required: true,
+        selector: {
+            area: {}
+        }
+    });
+const $30a2f8c2b7ac40e2$export$1b129ae08555a818 = (hass, entities)=>[
+        {
+            name: 'area_name',
+            label: 'editor.area.area_name',
+            required: false,
+            selector: {
+                text: {}
+            }
+        },
+        (0, $ad31ef27732cde8d$export$76fcdb2ea14db822),
+        $30a2f8c2b7ac40e2$var$schemeStyles(hass, entities),
+        $30a2f8c2b7ac40e2$var$featuresSchema(hass)
+    ];
 const $30a2f8c2b7ac40e2$export$510b3679edaaf6b = (hass, entities)=>{
     return [
         {
             name: 'occupancy',
-            label: 'editor.occupancy_presence_detection',
+            label: 'editor.occupancy.occupancy_presence_detection',
             type: 'grid',
             column_min_width: '100%',
             schema: [
                 {
                     name: 'entities',
-                    label: 'editor.motion_occupancy_presence_sensors',
+                    label: 'editor.occupancy.motion_occupancy_presence_sensors',
                     required: true,
                     selector: {
                         entity: {
@@ -4826,27 +5636,23 @@ const $30a2f8c2b7ac40e2$export$510b3679edaaf6b = (hass, entities)=>{
                 },
                 {
                     name: 'card_border_color',
-                    label: 'editor.card_border_color_occupied',
+                    label: 'editor.card.card_border_color_occupied',
                     required: false,
                     selector: {
-                        text: {
-                            type: 'color'
-                        }
+                        ui_color: {}
                     }
                 },
                 {
                     name: 'icon_color',
-                    label: 'editor.icon_background_color_occupied',
+                    label: 'editor.icon.icon_background_color_occupied',
                     required: false,
                     selector: {
-                        text: {
-                            type: 'color'
-                        }
+                        ui_color: {}
                     }
                 },
                 {
                     name: 'options',
-                    label: 'editor.occupancy_options',
+                    label: 'editor.occupancy.occupancy_options',
                     required: false,
                     selector: {
                         select: {
@@ -4854,19 +5660,19 @@ const $30a2f8c2b7ac40e2$export$510b3679edaaf6b = (hass, entities)=>{
                             mode: 'list',
                             options: [
                                 {
-                                    label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.disable_card_border'),
+                                    label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.card.disable_card_border'),
                                     value: 'disabled_card_styles'
                                 },
                                 {
-                                    label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.disable_card_border_animations'),
+                                    label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.card.disable_card_border_animations'),
                                     value: 'disabled_card_styles_animation'
                                 },
                                 {
-                                    label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.disable_icon_color'),
+                                    label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.icon.disable_icon_color'),
                                     value: 'disable_icon_styles'
                                 },
                                 {
-                                    label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.disable_icon_animations'),
+                                    label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.icon.disable_icon_animations'),
                                     value: 'disable_icon_animation'
                                 }
                             ]
@@ -4880,14 +5686,14 @@ const $30a2f8c2b7ac40e2$export$510b3679edaaf6b = (hass, entities)=>{
 const $30a2f8c2b7ac40e2$var$featuresSchema = (hass)=>{
     return {
         name: 'features',
-        label: 'editor.features',
+        label: 'editor.features.features',
         type: 'expandable',
         flatten: true,
         icon: 'mdi:list-box',
         schema: [
             {
                 name: 'features',
-                label: 'editor.features',
+                label: 'editor.features.features',
                 required: false,
                 selector: {
                     select: {
@@ -4895,48 +5701,20 @@ const $30a2f8c2b7ac40e2$var$featuresSchema = (hass)=>{
                         mode: 'list',
                         options: [
                             {
-                                label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.hide_area_stats'),
+                                label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.stats.hide_area_stats'),
                                 value: 'hide_area_stats'
                             },
                             {
-                                label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.hide_sensors'),
-                                value: 'hide_climate_label'
-                            },
-                            {
-                                label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.hide_room_icon'),
+                                label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.icon.hide_room_icon'),
                                 value: 'hide_room_icon'
                             },
                             {
-                                label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.hide_sensor_icons'),
-                                value: 'hide_sensor_icons'
-                            },
-                            {
-                                label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.hide_sensor_labels'),
-                                value: 'hide_sensor_labels'
-                            },
-                            {
-                                label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.exclude_default_entities'),
-                                value: 'exclude_default_entities'
-                            },
-                            {
-                                label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.skip_climate_styles'),
+                                label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.styles.skip_climate_styles'),
                                 value: 'skip_climate_styles'
                             },
                             {
-                                label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.skip_card_background_styles'),
+                                label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.card.skip_card_background_styles'),
                                 value: 'skip_entity_styles'
-                            },
-                            {
-                                label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.show_entity_labels'),
-                                value: 'show_entity_labels'
-                            },
-                            {
-                                label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.multi_light_background'),
-                                value: 'multi_light_background'
-                            },
-                            {
-                                label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.ignore_entity'),
-                                value: 'ignore_entity'
                             }
                         ]
                     }
@@ -4945,6 +5723,106 @@ const $30a2f8c2b7ac40e2$var$featuresSchema = (hass)=>{
         ]
     };
 };
+const $30a2f8c2b7ac40e2$export$a3234059ca65f80a = (hass)=>{
+    return {
+        name: 'features',
+        label: 'editor.features.features',
+        required: false,
+        selector: {
+            select: {
+                multiple: true,
+                mode: 'list',
+                options: [
+                    {
+                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.entity.show_entity_labels'),
+                        value: 'show_entity_labels'
+                    },
+                    {
+                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.features.exclude_default_entities'),
+                        value: 'exclude_default_entities'
+                    },
+                    {
+                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.entity.ignore_entity'),
+                        value: 'ignore_entity'
+                    }
+                ]
+            }
+        }
+    };
+};
+const $30a2f8c2b7ac40e2$export$7f37e4e3829f238c = (hass)=>{
+    return {
+        name: 'features',
+        label: 'editor.features.features',
+        required: false,
+        selector: {
+            select: {
+                multiple: true,
+                mode: 'list',
+                options: [
+                    {
+                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.background.multi_light_background'),
+                        value: 'multi_light_background'
+                    }
+                ]
+            }
+        }
+    };
+};
+const $30a2f8c2b7ac40e2$export$e8b24eae43edea4f = (hass)=>{
+    return {
+        name: 'features',
+        label: 'editor.features.features',
+        required: false,
+        selector: {
+            select: {
+                multiple: true,
+                mode: 'list',
+                options: [
+                    {
+                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.sensor.hide_sensors'),
+                        value: 'hide_climate_label'
+                    },
+                    {
+                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.sensor.hide_sensor_icons'),
+                        value: 'hide_sensor_icons'
+                    },
+                    {
+                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.sensor.hide_sensor_labels'),
+                        value: 'hide_sensor_labels'
+                    }
+                ]
+            }
+        }
+    };
+};
+
+
+
+function $7ebc302e6bf357b3$export$851056343f01ae23(hass, schema) {
+    return `${(0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, schema.label)} ${schema.required ? `(${hass.localize('ui.panel.lovelace.editor.card.config.required')})` : `(${hass.localize('ui.panel.lovelace.editor.card.config.optional')})`}`;
+}
+
+
+/**
+ * Utility functions for cleaning up configuration objects
+ */ /**
+ * Removes empty arrays from a configuration object
+ * @param config - The configuration object to clean
+ * @param key - The key to check for empty arrays
+ */ function $c9a41b042f1d429b$export$cad94c565c931d44(config, key) {
+    const arr = config[key];
+    if (Array.isArray(arr) && !arr.length) delete config[key];
+}
+function $c9a41b042f1d429b$export$4e25f33241712942(config, key) {
+    const obj = config[key];
+    if (!obj || typeof obj !== 'object') return;
+    for (const k of Object.keys(obj)){
+        !obj[k] && delete obj[k];
+        $c9a41b042f1d429b$export$cad94c565c931d44(obj, k);
+    }
+    if (!Object.keys(obj).length) delete config[key];
+}
 
 
 
@@ -5056,41 +5934,275 @@ const $1dfff43fc77cdecb$export$41b40a0c6412e2a2 = (s, i)=>s === i || s.length ==
 
 
 
+
+
+
+/**
+ * @license
+ * Copyright 2020 Google LLC
+ * SPDX-License-Identifier: BSD-3-Clause
+ */ const $53bd9b876ee2701c$export$7d1e3a5e95ceca43 = ()=>new $53bd9b876ee2701c$var$h;
+class $53bd9b876ee2701c$var$h {
+}
+const $53bd9b876ee2701c$var$o = new WeakMap, $53bd9b876ee2701c$export$eff4d24c3ff7876e = (0, $107bb7d062dde330$export$99b43ad1ed32e735)(class extends (0, $1e333afec87b6405$export$7d025501802325e) {
+    render(i) {
+        return 0, $f58f44579a4747ac$export$45b790e32b2810ee;
+    }
+    update(i, [s]) {
+        const e = s !== this.G;
+        return e && void 0 !== this.G && this.rt(void 0), (e || this.lt !== this.ct) && (this.G = s, this.ht = i.options?.host, this.rt(this.ct = i.element)), $f58f44579a4747ac$export$45b790e32b2810ee;
+    }
+    rt(t) {
+        if (this.isConnected || (t = void 0), "function" == typeof this.G) {
+            const i = this.ht ?? globalThis;
+            let s = $53bd9b876ee2701c$var$o.get(i);
+            void 0 === s && (s = new WeakMap, $53bd9b876ee2701c$var$o.set(i, s)), void 0 !== s.get(this.G) && this.G.call(this.ht, void 0), s.set(this.G, t), void 0 !== t && this.G.call(this.ht, t);
+        } else this.G.value = t;
+    }
+    get lt() {
+        return "function" == typeof this.G ? $53bd9b876ee2701c$var$o.get(this.ht ?? globalThis)?.get(this.G) : this.G?.value;
+    }
+    disconnected() {
+        this.lt === this.ct && this.rt(void 0);
+    }
+    reconnected() {
+        this.rt(this.ct);
+    }
+});
+
+
+
+
+
+const $61e24ef2e6115cf5$export$9dd6ff9ea0189349 = (0, $def2de46b9306e8a$export$dbf350e5966cf602)`
+  .card-config {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tab-bar-wrapper {
+    position: relative;
+    border-bottom: 1px solid var(--divider-color);
+  }
+
+  .tab-bar-container {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin; /* Firefox */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  }
+
+  /* Scroll hint gradients */
+  .scroll-indicator {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .scroll-indicator.visible {
+    opacity: 1;
+  }
+
+  .scroll-indicator-left {
+    left: 0;
+    background: linear-gradient(
+      to right,
+      var(--card-background-color, var(--primary-background-color)) 0%,
+      transparent 100%
+    );
+  }
+
+  .scroll-indicator-right {
+    right: 0;
+    background: linear-gradient(
+      to left,
+      var(--card-background-color, var(--primary-background-color)) 0%,
+      transparent 100%
+    );
+  }
+
+  .scroll-arrow {
+    width: 20px;
+    height: 20px;
+    fill: var(--primary-text-color);
+    opacity: 0.6;
+    filter: drop-shadow(0 0 2px var(--card-background-color));
+  }
+
+  /* Custom scrollbar styling for Chrome, Safari and Opera */
+  .tab-bar-container::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .tab-bar-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .tab-bar-container::-webkit-scrollbar-thumb {
+    background: var(--divider-color);
+    border-radius: 2px;
+  }
+
+  .tab-bar-container::-webkit-scrollbar-thumb:hover {
+    background: var(--secondary-text-color);
+  }
+
+  .custom-tab-bar {
+    display: flex;
+    min-width: min-content;
+    gap: 0;
+  }
+
+  .custom-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--primary-text-color);
+    cursor: pointer;
+    font-family: var(--mdc-typography-button-font-family, var(--mdc-typography-font-family, Roboto, sans-serif));
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.0892857143em;
+    min-width: 72px;
+    padding: 0 16px;
+    text-transform: uppercase;
+    transition: border-color 0.2s ease, color 0.2s ease;
+    white-space: nowrap;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .custom-tab:hover {
+    color: var(--primary-color);
+  }
+
+  .custom-tab.active {
+    border-bottom-color: var(--primary-color);
+    color: var(--primary-color);
+  }
+
+  .custom-tab:focus {
+    outline: none;
+  }
+
+  .custom-tab:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+  }
+
+  ha-form {
+    padding: 16px 0;
+  }
+
+  .entities-tab {
+    padding: 16px 0;
+    gap: 16px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .info-header {
+    padding: 16px;
+    background-color: var(--info-background-color, rgba(33, 150, 243, 0.1));
+    border-left: 4px solid var(--info-color, var(--primary-color));
+    border-radius: 4px;
+    color: var(--primary-text-color);
+    font-size: 0.9em;
+    line-height: 1.5;
+  }
+`;
+
+
 class $b642db848cc622aa$export$be1ca41262ce011e extends (0, $ab210b2da7b39b9d$export$3f2f9f5909897157) {
     /**
    * Returns the component's styles
    */ static get styles() {
-        return (0, $def2de46b9306e8a$export$dbf350e5966cf602)`
-      .card-config {
-        display: flex;
-        flex-direction: column;
-      }
-
-      mwc-tab-bar {
-        border-bottom: 1px solid var(--divider-color);
-      }
-
-      ha-form {
-        padding: 16px 0;
-      }
-    `;
+        return 0, $61e24ef2e6115cf5$export$9dd6ff9ea0189349;
     }
     /**
    * renders the lit element card
    * @returns The rendered HTML template
    */ render() {
         if (!this.hass || !this._config) return 0, $f58f44579a4747ac$export$45b790e32b2810ee;
+        // Show sub-element editor if active
+        if (this._subElementEditorConfig) return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+        <room-summary-sub-element-editor
+          .hass=${this.hass}
+          .config=${this._subElementEditorConfig}
+          @go-back=${this._goBack}
+          @config-changed=${this._handleSubElementChanged}
+        ></room-summary-sub-element-editor>
+      `;
         return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
       <div class="card-config">
-        <mwc-tab-bar
-          .activeIndex=${this._currentTab}
-          @MDCTabBar:activated=${this._handleTabChange}
-        >
-          <mwc-tab label="Main"></mwc-tab>
-          <mwc-tab label="Entities"></mwc-tab>
-          <mwc-tab label="Sensors"></mwc-tab>
-          <mwc-tab label="Occupancy"></mwc-tab>
-        </mwc-tab-bar>
+        <div class="tab-bar-wrapper">
+          <div
+            class="scroll-indicator scroll-indicator-left ${this._showLeftScroll ? 'visible' : ''}"
+          >
+            <svg class="scroll-arrow" viewBox="0 0 24 24">
+              <path
+                d="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z"
+              />
+            </svg>
+          </div>
+          <div
+            class="tab-bar-container"
+            ${(0, $53bd9b876ee2701c$export$eff4d24c3ff7876e)(this._tabContainerRef)}
+            @scroll=${this._handleScroll}
+          >
+            <div class="custom-tab-bar">
+              <button
+                class="custom-tab ${this._currentTab === 0 ? 'active' : ''}"
+                @click=${()=>this._handleTabClick(0)}
+              >
+                Main
+              </button>
+              <button
+                class="custom-tab ${this._currentTab === 1 ? 'active' : ''}"
+                @click=${()=>this._handleTabClick(1)}
+              >
+                Entities
+              </button>
+              <button
+                class="custom-tab ${this._currentTab === 2 ? 'active' : ''}"
+                @click=${()=>this._handleTabClick(2)}
+              >
+                Lights
+              </button>
+              <button
+                class="custom-tab ${this._currentTab === 3 ? 'active' : ''}"
+                @click=${()=>this._handleTabClick(3)}
+              >
+                Sensors
+              </button>
+              <button
+                class="custom-tab ${this._currentTab === 4 ? 'active' : ''}"
+                @click=${()=>this._handleTabClick(4)}
+              >
+                Occupancy
+              </button>
+            </div>
+          </div>
+          <div
+            class="scroll-indicator scroll-indicator-right ${this._showRightScroll ? 'visible' : ''}"
+          >
+            <svg class="scroll-arrow" viewBox="0 0 24 24">
+              <path
+                d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"
+              />
+            </svg>
+          </div>
+        </div>
         ${this._renderTabContent()}
       </div>
     `;
@@ -5098,30 +6210,160 @@ class $b642db848cc622aa$export$be1ca41262ce011e extends (0, $ab210b2da7b39b9d$ex
     _handleTabChange(ev) {
         this._currentTab = ev.detail.index;
     }
-    /**
-   * Computes the label for a form schema field
-   * @param {HaFormSchema} schema - The form schema
-   * @returns The formatted label with required/optional indicator
-   */ _computeLabel(schema) {
-        return `${(0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(this.hass, schema.label)} ${schema.required ? `(${this.hass.localize('ui.panel.lovelace.editor.card.config.required')})` : `(${this.hass.localize('ui.panel.lovelace.editor.card.config.optional')})`}`;
+    _handleTabClick(index) {
+        this._currentTab = index;
+    }
+    _handleScroll() {
+        this._updateScrollIndicators();
+    }
+    _updateScrollIndicators() {
+        const container = this._tabContainerRef.value;
+        if (!container) return;
+        const { scrollLeft: scrollLeft, scrollWidth: scrollWidth, clientWidth: clientWidth } = container;
+        // Show left indicator if scrolled right
+        this._showLeftScroll = scrollLeft > 5;
+        // Show right indicator if there's more content to the right
+        this._showRightScroll = scrollLeft < scrollWidth - clientWidth - 5;
+    }
+    updated(changedProperties) {
+        super.updated(changedProperties);
+        // Update scroll indicators after render
+        if (changedProperties.has('_config') || changedProperties.has('_currentTab')) setTimeout(()=>this._updateScrollIndicators(), 100);
     }
     _renderTabContent() {
-        // Entities and Sensors tabs show the full form for now
+        // Main tab (tab 0) uses split layout: area form, entity row editor, area_name + rest form
+        if (this._currentTab === 0) return this._getEntitiesTask.render({
+            initial: ()=>(0, $f58f44579a4747ac$export$45b790e32b2810ee),
+            pending: ()=>(0, $f58f44579a4747ac$export$45b790e32b2810ee),
+            complete: (value)=>{
+                const areaSchema = (0, $30a2f8c2b7ac40e2$export$9b953466d2b38742)();
+                const restSchema = (0, $30a2f8c2b7ac40e2$export$1b129ae08555a818)(this.hass, value.entities);
+                // Convert single entity to array for row-editor
+                const entityArray = this._config.entity ? [
+                    this._config.entity
+                ] : [];
+                return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+            <div class="entities-tab">
+              <ha-form
+                .hass=${this.hass}
+                .data=${this._config}
+                .schema=${[
+                    areaSchema
+                ]}
+                .computeLabel=${(schema)=>(0, $7ebc302e6bf357b3$export$851056343f01ae23)(this.hass, schema)}
+                @value-changed=${this._valueChanged}
+              ></ha-form>
+              <room-summary-entities-row-editor
+                .hass=${this.hass}
+                .entities=${entityArray}
+                .availableEntities=${value.entities}
+                field="entities"
+                .single=${true}
+                label=${this.hass.localize('editor.area.room_entity') || 'Room Entity'}
+                @value-changed=${this._entityRowChanged}
+                @edit-detail-element=${this._editDetailElement}
+              ></room-summary-entities-row-editor>
+              <ha-form
+                .hass=${this.hass}
+                .data=${this._config}
+                .schema=${restSchema}
+                .computeLabel=${(schema)=>(0, $7ebc302e6bf357b3$export$851056343f01ae23)(this.hass, schema)}
+                @value-changed=${this._valueChanged}
+              ></ha-form>
+            </div>
+          `;
+            },
+            error: (error)=>(0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`${error}`
+        });
+        // Entities tab uses custom row editor
+        if (this._currentTab === 1) return this._getEntitiesTask.render({
+            initial: ()=>(0, $f58f44579a4747ac$export$45b790e32b2810ee),
+            pending: ()=>(0, $f58f44579a4747ac$export$45b790e32b2810ee),
+            complete: (value)=>{
+                return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+            <div class="entities-tab">
+              <div class="info-header">
+                ${(0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(this.hass, 'editor.entities.entities_info')}
+              </div>
+              <room-summary-entities-row-editor
+                .hass=${this.hass}
+                .entities=${this._config.entities}
+                .availableEntities=${value.entities}
+                field="entities"
+                label=${this.hass.localize('ui.panel.lovelace.editor.card.generic.entities') || 'Entities'}
+                @value-changed=${this._entitiesRowChanged}
+                @edit-detail-element=${this._editDetailElement}
+              ></room-summary-entities-row-editor>
+              <ha-form
+                .hass=${this.hass}
+                .data=${this._config}
+                .schema=${[
+                    (0, $30a2f8c2b7ac40e2$export$2763e19f10bf2cf8)(),
+                    (0, $30a2f8c2b7ac40e2$export$a3234059ca65f80a)(this.hass)
+                ]}
+                .computeLabel=${(schema)=>(0, $7ebc302e6bf357b3$export$851056343f01ae23)(this.hass, schema)}
+                @value-changed=${this._valueChanged}
+              ></ha-form>
+            </div>
+          `;
+            },
+            error: (error)=>(0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`${error}`
+        });
+        // Sensors tab (tab 3) uses custom row editor
+        if (this._currentTab === 3) return this._getEntitiesTask.render({
+            initial: ()=>(0, $f58f44579a4747ac$export$45b790e32b2810ee),
+            pending: ()=>(0, $f58f44579a4747ac$export$45b790e32b2810ee),
+            complete: (value)=>{
+                const restSchema = (0, $30a2f8c2b7ac40e2$export$8709ba19f35e0c23)(this.hass, value.sensorClasses);
+                return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+            <div class="entities-tab">
+              <div class="info-header">
+                ${(0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(this.hass, 'editor.sensor.sensors_info')}
+              </div>
+              <room-summary-entities-row-editor
+                .hass=${this.hass}
+                .entities=${this._config.sensors}
+                .availableEntities=${value.entities}
+                field="entities"
+                label=${this.hass.localize('editor.sensor.individual_sensor_entities') || 'Individual sensor entities'}
+                @value-changed=${this._sensorsRowChanged}
+                @edit-detail-element=${this._editDetailElement}
+              ></room-summary-entities-row-editor>
+              <ha-form
+                .hass=${this.hass}
+                .data=${this._config}
+                .schema=${restSchema}
+                .computeLabel=${(schema)=>(0, $7ebc302e6bf357b3$export$851056343f01ae23)(this.hass, schema)}
+                @value-changed=${this._valueChanged}
+              ></ha-form>
+            </div>
+          `;
+            },
+            error: (error)=>(0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`${error}`
+        });
+        // Other tabs use ha-form
         return this._getEntitiesTask.render({
             initial: ()=>(0, $f58f44579a4747ac$export$45b790e32b2810ee),
             pending: ()=>(0, $f58f44579a4747ac$export$45b790e32b2810ee),
             complete: (value)=>{
                 let schema = [];
-                if (this._currentTab === 0) schema = (0, $30a2f8c2b7ac40e2$export$88e662a4d20309d2)(this.hass, value.entities);
-                else if (this._currentTab === 1) schema = (0, $30a2f8c2b7ac40e2$export$f7981422eaaebd4b)(this.hass, value.entities);
-                else if (this._currentTab === 2) schema = (0, $30a2f8c2b7ac40e2$export$40b696e9a591543c)(this.hass, value.sensorClasses, value.entities);
-                else if (this._currentTab === 3) schema = (0, $30a2f8c2b7ac40e2$export$510b3679edaaf6b)(this.hass, value.entities);
+                let infoText;
+                if (this._currentTab === 2) {
+                    schema = (0, $30a2f8c2b7ac40e2$export$157fbfc8be11fdc6)(this.hass, value.entities);
+                    infoText = 'editor.background.multi_light_background_info';
+                } else if (this._currentTab === 4) {
+                    schema = (0, $30a2f8c2b7ac40e2$export$510b3679edaaf6b)(this.hass, value.entities);
+                    infoText = 'editor.occupancy.occupancy_info';
+                }
                 return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+          ${infoText ? (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+                <div class="info-header">${(0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(this.hass, infoText)}</div>
+              ` : (0, $f58f44579a4747ac$export$45b790e32b2810ee)}
           <ha-form
             .hass=${this.hass}
             .data=${this._config}
             .schema=${schema}
-            .computeLabel=${this._computeLabel.bind(this)}
+            .computeLabel=${(schema)=>(0, $7ebc302e6bf357b3$export$851056343f01ae23)(this.hass, schema)}
             @value-changed=${this._valueChanged}
           ></ha-form>
         `;
@@ -5143,39 +6385,165 @@ class $b642db848cc622aa$export$be1ca41262ce011e extends (0, $ab210b2da7b39b9d$ex
     }
     _valueChanged(ev) {
         const config = ev.detail.value;
+        if (!config) return;
         // Clean default values
         if (config.sensor_layout === 'default') delete config.sensor_layout;
+        // Clean up undefined entity field
+        if (config.entity === undefined) delete config.entity;
         // Clean up empty arrays
-        this._cleanEmptyArrays(config, 'features');
-        this._cleanEmptyArrays(config, 'entities');
-        this._cleanEmptyArrays(config, 'problem_entities');
-        this._cleanEmptyArrays(config, 'sensor_classes');
+        (0, $c9a41b042f1d429b$export$cad94c565c931d44)(config, 'features');
+        (0, $c9a41b042f1d429b$export$cad94c565c931d44)(config, 'entities');
+        (0, $c9a41b042f1d429b$export$cad94c565c931d44)(config, 'lights');
+        (0, $c9a41b042f1d429b$export$cad94c565c931d44)(config, 'problem_entities');
+        (0, $c9a41b042f1d429b$export$cad94c565c931d44)(config, 'sensor_classes');
         // Clean nested objects
-        this._cleanEmptyProps(config, 'background');
-        this._cleanEmptyProps(config, 'thresholds');
-        this._cleanEmptyProps(config, 'occupancy');
+        (0, $c9a41b042f1d429b$export$4e25f33241712942)(config, 'background');
+        (0, $c9a41b042f1d429b$export$4e25f33241712942)(config, 'thresholds');
+        (0, $c9a41b042f1d429b$export$4e25f33241712942)(config, 'occupancy');
         // @ts-ignore
         (0, $9c83ab07519e6203$export$43835e9acf248a15)(this, 'config-changed', {
             config: config
         });
     }
-    _cleanEmptyArrays(config, key) {
-        const arr = config[key];
-        if (Array.isArray(arr) && !arr.length) delete config[key];
+    _entitiesRowChanged(ev) {
+        const value = ev.detail.value;
+        const field = ev.target.field;
+        // Guard: only process if value is an array (from our custom component)
+        // If it's a string, it's from the picker directly and should be ignored
+        if (!Array.isArray(value)) return;
+        this._config = {
+            ...this._config,
+            [field]: value
+        };
+        // Create a new event with the updated config for _valueChanged
+        const configEvent = new CustomEvent('value-changed', {
+            detail: {
+                value: this._config
+            }
+        });
+        this._valueChanged(configEvent);
     }
-    _cleanEmptyProps(config, key) {
-        const obj = config[key];
-        if (!obj || typeof obj !== 'object') return;
-        for (const k of Object.keys(obj)){
-            !obj[k] && delete obj[k];
-            this._cleanEmptyArrays(obj, k);
+    _sensorsRowChanged(ev) {
+        const value = ev.detail.value;
+        // Guard: only process if value is an array (from our custom component)
+        // If it's a string, it's from the picker directly and should be ignored
+        if (!Array.isArray(value)) return;
+        this._config = {
+            ...this._config,
+            sensors: value
+        };
+        // Create a new event with the updated config for _valueChanged
+        const configEvent = new CustomEvent('value-changed', {
+            detail: {
+                value: this._config
+            }
+        });
+        this._valueChanged(configEvent);
+    }
+    _entityRowChanged(ev) {
+        const value = ev.detail.value;
+        // Guard: only process if value is an array (from our custom component)
+        // If it's a string, it's from the picker directly and should be ignored
+        if (!Array.isArray(value)) return;
+        // Convert array back to single entity (take first element or undefined)
+        const entityValue = value.length > 0 ? value[0] : undefined;
+        this._config = {
+            ...this._config,
+            entity: entityValue
+        };
+        // Create a new event with the updated config for _valueChanged
+        const configEvent = new CustomEvent('value-changed', {
+            detail: {
+                value: this._config
+            }
+        });
+        this._valueChanged(configEvent);
+    }
+    _editDetailElement(ev) {
+        const config = {
+            ...ev.detail.subElementConfig
+        };
+        // Set type to 'sensor' if we're on the sensors tab (tab 3)
+        if (this._currentTab === 3 && config.field === 'entities') config.type = 'sensor';
+        this._subElementEditorConfig = config;
+    }
+    _handleSubElementChanged(ev) {
+        ev.stopPropagation();
+        if (!this._config || !this.hass || !this._subElementEditorConfig) return;
+        const value = ev.detail.config;
+        const { field: field, index: index, type: type } = this._subElementEditorConfig;
+        // Handle single entity field (from tab 0)
+        if (field === 'entities' && this._currentTab === 0) {
+            if (!value) {
+                this._config = {
+                    ...this._config,
+                    entity: undefined
+                };
+                this._goBack();
+            } else // If value is a string, keep as string, otherwise use EntityConfig
+            this._config = {
+                ...this._config,
+                entity: typeof value === 'string' ? value : value
+            };
+        } else if (field === 'entities' && this._currentTab === 1) {
+            // Handle entities array (from tab 1)
+            const newConfigEntities = (this._config.entities || []).concat();
+            if (!value) {
+                newConfigEntities.splice(index, 1);
+                this._goBack();
+            } else // If value is a string, convert to EntityConfig
+            if (typeof value === 'string') newConfigEntities[index] = value;
+            else newConfigEntities[index] = value;
+            this._config = {
+                ...this._config,
+                entities: newConfigEntities
+            };
+        } else if (field === 'entities' && this._currentTab === 3) {
+            // Handle sensors array (from tab 3)
+            const newConfigSensors = (this._config.sensors || []).concat();
+            if (!value) {
+                newConfigSensors.splice(index, 1);
+                this._goBack();
+            } else // If value is a string, keep as string, otherwise use SensorConfig
+            if (typeof value === 'string') newConfigSensors[index] = value;
+            else newConfigSensors[index] = value;
+            this._config = {
+                ...this._config,
+                sensors: newConfigSensors
+            };
+        } else if (field === 'lights') {
+            const newConfigLights = (this._config.lights || []).concat();
+            if (!value) {
+                newConfigLights.splice(index, 1);
+                this._goBack();
+            } else {
+                // Lights are always strings
+                const entityId = typeof value === 'string' ? value : value.entity_id;
+                newConfigLights[index] = entityId;
+            }
+            this._config = {
+                ...this._config,
+                lights: newConfigLights
+            };
         }
-        if (!Object.keys(obj).length) delete config[key];
+        this._subElementEditorConfig = {
+            ...this._subElementEditorConfig,
+            elementConfig: value
+        };
+        ev.detail.value = this._config;
+        this._valueChanged(ev);
+    }
+    _goBack() {
+        this._subElementEditorConfig = undefined;
     }
     constructor(...args){
         super(...args), /**
    * Current active tab index
    */ this._currentTab = 0, /**
+   * Scroll state for tab container
+   */ this._showLeftScroll = false, this._showRightScroll = false, /**
+   * Reference to the tab bar container for scroll detection
+   */ this._tabContainerRef = (0, $53bd9b876ee2701c$export$7d1e3a5e95ceca43)(), /**
    * Task that fetches the entities asynchronously
    * Uses the Home Assistant web sockets Promise
    */ this._getEntitiesTask = new (0, $1dfff43fc77cdecb$export$2dea7024bcdd7731)(this, {
@@ -5203,10 +6571,19 @@ class $b642db848cc622aa$export$be1ca41262ce011e extends (0, $ab210b2da7b39b9d$ex
 (0, $24c52f343453d62d$export$29e00dfd3077644b)([
     (0, $04c21ea1ce1f6057$export$ca000e230c0caa3e)()
 ], $b642db848cc622aa$export$be1ca41262ce011e.prototype, "_currentTab", void 0);
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $04c21ea1ce1f6057$export$ca000e230c0caa3e)()
+], $b642db848cc622aa$export$be1ca41262ce011e.prototype, "_showLeftScroll", void 0);
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $04c21ea1ce1f6057$export$ca000e230c0caa3e)()
+], $b642db848cc622aa$export$be1ca41262ce011e.prototype, "_showRightScroll", void 0);
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $04c21ea1ce1f6057$export$ca000e230c0caa3e)()
+], $b642db848cc622aa$export$be1ca41262ce011e.prototype, "_subElementEditorConfig", void 0);
 
 
 var $b06602ab53bd58a3$exports = {};
-$b06602ab53bd58a3$exports = JSON.parse("{\"name\":\"room-summary-card\",\"version\":\"0.46.0\",\"author\":\"Patrick Masters\",\"license\":\"ISC\",\"description\":\"Custom card Home Assistant which can show a summary of room entities.\",\"source\":\"src/index.ts\",\"module\":\"dist/room-summary-card.js\",\"targets\":{\"module\":{\"includeNodeModules\":true}},\"scripts\":{\"watch\":\"parcel watch\",\"build\":\"parcel build\",\"format\":\"prettier --write .\",\"test\":\"TS_NODE_PROJECT='./tsconfig.test.json' mocha\",\"test:coverage\":\"nyc npm run test\",\"test:watch\":\"TS_NODE_PROJECT='./tsconfig.test.json' mocha --watch\",\"update\":\"npx npm-check-updates -u && yarn install\"},\"devDependencies\":{\"@istanbuljs/nyc-config-typescript\":\"^1.0.2\",\"@open-wc/testing\":\"^4.0.0\",\"@parcel/transformer-inline-string\":\"^2.16.0\",\"@testing-library/dom\":\"^10.4.1\",\"@trivago/prettier-plugin-sort-imports\":\"^5.2.2\",\"@types/chai\":\"^5.2.3\",\"@types/jsdom\":\"^27.0.0\",\"@types/mocha\":\"^10.0.10\",\"@types/sinon\":\"^17.0.4\",\"chai\":\"^6.2.0\",\"jsdom\":\"^27.1.0\",\"mocha\":\"^11.7.4\",\"nyc\":\"^17.1.0\",\"parcel\":\"^2.16.0\",\"prettier\":\"3.6.2\",\"prettier-plugin-organize-imports\":\"^4.3.0\",\"proxyquire\":\"^2.1.3\",\"sinon\":\"^21.0.0\",\"ts-node\":\"^10.9.2\",\"tsconfig-paths\":\"^4.2.0\",\"typescript\":\"^5.9.3\"},\"dependencies\":{\"@lit/task\":\"^1.0.3\",\"async-memoize-one\":\"^1.1.9\",\"fast-deep-equal\":\"^3.1.3\",\"lit\":\"^3.3.1\",\"memoize-one\":\"^6.0.0\"}}");
+$b06602ab53bd58a3$exports = JSON.parse("{\"name\":\"room-summary-card\",\"version\":\"0.47.0\",\"author\":\"Patrick Masters\",\"license\":\"ISC\",\"description\":\"Custom card Home Assistant which can show a summary of room entities.\",\"source\":\"src/index.ts\",\"module\":\"dist/room-summary-card.js\",\"targets\":{\"module\":{\"includeNodeModules\":true}},\"scripts\":{\"watch\":\"parcel watch\",\"build\":\"parcel build\",\"format\":\"prettier --write .\",\"test\":\"TS_NODE_PROJECT='./tsconfig.test.json' mocha\",\"test:coverage\":\"nyc npm run test\",\"test:watch\":\"TS_NODE_PROJECT='./tsconfig.test.json' mocha --watch\",\"update\":\"npx npm-check-updates -u && yarn install\"},\"devDependencies\":{\"@istanbuljs/nyc-config-typescript\":\"^1.0.2\",\"@open-wc/testing\":\"^4.0.0\",\"@parcel/transformer-inline-string\":\"^2.16.0\",\"@testing-library/dom\":\"^10.4.1\",\"@trivago/prettier-plugin-sort-imports\":\"^5.2.2\",\"@types/chai\":\"^5.2.3\",\"@types/jsdom\":\"^27.0.0\",\"@types/mocha\":\"^10.0.10\",\"@types/sinon\":\"^17.0.4\",\"chai\":\"^6.2.0\",\"jsdom\":\"^27.1.0\",\"mocha\":\"^11.7.4\",\"nyc\":\"^17.1.0\",\"parcel\":\"^2.16.0\",\"prettier\":\"3.6.2\",\"prettier-plugin-organize-imports\":\"^4.3.0\",\"proxyquire\":\"^2.1.3\",\"sinon\":\"^21.0.0\",\"ts-node\":\"^10.9.2\",\"tsconfig-paths\":\"^4.2.0\",\"typescript\":\"^5.9.3\"},\"dependencies\":{\"@lit/task\":\"^1.0.3\",\"async-memoize-one\":\"^1.1.9\",\"fast-deep-equal\":\"^3.1.3\",\"lit\":\"^3.3.1\",\"memoize-one\":\"^6.0.0\"}}");
 
 
 // Register the custom element with the browser
@@ -5215,6 +6592,9 @@ customElements.define('room-summary-card-editor', (0, $b642db848cc622aa$export$b
 customElements.define('sensor-collection', (0, $caca5106d54ff8e3$export$265e5e10b1eff6c6));
 customElements.define('entity-collection', (0, $0fcae27d7768d7c7$export$b15c5e7ddecda86e));
 customElements.define('room-state-icon', (0, $6a98a39b7895ac2a$export$8063c4212d705050));
+customElements.define('room-summary-entity-detail-editor', (0, $4e8271826f46045c$export$5062b3ea8745e421));
+customElements.define('room-summary-entities-row-editor', (0, $18d86f7ebdbf3b5d$export$12e5e4192ee344c7));
+customElements.define('room-summary-sub-element-editor', (0, $95e654b727466251$export$ddca213b44fe1587));
 // Ensure the customCards array exists on the window object
 window.customCards = window.customCards || [];
 // Register the card with Home Assistant's custom card registry
