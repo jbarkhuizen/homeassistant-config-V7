@@ -6,15 +6,24 @@ on:
 
 jobs:
   validate:
+    name: Validate Home Assistant Configuration
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: ⤵️ Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run hassfest
+      - name: 🧪 Run hassfest (integration metadata validation)
         uses: home-assistant/actions/hassfest@master
 
-      - name: Home Assistant configuration check
-        uses: home-assistant/actions/configuration@master
+      - name: ✅ Home Assistant Core configuration check
+        uses: frenck/action-home-assistant@v1
         with:
-          path: .
+          # Path to your configuration root. Your repo root IS the config root,
+          # so we keep it as "."
+          path: "."
+          # Version channel: stable (default). Other options: beta, dev, or a specific version.
+          version: stable
+          # (Optional) Provide a temporary fake secrets file if you ever need to mask missing secrets.
+          # secrets: tests/secrets.example.yaml
+          # You can uncomment and point to a supplied dummy secrets file if CI ever fails on secrets.

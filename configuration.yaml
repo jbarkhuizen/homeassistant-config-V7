@@ -271,6 +271,8 @@ logger:
     homeassistant.loader: warning
     homeassistant.setup: info
     homeassistant.config: info
+    homeassistant.components.smtp: debug
+    aiosmtplib: debug
     
     # Automation & Scripts - Info level for troubleshooting
     homeassistant.components.automation: info
