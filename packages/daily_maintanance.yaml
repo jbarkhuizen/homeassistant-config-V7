@@ -154,6 +154,7 @@ automation:
       - delay: "00:00:05"
       - variables:
           post_size: "{{ states('sensor.homeassistant_db_size_mb') | float(0) }}"
+      # Persistant Notification Service
       - service: persistent_notification.create
         data:
           title: "Monthly DB Backup & Compaction Complete"
@@ -203,6 +204,7 @@ automation:
               - condition: template
                 value_template: "{{ stale_list | length > 0 }}"
             sequence:
+              # Persistant Notification Service
               - service: persistent_notification.create
                 data:
                   title: "InfluxDB Data Flow Warning"
@@ -218,6 +220,7 @@ automation:
               - condition: template
                 value_template: "{{ stale_list | length == 0 }}"
             sequence:
+            # Persistant Notification Service
               - service: persistent_notification.create
                 data:
                   title: "InfluxDB Data Flow OK"
@@ -248,6 +251,7 @@ automation:
               - condition: template
                 value_template: "{{ diff > 0 }}"
             sequence:
+              # Persistant Notification Service
               - service: persistent_notification.create
                 data:
                   title: "Security: New IP bans detected"
@@ -255,7 +259,8 @@ automation:
                     IP bans increased since yesterday.
                     Previous: {{ baseline }} | Current: {{ current }} | Increase: {{ diff }}
                     Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
-              - service: notify.barkiehome
+                    # Telegram Notification Service
+                    - service: notify.barkiehome
                 data:
                   title: "Security: New IP bans"
                   message: "Increase: {{ diff }} (Now: {{ current }}, Prev: {{ baseline }})"

@@ -3,19 +3,66 @@
 # File: /config/packages/notifications.yaml
 # Purpose: All notification services consolidated with correct device references
 #===============================================================================
-#-------------------------------------------------------------------------------
-# Test scripts with proper device references
+
 script:
-  # Test basic email functionality
+  # Test basic email functionality (uses the restored alias notify.email_ha)
   test_email_basic:
     alias: "Test Email - Basic"
     sequence:
+      # Email Notification Service
       - service: notify.email_ha
         data:
           title: "📧 Email Basic Test"
           message: |
             Email basic test - {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
             Service: notify.email_ha
-            Status: ✅ Working
             From: Home Assistant (192.168.1.30:8123)
-#-------------------------------------------------------------------------------
+
+  # Test basic Telegram functionality (to BarkieHome and JohanBarkhuizen)
+  test_telegram_basic:
+    alias: "Test Telegram - Basic"
+    sequence:
+      # Telegram Notification Service
+      - service: notify.barkiehome
+        data:
+          message: "Telegram basic test (BarkieHome) — {{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+      - delay: "00:00:02"
+      # Telegram Notification Service
+      - service: notify.johanbarkhuizen
+        data:
+          message: "Telegram basic test (JohanBarkhuizen) — {{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+
+automation:
+  # Daily smoke-test to verify email delivery automatically (within 06h00–09h00 window)
+  - id: email_smoke_test_0810
+    alias: "Email Smoke Test (08:10)"
+    description: "Sends a short email to verify SMTP delivery each day."
+    trigger:
+      - platform: time
+        at: "08:10:00"
+    action:
+      # Email Notification Service
+      - service: notify.email_ha
+        data:
+          title: "📧 HA Email Smoke Test"
+          message: "Automated test at {{ now().strftime('%Y-%m-%d %H:%M:%S') }} — if you see this, SMTP is working."
+    mode: single
+
+  # Daily smoke-test to verify Telegram delivery automatically (within 06h00–09h00 window)
+  - id: telegram_smoke_test_0812
+    alias: "Telegram Smoke Test (08:12)"
+    description: "Sends short Telegram messages to verify delivery daily."
+    trigger:
+      - platform: time
+        at: "08:12:00"
+    action:
+      #Telegram Notification Service
+      - service: notify.barkiehome
+        data:
+          message: "🤖 Telegram Smoke Test — BarkieHome — {{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+      - delay: "00:00:02"
+      # Telegram Notification Service
+      - service: notify.johanbarkhuizen
+        data:
+          message: "🤖 Telegram Smoke Test — JohanBarkhuizen — {{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+    mode: single

@@ -10,6 +10,7 @@
   condition: []
 
   action:
+    # Email Notification Service
     - service: notify.email_alerts_jbarkhuizen_gmail_com
       data:
         title: "✅ Home Assistant - System Status OK"

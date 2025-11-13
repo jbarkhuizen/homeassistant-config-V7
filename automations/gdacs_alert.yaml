@@ -45,6 +45,7 @@
         level: warning
     
     # Action 2: Send Telegram notification with detailed information
+    # Telegram Notification Service
     - service: telegram_bot.send_message
       data:
         config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
@@ -81,7 +82,8 @@
         parse_mode: markdown
     
     # Action 3: Send Email notification with comprehensive details
-    - service: email_notification_jbarkhuizen_gmail_com
+    # Email Notification Service
+    - service: notify.email_alerts_jbarkhuizen_gmail_com
       data:
         title: "🚨 GDACS Disaster Alert - {{ trigger.to_state.state }} Active Alerts"
         message: >

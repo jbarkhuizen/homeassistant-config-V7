@@ -174,6 +174,7 @@ automation:
 
     action:
       # Send Telegram Alert
+      # Telegram Notification Service
       - service: telegram_bot.send_message
         data:
           config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
@@ -201,6 +202,7 @@ automation:
           parse_mode: markdown
 
       # Send Email Alert
+      # Email Notification Service
       - service: notify.email_alerts_jbarkhuizen_gmail_com
         data:
           title: "🔴 Home Assistant - High CPU Usage Alert"
@@ -250,6 +252,7 @@ automation:
 
     action:
       # Send Urgent Telegram Alert
+      # Telegram Notification Service
       - service: telegram_bot.send_message
         data:
           config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
@@ -275,6 +278,7 @@ automation:
           parse_mode: markdown
 
       # Send Critical Email
+      # Email Notification Service
       - service: notify.email_alerts_jbarkhuizen_gmail_com
         data:
           title: "🚨 CRITICAL - Home Assistant CPU Emergency"
@@ -320,6 +324,7 @@ automation:
 
     action:
       # Send Telegram Alert
+      # Telegram Notification Service
       - service: telegram_bot.send_message
         data:
           config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
@@ -365,6 +370,7 @@ automation:
 
     action:
       # Send Daily Telegram Report
+      # Telegram Notification Service
       - service: telegram_bot.send_message
         data:
           config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
@@ -394,6 +400,7 @@ automation:
           parse_mode: markdown
 
       # Send Daily Email Report
+      # Email Notification Service
       - service: notify.email_alerts_jbarkhuizen_gmail_com
         data:
           title: "Home Assistant - Daily System Health Report"
@@ -455,6 +462,7 @@ automation:
 
     action:
       # Send Telegram Alert
+      # Telegram Notification Service
       - service: telegram_bot.send_message
         data:
           config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
@@ -479,6 +487,7 @@ automation:
           parse_mode: markdown
 
       # Send Email Alert
+      # Email Notification Service
       - service: notify.email_alerts_jbarkhuizen_gmail_com
         data:
           title: "🟠 Home Assistant - High Disk Usage Alert"
@@ -522,6 +531,7 @@ automation:
 
     action:
       # Send Critical Telegram Alert
+      # Telegram Notification Service
       - service: telegram_bot.send_message
         data:
           config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
@@ -547,6 +557,7 @@ automation:
           parse_mode: markdown
 
       # Send Critical Email
+      # Email Notification Service
       - service: notify.email_alerts_jbarkhuizen_gmail_com
         data:
           title: "🚨 CRITICAL - Home Assistant Disk Full"

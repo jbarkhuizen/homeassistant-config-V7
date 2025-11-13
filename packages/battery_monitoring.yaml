@@ -310,6 +310,7 @@ automation:
             {{ ns.devices }}
           sequence:
             # Send Telegram Alert
+            # Telegram Notification Service
             - service: telegram_bot.send_message
               data:
                 config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
@@ -332,6 +333,7 @@ automation:
                 parse_mode: markdown
 
             # Send Email Alert
+            # Email Notification Service
             - service: notify.email_alerts_jbarkhuizen_gmail_com
               data:
                 title: "🟡 Low Battery Alert - {{ repeat.item.name | replace(' Battery', '') }}"
@@ -433,6 +435,7 @@ automation:
             {{ ns.devices }}
           sequence:
             # Send Urgent Telegram Alert
+            # Telegram Notification Service
             - service: telegram_bot.send_message
               data:
                 config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
@@ -457,6 +460,7 @@ automation:
                 parse_mode: markdown
 
             # Send Urgent Email
+            # Email Notification Service
             - service: notify.email_alerts_jbarkhuizen_gmail_com
               data:
                 title: '🔴 CRITICAL - Battery Emergency: {{ repeat.item.name | replace(" Battery", "") }}'
@@ -538,6 +542,7 @@ automation:
             {{ ns.devices | sort(attribute='battery') }}
 
       # Send Telegram Report with Table
+      # Telegram Notification Service
       - service: telegram_bot.send_message
         data:
           config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
@@ -590,6 +595,7 @@ automation:
           parse_mode: markdown
 
       # Send Email Report with HTML Table
+      # Email Notification Service
       - service: notify.email_alerts_jbarkhuizen_gmail_com
         data:
           title: '📊 Weekly Battery Status Report - {{ now().strftime("%d %B %Y") }}'
@@ -736,6 +742,7 @@ automation:
 
     action:
       # Send Daily Telegram Reminder
+      # Telegram Notification Service
       - service: telegram_bot.send_message
         data:
           config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4

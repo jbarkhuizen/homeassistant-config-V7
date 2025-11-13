@@ -19,6 +19,7 @@
   condition: []
 
   action:
+    # Telegram Notification Service
     - service: telegram_bot.send_message
       data:
         #        target: !secret telegram_chat_id
@@ -55,7 +56,7 @@
 
 
           🌐 http://192.168.1.30:8123
-
+    # Email Notification Service
     - service: notify.email_alerts_jbarkhuizen_gmail_com
       data:
         title: >-
@@ -111,6 +112,7 @@
 
   action:
     # Send Telegram Report
+    # Telegram Notification Service
     - service: telegram_bot.send_message
       data:
         config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
@@ -141,6 +143,7 @@
         parse_mode: markdown
 
     # Send Email Report
+    # Email Notification Service
     - service: notify.email_alerts_jbarkhuizen_gmail_com
       data:
         title: >-
@@ -214,6 +217,7 @@
 
   action:
     # Send Telegram Celebration
+    # Telegram Notification Service
     - service: telegram_bot.send_message
       data:
         config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
@@ -244,6 +248,7 @@
         parse_mode: markdown
 
     # Send Email Celebration
+    # Email Notification Service
     - service: notify.email_alerts_jbarkhuizen_gmail_com
       data:
         title: >-
@@ -319,6 +324,7 @@
 
   action:
     # Send Telegram Alert
+    # Telegram Notification Service
     - service: telegram_bot.send_message
       data:
         config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
@@ -349,6 +355,7 @@
         parse_mode: markdown
 
     # Send Email Alert
+    # Email Notification Service
     - service: notify.email_alerts_jbarkhuizen_gmail_com
       data:
         title: >-
@@ -438,6 +445,7 @@
 
   action:
     # Send Telegram Alert
+    # Telegram Notification Service
     - service: telegram_bot.send_message
       data:
         config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
@@ -473,6 +481,7 @@
         parse_mode: markdown
 
     # Send Email Alert
+    # Email Nitofication Service
     - service: notify.email_alerts_jbarkhuizen_gmail_com
       data:
         title: >-
@@ -596,6 +605,7 @@
       value_template: "{{ now().day == 1 }}"
 
   action:
+    # Telegram Notification Service
     - service: telegram_bot.send_message
       data:
         #        target: !secret telegram_chat_id
@@ -630,7 +640,7 @@
 
 
           Great month!
-
+    # Email Notification Service
     - service: notify.email_alerts_jbarkhuizen_gmail_com
       data:
         title: >-

@@ -18,6 +18,7 @@ automation:
         - condition: trigger
           id: Unknown
         sequence:
+        # Telegram Notification Service
         - action: telegram_bot.send_message
           data:
             message: 'I got a message from chatID: {{ trigger.event.data.chat_id }}'
@@ -26,6 +27,7 @@ automation:
         - condition: trigger
           id: sampleCommand1
         sequence:
+        # Telegram Notification Service
         - action: telegram_bot.send_message
           data:
             message: command1 was understood and I will action it now
@@ -66,9 +68,11 @@ automation:
         - condition: template
           value_template: '{{ trigger.from_state.state != ''unavailable'' }}'
         sequence:
+        # Telegram Notification Service
         - action: telegram_bot.send_message
           data:
             message: 'Loadshedding finished with battery SOC: {{states("sensor.deyeinvertermaster_battery_soc")}}%'
+        # Telegram Notification Service
         - action: telegram_bot.send_message
           data:
             message: 'Loadshedding finished with battery SOC: {{states("sensor.deyeinvertermaster_battery_soc")}}%'
@@ -79,9 +83,11 @@ automation:
         - condition: template
           value_template: '{{ trigger.from_state.state != ''unavailable'' }}'
         sequence:
+        # Telegram Notification Service
         - action: telegram_bot.send_message
           data:
             message: 'Loadshedding started with battery SOC: {{states("sensor.deyeinvertermaster_battery_soc")}}%'
+            # Telegram Notification Service
         - action: telegram_bot.send_message
           data:
             message: 'Loadshedding started with battery SOC: {{states("sensor.deyeinvertermaster_battery_soc")}}%'
@@ -93,9 +99,11 @@ automation:
           entity_id: sensor.deyeinvertermaster_grid_frequency
           below: 49
         sequence:
+        # Telegram Notification Service
         - action: telegram_bot.send_message
           data:
             message: Grid down and battery below 20%
+        # Telegram Notification Service
         - action: telegram_bot.send_message
           data:
             message: Grid down and battery below 20%
@@ -112,9 +120,11 @@ automation:
       below: 20
     condition: []
     action:
+    # Telegram Notification Service
     - action: telegram_bot.send_message
       data:
         message: Battery below 20%
+    # Telegram Notification Service
     - action: telegram_bot.send_message
       data:
         message: Battery below 20%

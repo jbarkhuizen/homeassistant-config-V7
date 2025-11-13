@@ -26,6 +26,7 @@
         seconds: 5
 
     # Send Telegram Report
+    # Telegram Notification Service
     - service: telegram_bot.send_message
       data:
         #        target: !secret telegram_chat_id
@@ -147,6 +148,7 @@
         seconds: 10
 
     # Send Email Report
+    # Email Notification Service
     - service: notify.email_alerts_jbarkhuizen_gmail_com
       data:
         title: "📊 Daily Home Assistant Update Report - {{ now().strftime('%Y-%m-%d') }}"
@@ -337,6 +339,7 @@
 
   action:
     # Send Urgent Telegram Alert
+    # Telegram Notification Service
     - service: telegram_bot.send_message
       data:
         #        target: !secret telegram_chat_id
@@ -380,6 +383,7 @@
           📅 {{ now().strftime('%A, %d %B %Y at %H:%M') }}
 
     # Send Email Alert
+    # Email Notification Service
     - service: notify.email_alerts_jbarkhuizen_gmail_com
       data:
         title: "🚨 CRITICAL: Home Assistant Updates Available"

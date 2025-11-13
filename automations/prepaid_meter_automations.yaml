@@ -27,6 +27,7 @@
           days_remaining: "{{ (units_left / daily_average) | round(1) if daily_average > 0 else 0 }}"
 
       # Send Telegram Report
+      # Telegram Notification Service
       - service: telegram_bot.send_message
         data:
           config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
@@ -57,6 +58,7 @@
           parse_mode: markdown
 
       # Send Email Report
+      # Email Notification Service
       - service: notify.email_alerts_jbarkhuizen_gmail_com
         data:
           title: >-
@@ -194,6 +196,7 @@
           parse_mode: markdown
 
       # Send Persistent Notification
+      # Persistant Notification Service
       - service: notify.persistent_notification
         data:
           title: "🟡 Prepaid Meter Low Balance Warning"
@@ -232,6 +235,7 @@
 
     action:
       # Send Telegram Critical Alert
+      # Telegram Notification Service
       - service: telegram_bot.send_message
         data:
           config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
@@ -260,6 +264,7 @@
           parse_mode: markdown
 
       # Send Email Alert
+      # Email Notification Service
       - service: notify.email_alerts_jbarkhuizen_gmail_com
         data:
           title: "🟠 CRITICAL: Prepaid Meter Balance Low"
@@ -280,6 +285,7 @@
             Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
 
       # Send Persistent Notification
+      # Persistant Notification Service
       - service: notify.persistent_notification
         data:
           title: "🟠 CRITICAL: Prepaid Meter Balance"
@@ -319,6 +325,7 @@
           entity_id: input_boolean.prepaid_meter_emergency_mode
 
       # Send URGENT Telegram Alert
+      # Telegram Notification Service
       - service: telegram_bot.send_message
         data:
           config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
@@ -349,6 +356,7 @@
           parse_mode: markdown
 
       # Send Multiple Email Alerts
+      # Email Notification Service
       - service: notify.email_alerts_jbarkhuizen_gmail_com
         data:
           title: "🔴 EMERGENCY: Prepaid Meter - Load Shedding Active"
@@ -370,6 +378,7 @@
             Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
 
       # Persistent Notification
+      # Persistant Notification Service
       - service: notify.persistent_notification
         data:
           title: "🔴 EMERGENCY: Load Shedding Active"
@@ -460,6 +469,7 @@
           entity_id: input_boolean.prepaid_meter_emergency_mode
 
       # Send Recovery Notification
+      # Telegram Notification Service
       - service: telegram_bot.send_message
         data:
           config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
@@ -487,6 +497,7 @@
           parse_mode: markdown
 
       # Clear Persistent Notifications
+      # Persistant Notification Service
       - service: notify.persistent_notification
         data:
           title: "✅ Prepaid Meter Recharged"
@@ -529,6 +540,7 @@
 
     action:
       # Send Confirmation
+      # Telegram Notofication Service
       - service: telegram_bot.send_message
         data:
           config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
