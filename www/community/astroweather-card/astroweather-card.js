@@ -15479,7 +15479,7 @@ AstroWeatherCardEditor = __decorate([
 ], AstroWeatherCardEditor);
 
 var AstroWeatherCard_1;
-const CARD_VERSION = "v0.74.1";
+const CARD_VERSION = "v0.74.2";
 console.info(`%c  ASTROWEATHER-CARD  \n%c Version ${CARD_VERSION}  `, "color: yellow; font-weight: bold; background: navy", "color: white; font-weight: bold; background: black");
 // This puts your card into the UI card picker dialog
 window.customCards = window.customCards || [];
@@ -15652,7 +15652,11 @@ let AstroWeatherCard = class AstroWeatherCard extends r$3 {
             this._forecastChart?.resize();
             this._forecastChart?.update("none");
         });
-        this._resizeObs.observe(this.renderRoot.host);
+        // this._resizeObs.observe(this.renderRoot.host);
+        const host = this.renderRoot instanceof ShadowRoot
+            ? this.renderRoot.host
+            : this;
+        this._resizeObs.observe(host);
     }
     async updated(changedProperties) {
         await this.updateComplete;
@@ -16206,7 +16210,7 @@ let AstroWeatherCard = class AstroWeatherCard extends r$3 {
         const colorCondition = this._config.line_color_condition
             ? this._config.line_color_condition
             : "#f07178";
-        const colorConditionNight = this._config.line_color_condition_night
+        this._config.line_color_condition_night
             ? this._config.line_color_condition_night
             : "#eeffff";
         const colorCloudless = this._config.line_color_cloudless
@@ -16281,6 +16285,57 @@ let AstroWeatherCard = class AstroWeatherCard extends r$3 {
         colorFogGradient.addColorStop(1, "rgba(0, 0, 0, 0)");
         var sun_next_setting_astro = new Date(this._weather.attributes.sun_next_setting_astro).getHours();
         var sun_next_rising_astro = new Date(this._weather.attributes.sun_next_rising_astro).getHours();
+        const astroDarknessBackgroundPlugin = {
+            id: "astroDarknessBackground",
+            beforeDraw(chart, _args, pluginOptions) {
+                const { ctx, chartArea: { top, bottom, left, right }, } = chart;
+                const xAxis = chart.scales["x"];
+                const labels = (chart.data.labels || []);
+                if (!xAxis || !labels.length || !pluginOptions)
+                    return;
+                const sunSetHour = pluginOptions.sunSetHour;
+                const sunRiseHour = pluginOptions.sunRiseHour;
+                const color = pluginOptions.color || "rgba(255, 255, 255, 0.06)"; // tweak to taste
+                // Build mask per label: is this point in astronomical darkness?
+                const darkMask = labels.map((label) => {
+                    const hour = new Date(label).getHours();
+                    if (Number.isNaN(hour))
+                        return false;
+                    if (sunSetHour < sunRiseHour) {
+                        // Darkness between same-evening set and next-morning rise
+                        return hour >= sunSetHour && hour <= sunRiseHour;
+                    }
+                    else {
+                        // Darkness spans midnight
+                        return hour >= sunSetHour || hour <= sunRiseHour;
+                    }
+                });
+                ctx.save();
+                ctx.fillStyle = color;
+                // Find contiguous dark segments and draw rectangles
+                let segmentStart = null;
+                for (let i = 0; i < darkMask.length; i++) {
+                    const isDark = darkMask[i];
+                    const isLast = i === darkMask.length - 1;
+                    if (isDark && segmentStart === null) {
+                        segmentStart = i;
+                    }
+                    if ((segmentStart !== null && !isDark) || (segmentStart !== null && isLast)) {
+                        const startIndex = segmentStart;
+                        const endIndex = isLast && isDark ? i : i - 1;
+                        // Convert label positions to pixels on x-axis
+                        const xStart = xAxis.getPixelForValue(labels[startIndex]);
+                        const xEnd = xAxis.getPixelForValue(labels[endIndex]);
+                        const width = xEnd - xStart || 0;
+                        if (width !== 0) {
+                            ctx.fillRect(xStart, top, width, bottom - top);
+                        }
+                        segmentStart = null;
+                    }
+                }
+                ctx.restore();
+            },
+        };
         this._forecastChart ||= new Chart(ctx, {
             type: "bar",
             data: {
@@ -16296,38 +16351,6 @@ let AstroWeatherCard = class AstroWeatherCard extends r$3 {
                         fill: fillLine,
                         borderWidth: 4,
                         borderColor: colorCondition,
-                        pointBorderColor: function (context) {
-                            var index = context.dataIndex;
-                            var hour = new Date(dateTime[index]).getHours();
-                            if (sun_next_setting_astro < sun_next_rising_astro) {
-                                return hour >= sun_next_setting_astro &&
-                                    hour <= sun_next_rising_astro
-                                    ? colorConditionNight
-                                    : colorCondition;
-                            }
-                            else {
-                                return hour >= sun_next_setting_astro ||
-                                    hour <= sun_next_rising_astro
-                                    ? colorConditionNight
-                                    : colorCondition;
-                            }
-                        },
-                        pointRadius: function (context) {
-                            var index = context.dataIndex;
-                            var hour = new Date(dateTime[index]).getHours();
-                            if (sun_next_setting_astro < sun_next_rising_astro) {
-                                return hour >= sun_next_setting_astro &&
-                                    hour <= sun_next_rising_astro
-                                    ? 5
-                                    : 0;
-                            }
-                            else {
-                                return hour >= sun_next_setting_astro ||
-                                    hour <= sun_next_rising_astro
-                                    ? 5
-                                    : 0;
-                            }
-                        },
                         pointStyle: "star",
                     },
                     {
@@ -16574,7 +16597,7 @@ let AstroWeatherCard = class AstroWeatherCard extends r$3 {
                             usePointStyle: true,
                             generateLabels: (chart) => {
                                 return chart.data.datasets.map((ds, i) => ({
-                                    text: ds.label,
+                                    text: ds.label ?? "",
                                     fontColor: textColor,
                                     strokeStyle: ds.borderColor,
                                     fillStyle: backgroundColor,
@@ -16640,8 +16663,16 @@ let AstroWeatherCard = class AstroWeatherCard extends r$3 {
                             },
                         },
                     },
+                    astroDarknessBackground: {
+                        sunSetHour: sun_next_setting_astro,
+                        sunRiseHour: sun_next_rising_astro,
+                        color: "rgba(0, 0, 0, 0.25)", // or rgba(255,255,255,0.06) for a light band
+                    },
                 },
             },
+            plugins: [
+                astroDarknessBackgroundPlugin,
+            ],
         });
     }
     _updateChart() {
@@ -16662,20 +16693,20 @@ let AstroWeatherCard = class AstroWeatherCard extends r$3 {
         const graphLi = this._config.graph_li;
         const graphPrecip = this._config.graph_precip;
         const graphFog = this._config.graph_fog;
-        var i;
-        var dateTime = [];
-        var condition = [];
-        var clouds = [];
-        var clouds_high = [];
-        var clouds_medium = [];
-        var clouds_low = [];
-        var seeing = [];
-        var transparency = [];
-        var calm = [];
-        var li = [];
-        var precip = [];
+        let i;
+        const dateTime = [];
+        const condition = [];
+        const clouds = [];
+        const clouds_high = [];
+        const clouds_medium = [];
+        const clouds_low = [];
+        const seeing = [];
+        const transparency = [];
+        const calm = [];
+        const li = [];
+        const precip = [];
         var precipMax = 0;
-        var fog = [];
+        const fog = [];
         for (i = 0; i < forecast.length; i++) {
             var d = forecast[i];
             dateTime.push(d.datetime);
@@ -16708,6 +16739,35 @@ let AstroWeatherCard = class AstroWeatherCard extends r$3 {
             }
             if (graphFog != undefined ? graphFog : true) {
                 fog.push(d.fog_area_fraction);
+            }
+        }
+        // Highlight points during astronomical darkness
+        const sun_next_setting_astro = new Date(this._weather.attributes.sun_next_setting_astro).getHours();
+        const sun_next_rising_astro = new Date(this._weather.attributes.sun_next_rising_astro).getHours();
+        const colorCondition = this._config.line_color_condition || "#f07178";
+        const colorConditionNight = this._config.line_color_condition_night || "#eeffff";
+        const condPointBorderColor = [];
+        const condPointRadius = [];
+        for (let idx = 0; idx < dateTime.length; idx++) {
+            const hour = new Date(dateTime[idx]).getHours();
+            let inAstroDarkness = false;
+            if (sun_next_setting_astro < sun_next_rising_astro) {
+                // Darkness between same-evening set and next-morning rise
+                inAstroDarkness =
+                    hour >= sun_next_setting_astro && hour <= sun_next_rising_astro;
+            }
+            else {
+                // Darkness spans midnight (set late, rise next day)
+                inAstroDarkness =
+                    hour >= sun_next_setting_astro || hour <= sun_next_rising_astro;
+            }
+            if (inAstroDarkness) {
+                condPointBorderColor.push(colorConditionNight); // white
+                condPointRadius.push(5); // visible point
+            }
+            else {
+                condPointBorderColor.push(colorCondition); // normal color or none
+                condPointRadius.push(0); // hidden point
             }
         }
         function rescaleY(chart, { axisId = "y", precipMax = 1, pad = 0.1, // 10% headroom
@@ -16744,6 +16804,10 @@ let AstroWeatherCard = class AstroWeatherCard extends r$3 {
             this._forecastChart.data.datasets[8].data = li;
             this._forecastChart.data.datasets[9].data = precip;
             this._forecastChart.data.datasets[10].data = fog;
+            // Apply the per-point styling to the "Condition" dataset
+            const conditionDataset = this._forecastChart.data.datasets[0];
+            conditionDataset.pointBorderColor = condPointBorderColor;
+            conditionDataset.pointRadius = condPointRadius;
             rescaleY(this._forecastChart, {
                 axisId: "PrecipitationAxis",
                 precipMax: precipMax,

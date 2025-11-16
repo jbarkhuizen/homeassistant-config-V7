@@ -1521,6 +1521,47 @@ const $aae26e2a62e46297$export$6697a659ce63852 = (hass, entity, config, isMainRo
 };
 
 
+var $c106d6426411ff6f$var$safeIsNaN = Number.isNaN || function ponyfill(value) {
+    return typeof value === 'number' && value !== value;
+};
+function $c106d6426411ff6f$var$isEqual(first, second) {
+    if (first === second) return true;
+    if ($c106d6426411ff6f$var$safeIsNaN(first) && $c106d6426411ff6f$var$safeIsNaN(second)) return true;
+    return false;
+}
+function $c106d6426411ff6f$var$areInputsEqual(newInputs, lastInputs) {
+    if (newInputs.length !== lastInputs.length) return false;
+    for(var i = 0; i < newInputs.length; i++){
+        if (!$c106d6426411ff6f$var$isEqual(newInputs[i], lastInputs[i])) return false;
+    }
+    return true;
+}
+function $c106d6426411ff6f$export$2e2bcd8739ae039(resultFn, isEqual) {
+    if (isEqual === void 0) isEqual = $c106d6426411ff6f$var$areInputsEqual;
+    var cache = null;
+    function memoized() {
+        var newArgs = [];
+        for(var _i = 0; _i < arguments.length; _i++)newArgs[_i] = arguments[_i];
+        if (cache && cache.lastThis === this && isEqual(newArgs, cache.lastArgs)) return cache.lastResult;
+        var lastResult = resultFn.apply(this, newArgs);
+        cache = {
+            lastResult: lastResult,
+            lastArgs: newArgs,
+            lastThis: this
+        };
+        return lastResult;
+    }
+    memoized.clear = function clear() {
+        cache = null;
+    };
+    return memoized;
+}
+
+
+const $a64cd1666b27644b$export$805ddaeeece0413e = (0, $c106d6426411ff6f$export$2e2bcd8739ae039)((config, feature)=>!config || config.features?.includes(feature) || false);
+const $a64cd1666b27644b$export$47f3d980c4d9b226 = (0, $c106d6426411ff6f$export$2e2bcd8739ae039)((entity, feature)=>!entity || entity.config.features?.includes(feature) || false);
+
+
 
 /**
  * Checks if an occupancy sensor entity is currently detecting motion/presence
@@ -1564,46 +1605,6 @@ const $7cf9926046a85a8c$export$a44444e2ac55f0e7 = (isOccupied, config)=>{
     return vars;
 };
 
-
-var $c106d6426411ff6f$var$safeIsNaN = Number.isNaN || function ponyfill(value) {
-    return typeof value === 'number' && value !== value;
-};
-function $c106d6426411ff6f$var$isEqual(first, second) {
-    if (first === second) return true;
-    if ($c106d6426411ff6f$var$safeIsNaN(first) && $c106d6426411ff6f$var$safeIsNaN(second)) return true;
-    return false;
-}
-function $c106d6426411ff6f$var$areInputsEqual(newInputs, lastInputs) {
-    if (newInputs.length !== lastInputs.length) return false;
-    for(var i = 0; i < newInputs.length; i++){
-        if (!$c106d6426411ff6f$var$isEqual(newInputs[i], lastInputs[i])) return false;
-    }
-    return true;
-}
-function $c106d6426411ff6f$export$2e2bcd8739ae039(resultFn, isEqual) {
-    if (isEqual === void 0) isEqual = $c106d6426411ff6f$var$areInputsEqual;
-    var cache = null;
-    function memoized() {
-        var newArgs = [];
-        for(var _i = 0; _i < arguments.length; _i++)newArgs[_i] = arguments[_i];
-        if (cache && cache.lastThis === this && isEqual(newArgs, cache.lastArgs)) return cache.lastResult;
-        var lastResult = resultFn.apply(this, newArgs);
-        cache = {
-            lastResult: lastResult,
-            lastArgs: newArgs,
-            lastThis: this
-        };
-        return lastResult;
-    }
-    memoized.clear = function clear() {
-        cache = null;
-    };
-    return memoized;
-}
-
-
-const $a64cd1666b27644b$export$805ddaeeece0413e = (0, $c106d6426411ff6f$export$2e2bcd8739ae039)((config, feature)=>!config || config.features?.includes(feature) || false);
-const $a64cd1666b27644b$export$47f3d980c4d9b226 = (0, $c106d6426411ff6f$export$2e2bcd8739ae039)((entity, feature)=>!entity || entity.config.features?.includes(feature) || false);
 
 
 
@@ -1692,7 +1693,19 @@ const $e24dedcf9e480b2d$export$50fdfeece43146fd = (0, $c106d6426411ff6f$export$2
 });
 
 
-const $2225304aebc9ab19$export$9dd734c640ccb658 = (hass, config)=>{
+/**
+ * https://github.com/home-assistant/frontend/blob/dev/src/data/media_source.ts
+ */ const $08e2fdbf5e7d472f$export$82af5f6c9f5dec8 = (mediaId)=>mediaId.startsWith('media-source://');
+const $08e2fdbf5e7d472f$export$512e5252162de675 = async (hass, mediaContentId)=>{
+    const result = await hass.callWS({
+        type: 'media_source/resolve_media',
+        media_content_id: mediaContentId
+    });
+    return result.url;
+};
+
+
+const $2225304aebc9ab19$export$9dd734c640ccb658 = async (hass, config)=>{
     const disableImage = config.background?.options?.includes('disable');
     if (disableImage) return undefined;
     // Check entity picture first
@@ -1701,7 +1714,24 @@ const $2225304aebc9ab19$export$9dd734c640ccb658 = (hass, config)=>{
         if (entityState?.attributes?.entity_picture) return entityState.attributes.entity_picture;
     }
     // Check config image
-    if (config.background?.image) return config.background.image;
+    if (config.background?.image) {
+        const image = config.background.image;
+        // Handle object format (media source)
+        if (typeof image === 'object' && image.media_content_id) {
+            const mediaContentId = image.media_content_id;
+            // If it's a media source, resolve it via WebSocket
+            if ((0, $08e2fdbf5e7d472f$export$82af5f6c9f5dec8)(mediaContentId)) return await (0, $08e2fdbf5e7d472f$export$512e5252162de675)(hass, mediaContentId);
+            // Otherwise, return the media_content_id as-is (backwards compatibility)
+            return mediaContentId;
+        }
+        // Handle string format
+        if (typeof image === 'string') {
+            // If it's a media source string, resolve it via WebSocket
+            if ((0, $08e2fdbf5e7d472f$export$82af5f6c9f5dec8)(image)) return await (0, $08e2fdbf5e7d472f$export$512e5252162de675)(hass, image);
+            // Otherwise, return the string as-is (backwards compatibility)
+            return image;
+        }
+    }
     // Fallback to area picture
     const area = (0, $4a21e93a38591807$export$520c40045967cb15)(hass.areas, config.area);
     return area?.picture;
@@ -2070,6 +2100,158 @@ const $57febad8376708f1$export$3d3654ce4577c53d = (element, entity)=>{
 
 
 
+/**
+ * Maps Home Assistant domains to their conventional active state colors
+ * Returns a color name from the standard HA_COLORS list
+ *
+ * @param domain - The Home Assistant domain (e.g., 'light', 'switch', 'cover')
+ * @returns Color name from HA_COLORS (e.g., 'amber', 'blue')
+ */ const $fe1dc9a21bba1bac$export$426ed50d9b9daf3a = (domain)=>{
+    switch(domain){
+        // Lighting
+        case 'light':
+        case 'switch_as_x':
+            return 'yellow';
+        // Switches & Electric
+        case 'switch':
+        case 'input_boolean':
+        case 'automation':
+        case 'script':
+            return 'blue';
+        // Climate & Environment
+        case 'climate':
+        case 'fan':
+            return 'teal';
+        // Security & Safety
+        case 'alarm_control_panel':
+        case 'lock':
+            return 'red';
+        // Covers & Doors
+        case 'cover':
+        case 'garage_door':
+        case 'door':
+            return 'green';
+        // Media
+        case 'media_player':
+            return 'indigo';
+        // Sensors & Binary Sensors
+        case 'binary_sensor':
+        case 'sensor':
+            return 'cyan';
+        // Person & Presence
+        case 'person':
+        case 'device_tracker':
+            return 'purple';
+        // Weather & Update
+        case 'weather':
+        case 'update':
+            return 'orange';
+        // Vacuum
+        case 'vacuum':
+            return 'deep-purple';
+        // Timer & Schedule
+        case 'timer':
+        case 'schedule':
+            return 'pink';
+        // Default for unknown domains
+        default:
+            return 'yellow';
+    }
+};
+
+
+/**
+ * @file color-definitions.js
+ * @description Defines RGB color variables for use in Home Assistant themes and components
+ */ 
+const $6914dc426cdafe87$export$33537d9e76cd536a = [
+    'primary',
+    'accent',
+    'red',
+    'pink',
+    'purple',
+    'deep-purple',
+    'indigo',
+    'blue',
+    'light-blue',
+    'cyan',
+    'teal',
+    'green',
+    'light-green',
+    'lime',
+    'yellow',
+    'amber',
+    'orange',
+    'deep-orange',
+    'brown',
+    'light-grey',
+    'grey',
+    'dark-grey',
+    'blue-grey',
+    'black',
+    'white',
+    'disabled'
+];
+const $6914dc426cdafe87$export$30317f76025d8bf5 = [
+    'red',
+    'green',
+    'yellow',
+    'blue',
+    'purple',
+    'grey',
+    'pink',
+    'theme'
+];
+const $6914dc426cdafe87$export$dec94ffc2d530e03 = (0, $def2de46b9306e8a$export$dbf350e5966cf602)`
+  --theme-color-minimalist: rgb(var(--color-theme));
+`;
+const $6914dc426cdafe87$export$4aa0a1b480cdb1b6 = (0, $def2de46b9306e8a$export$dbf350e5966cf602)`
+  --theme-background-color-card: var(
+    --ha-card-background,
+    var(--card-background-color, white)
+  );
+  --theme-background-color-icon: var(
+    --theme-color-minimalist,
+    var(--state-icon-color, white)
+  );
+  --theme-color-icon: var(
+    --theme-color-minimalist,
+    var(--state-icon-color, white)
+  );
+
+  --opacity-icon-active: 1;
+  --opacity-icon-inactive: 0.2;
+`;
+const $6914dc426cdafe87$export$38d2ecc76f0c2959 = (0, $def2de46b9306e8a$export$dbf350e5966cf602)`
+  --opacity-background-active: 0.1;
+  --opacity-background-inactive: 1;
+
+  --opacity-icon-fill-active: 0.2;
+  --opacity-icon-fill-inactive: 0.1;
+`;
+const $6914dc426cdafe87$export$eae85ad18a22ab6c = (0, $def2de46b9306e8a$export$dbf350e5966cf602)`
+  --opacity-background-active: 0.1;
+  --opacity-background-inactive: 1;
+
+  --opacity-icon-fill-active: 0.2;
+  --opacity-icon-fill-inactive: 0.05;
+`;
+
+
+const $b4e23e6524dce55f$export$2757cc6eb9fa350d = (iconColor, onColor, offColor, domain, active)=>{
+    if (iconColor && (0, $6914dc426cdafe87$export$30317f76025d8bf5).includes(iconColor)) return `rgb(var(--color-${iconColor}))`;
+    const color = active ? onColor ?? (0, $fe1dc9a21bba1bac$export$426ed50d9b9daf3a)(domain) : offColor;
+    if (color && (0, $6914dc426cdafe87$export$30317f76025d8bf5).includes(color)) return `rgb(var(--color-${color}))`;
+    return undefined;
+};
+const $b4e23e6524dce55f$export$de247ce18e8ed95f = (iconColor, onColor = '', offColor = '', active = false)=>{
+    if (iconColor && (0, $6914dc426cdafe87$export$33537d9e76cd536a).includes(iconColor)) return `var(--${iconColor}-color)`;
+    if (active && onColor && (0, $6914dc426cdafe87$export$33537d9e76cd536a).includes(onColor)) return `var(--${onColor}-color)`;
+    if (!active && offColor && (0, $6914dc426cdafe87$export$33537d9e76cd536a).includes(offColor)) return `var(--${offColor}-color)`;
+    return iconColor;
+};
+
+
 
 
 
@@ -2251,157 +2433,6 @@ const $964034295ca0500a$export$65bcdaf7f2807be8 = (stateObj)=>{
 };
 
 
-/**
- * Maps Home Assistant domains to their conventional active state colors
- * Returns a color name from the standard HA_COLORS list
- *
- * @param domain - The Home Assistant domain (e.g., 'light', 'switch', 'cover')
- * @returns Color name from HA_COLORS (e.g., 'amber', 'blue')
- */ const $fe1dc9a21bba1bac$export$426ed50d9b9daf3a = (domain)=>{
-    switch(domain){
-        // Lighting
-        case 'light':
-        case 'switch_as_x':
-            return 'yellow';
-        // Switches & Electric
-        case 'switch':
-        case 'input_boolean':
-        case 'automation':
-        case 'script':
-            return 'blue';
-        // Climate & Environment
-        case 'climate':
-        case 'fan':
-            return 'teal';
-        // Security & Safety
-        case 'alarm_control_panel':
-        case 'lock':
-            return 'red';
-        // Covers & Doors
-        case 'cover':
-        case 'garage_door':
-        case 'door':
-            return 'green';
-        // Media
-        case 'media_player':
-            return 'indigo';
-        // Sensors & Binary Sensors
-        case 'binary_sensor':
-        case 'sensor':
-            return 'cyan';
-        // Person & Presence
-        case 'person':
-        case 'device_tracker':
-            return 'purple';
-        // Weather & Update
-        case 'weather':
-        case 'update':
-            return 'orange';
-        // Vacuum
-        case 'vacuum':
-            return 'deep-purple';
-        // Timer & Schedule
-        case 'timer':
-        case 'schedule':
-            return 'pink';
-        // Default for unknown domains
-        default:
-            return 'yellow';
-    }
-};
-
-
-/**
- * @file color-definitions.js
- * @description Defines RGB color variables for use in Home Assistant themes and components
- */ 
-const $6914dc426cdafe87$export$33537d9e76cd536a = [
-    'primary',
-    'accent',
-    'red',
-    'pink',
-    'purple',
-    'deep-purple',
-    'indigo',
-    'blue',
-    'light-blue',
-    'cyan',
-    'teal',
-    'green',
-    'light-green',
-    'lime',
-    'yellow',
-    'amber',
-    'orange',
-    'deep-orange',
-    'brown',
-    'light-grey',
-    'grey',
-    'dark-grey',
-    'blue-grey',
-    'black',
-    'white',
-    'disabled'
-];
-const $6914dc426cdafe87$export$30317f76025d8bf5 = [
-    'red',
-    'green',
-    'yellow',
-    'blue',
-    'purple',
-    'grey',
-    'pink',
-    'theme'
-];
-const $6914dc426cdafe87$export$dec94ffc2d530e03 = (0, $def2de46b9306e8a$export$dbf350e5966cf602)`
-  --theme-color-minimalist: rgb(var(--color-theme));
-`;
-const $6914dc426cdafe87$export$4aa0a1b480cdb1b6 = (0, $def2de46b9306e8a$export$dbf350e5966cf602)`
-  --theme-background-color-card: var(
-    --ha-card-background,
-    var(--card-background-color, white)
-  );
-  --theme-background-color-icon: var(
-    --theme-color-minimalist,
-    var(--state-icon-color, white)
-  );
-  --theme-color-icon: var(
-    --theme-color-minimalist,
-    var(--state-icon-color, white)
-  );
-
-  --opacity-icon-active: 1;
-  --opacity-icon-inactive: 0.2;
-`;
-const $6914dc426cdafe87$export$38d2ecc76f0c2959 = (0, $def2de46b9306e8a$export$dbf350e5966cf602)`
-  --opacity-background-active: 0.1;
-  --opacity-background-inactive: 1;
-
-  --opacity-icon-fill-active: 0.2;
-  --opacity-icon-fill-inactive: 0.1;
-`;
-const $6914dc426cdafe87$export$eae85ad18a22ab6c = (0, $def2de46b9306e8a$export$dbf350e5966cf602)`
-  --opacity-background-active: 0.1;
-  --opacity-background-inactive: 1;
-
-  --opacity-icon-fill-active: 0.2;
-  --opacity-icon-fill-inactive: 0.05;
-`;
-
-
-const $b4e23e6524dce55f$export$2757cc6eb9fa350d = (iconColor, onColor, offColor, domain, active)=>{
-    if (iconColor && (0, $6914dc426cdafe87$export$30317f76025d8bf5).includes(iconColor)) return `rgb(var(--color-${iconColor}))`;
-    const color = active ? onColor ?? (0, $fe1dc9a21bba1bac$export$426ed50d9b9daf3a)(domain) : offColor;
-    if (color && (0, $6914dc426cdafe87$export$30317f76025d8bf5).includes(color)) return `rgb(var(--color-${color}))`;
-    return undefined;
-};
-const $b4e23e6524dce55f$export$de247ce18e8ed95f = (iconColor, onColor = '', offColor = '', active = false)=>{
-    if (iconColor && (0, $6914dc426cdafe87$export$33537d9e76cd536a).includes(iconColor)) return `var(--${iconColor}-color)`;
-    if (active && onColor && (0, $6914dc426cdafe87$export$33537d9e76cd536a).includes(onColor)) return `var(--${onColor}-color)`;
-    if (!active && offColor && (0, $6914dc426cdafe87$export$33537d9e76cd536a).includes(offColor)) return `var(--${offColor}-color)`;
-    return iconColor;
-};
-
 
 const $b7804c2a9cb078fc$export$ce6920689b32408c = (state, onColor, offColor, active)=>{
     const rgbColor = state.attributes.rgb_color;
@@ -2423,9 +2454,9 @@ const $81b7b9da9d23fa76$export$de96a622725f4284 = (hass, entity, thresholdResult
     // threshold-based colors have the highest priority
     if (thresholdResult?.color) return (0, $b4e23e6524dce55f$export$de247ce18e8ed95f)(thresholdResult.color);
     // icon color is the second priority - hex colors
-    const iconColor = state.attributes.icon_color;
+    const iconColor = state.attributes?.icon_color;
     if (iconColor?.startsWith('#')) return iconColor;
-    const onColor = entity.config.on_color ?? state.attributes.on_color;
+    const onColor = entity.config.on_color ?? state.attributes?.on_color;
     const offColor = entity.config.off_color ?? state?.attributes?.off_color;
     const rgbColor = (0, $b7804c2a9cb078fc$export$ce6920689b32408c)(state, onColor, offColor, active);
     // If the state has a specific RGB color, return it directly
@@ -2460,6 +2491,7 @@ const $2cc9f817abd21598$export$76969a794fd1f893 = (entity)=>{
         if (Number.isNaN(numericValue)) continue;
         if ($2cc9f817abd21598$var$meetsThreshold(numericValue, threshold)) return {
             color: threshold.icon_color,
+            titleColor: threshold.title_color,
             icon: threshold.icon,
             label: threshold.label,
             styles: threshold.styles
@@ -2475,6 +2507,7 @@ const $2cc9f817abd21598$export$a459976b71c8081f = (entity)=>{
         const valueToMatch = stateConfig.attribute ? String(state.attributes?.[stateConfig.attribute] ?? '') : state.state;
         if (stateConfig.state === valueToMatch) return {
             color: stateConfig.icon_color,
+            titleColor: stateConfig.title_color,
             icon: stateConfig.icon,
             label: stateConfig.label,
             styles: stateConfig.styles
@@ -2542,11 +2575,14 @@ const $4b770d6c5f20ba80$export$43aa80132b9e21fa = (hass, config, entity, isActiv
     if (skipStyles) return 0, $f58f44579a4747ac$export$45b790e32b2810ee;
     const styleData = (0, $5ee8d7c3f2d31d78$export$de2836153ec9a0b1)(hass, 'text', entity, isActive);
     if (!styleData) return 0, $f58f44579a4747ac$export$45b790e32b2810ee;
+    // Check if titleColor is specified in threshold/state result
+    const titleColor = styleData.thresholdResult?.titleColor ? (0, $b4e23e6524dce55f$export$de247ce18e8ed95f)(styleData.thresholdResult.titleColor) : styleData.cssColor;
     return styleData.active ? (0, $19f464fcda7d2482$export$1e5b4ce2fa884e6a)({
-        '--text-color': styleData.cssColor,
+        '--text-color': titleColor,
         '--state-color-text-theme': styleData.themeOverride,
         ...config.styles?.title
     }) : (0, $19f464fcda7d2482$export$1e5b4ce2fa884e6a)({
+        '--text-color': titleColor,
         ...config.styles?.title
     });
 };
@@ -2964,7 +3000,8 @@ const $8b8d054bbcd343d6$export$e417a58d8f305947 = (0, $def2de46b9306e8a$export$d
     container-type: inline-size;
   }
 
-  entity-collection {
+  entity-collection,
+  entity-slider {
     grid-area: e;
   }
 
@@ -3175,9 +3212,12 @@ class $e4f1b26747081709$export$90a7a1e0555e0bc9 extends (0, $ab210b2da7b39b9d$ex
         this.dark = dark;
         this.hot = hot;
         this.humid = humid;
-        this.image = !!image;
-        this._image = image;
         this._isActive = isActive;
+        // Handle async image resolution
+        image.then((resolvedImage)=>{
+            this.image = !!resolvedImage;
+            this._image = resolvedImage;
+        });
         // Update states only if they've changed
         let shouldRender = false;
         if (!$30856da572fd852b$exports(roomInfo, this._roomInformation)) {
@@ -3242,10 +3282,17 @@ class $e4f1b26747081709$export$90a7a1e0555e0bc9 extends (0, $ab210b2da7b39b9d$ex
           ${roomEntity}
 
           <!-- Entities Container -->
-          <entity-collection
-            .config=${this._config}
-            .hass=${this._hass}
-          ></entity-collection>
+          ${(0, $a64cd1666b27644b$export$805ddaeeece0413e)(this._config, 'slider') ? (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+                <entity-slider
+                  .config=${this._config}
+                  .hass=${this._hass}
+                ></entity-slider>
+              ` : (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+                <entity-collection
+                  .config=${this._config}
+                  .hass=${this._hass}
+                ></entity-collection>
+              `}
 
           <!-- Problem Indicator -->
           ${problems}
@@ -3443,42 +3490,79 @@ class $18d86f7ebdbf3b5d$export$12e5e4192ee344c7 extends (0, $ab210b2da7b39b9d$ex
       <label>
         ${this.label || `${this.hass.localize('ui.panel.lovelace.editor.card.generic.entities')} (${this.hass.localize('ui.panel.lovelace.editor.card.config.optional')})`}
       </label>
-      <div class="entities">
-        ${(0, $6db6ff6394e885e6$export$76d90c956114f2c2)(items, (item, index)=>this._getKey(item, index), (item, index)=>(0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
-            <div class="entity">
-              ${!this.single ? (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
-                    <div class="handle">
-                      <ha-icon icon="mdi:drag"></ha-icon>
+      ${!this.single ? (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+            <ha-sortable
+              handle-selector=".handle"
+              @item-moved=${this._rowMoved}
+            >
+              <div class="entities">
+                ${(0, $6db6ff6394e885e6$export$76d90c956114f2c2)(items, (item, index)=>this._getKey(item, index), (item, index)=>(0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+                    <div class="entity">
+                      <div class="handle">
+                        <ha-icon icon="mdi:drag"></ha-icon>
+                      </div>
+                      <ha-entity-picker
+                        allow-custom-entity
+                        hide-clear-icon
+                        .hass=${this.hass}
+                        .value=${this._getEntityId(item)}
+                        .index=${index}
+                        .includeEntities=${this.availableEntities}
+                        @value-changed=${this._valueChanged}
+                      ></ha-entity-picker>
+                      <ha-icon-button
+                        .label=${this.hass.localize('ui.components.entity.entity-picker.clear')}
+                        class="remove-icon"
+                        .index=${index}
+                        @click=${this._removeRow}
+                      >
+                        <ha-icon icon="mdi:close"></ha-icon>
+                      </ha-icon-button>
+                      <ha-icon-button
+                        .label=${this.hass.localize('ui.components.entity.entity-picker.edit')}
+                        class="edit-icon"
+                        .index=${index}
+                        @click=${this._editRow}
+                      >
+                        <ha-icon icon="mdi:pencil"></ha-icon>
+                      </ha-icon-button>
                     </div>
-                  ` : (0, $f58f44579a4747ac$export$45b790e32b2810ee)}
-              <ha-entity-picker
-                allow-custom-entity
-                hide-clear-icon
-                .hass=${this.hass}
-                .value=${this._getEntityId(item)}
-                .index=${index}
-                .includeEntities=${this.availableEntities}
-                @value-changed=${this._valueChanged}
-              ></ha-entity-picker>
-              <ha-icon-button
-                .label=${this.hass.localize('ui.components.entity.entity-picker.clear')}
-                class="remove-icon"
-                .index=${index}
-                @click=${this._removeRow}
-              >
-                <ha-icon icon="mdi:close"></ha-icon>
-              </ha-icon-button>
-              <ha-icon-button
-                .label=${this.hass.localize('ui.components.entity.entity-picker.edit')}
-                class="edit-icon"
-                .index=${index}
-                @click=${this._editRow}
-              >
-                <ha-icon icon="mdi:pencil"></ha-icon>
-              </ha-icon-button>
+                  `)}
+              </div>
+            </ha-sortable>
+          ` : (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+            <div class="entities">
+              ${(0, $6db6ff6394e885e6$export$76d90c956114f2c2)(items, (item, index)=>this._getKey(item, index), (item, index)=>(0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+                  <div class="entity">
+                    <ha-entity-picker
+                      allow-custom-entity
+                      hide-clear-icon
+                      .hass=${this.hass}
+                      .value=${this._getEntityId(item)}
+                      .index=${index}
+                      .includeEntities=${this.availableEntities}
+                      @value-changed=${this._valueChanged}
+                    ></ha-entity-picker>
+                    <ha-icon-button
+                      .label=${this.hass.localize('ui.components.entity.entity-picker.clear')}
+                      class="remove-icon"
+                      .index=${index}
+                      @click=${this._removeRow}
+                    >
+                      <ha-icon icon="mdi:close"></ha-icon>
+                    </ha-icon-button>
+                    <ha-icon-button
+                      .label=${this.hass.localize('ui.components.entity.entity-picker.edit')}
+                      class="edit-icon"
+                      .index=${index}
+                      @click=${this._editRow}
+                    >
+                      <ha-icon icon="mdi:pencil"></ha-icon>
+                    </ha-icon-button>
+                  </div>
+                `)}
             </div>
-          `)}
-      </div>
+          `}
       ${!this.single || items.length === 0 ? (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
             <ha-entity-picker
               class="add-entity ${this.single ? 'single-mode' : ''}"
@@ -3587,6 +3671,19 @@ class $18d86f7ebdbf3b5d$export$12e5e4192ee344c7 extends (0, $ab210b2da7b39b9d$ex
             }
         });
     }
+    _rowMoved(ev) {
+        ev.stopPropagation();
+        const { oldIndex: oldIndex, newIndex: newIndex } = ev.detail;
+        const items = this.field === 'entities' ? this.entities || [] : this.lights || [];
+        const newItems = items.concat();
+        const [movedItem] = newItems.splice(oldIndex, 1);
+        if (movedItem !== undefined) {
+            newItems.splice(newIndex, 0, movedItem);
+            (0, $9c83ab07519e6203$export$43835e9acf248a15)(this, 'value-changed', {
+                value: newItems
+            });
+        }
+    }
     static{
         this.styles = (0, $def2de46b9306e8a$export$dbf350e5966cf602)`
     ha-entity-picker {
@@ -3616,7 +3713,7 @@ class $18d86f7ebdbf3b5d$export$12e5e4192ee344c7 extends (0, $ab210b2da7b39b9d$ex
 
     .entity .handle {
       padding-right: 8px;
-      cursor: move;
+      cursor: move; /* fallback if grab cursor is unsupported */
       cursor: grab;
       padding-inline-end: 8px;
       padding-inline-start: initial;
@@ -3676,8 +3773,9 @@ class $18d86f7ebdbf3b5d$export$12e5e4192ee344c7 extends (0, $ab210b2da7b39b9d$ex
 
 
 
+
 var $9a28a77a5af263d9$exports = {};
-$9a28a77a5af263d9$exports = JSON.parse('{"editor":{"area":{"area":"Area","area_name":"Area name","area_side_entities":"Area side entities","room_entity":"Room entity"},"background":{"background":"Background","background_image":"Background Image","background_image_entity":"Background Image Entity","background_opacity":"Background Opacity","disable_background_image":"Disable Background Image","multi_light_background":"Multi-Light Background","light_entities":"Light Entities","multi_light_background_info":"Configure which light entities should be tracked for the multi-light background feature. When enabled, the card background (dark mode only) and room icon will light up when any of these lights are on. The card automatically discovers all lights in the area if no entities are specified."},"entity":{"entity_id":"Entity","entity_label":"Label","entity_attribute":"Attribute","entity_icon":"Icon","entity_on_color":"On Color","entity_off_color":"Off Color","ignore_entity":"Ignore Entity","show_entity_labels":"Show Entity Labels","use_entity_icon":"Use Entity Icon","states":"States","add_state":"Add State","thresholds":"Thresholds","add_threshold":"Add Threshold","state":{"state":"State","icon_color":"Icon Color","icon":"Icon","label":"Label","attribute":"Attribute","styles":"Styles"},"threshold":{"threshold":"Threshold","icon_color":"Icon Color","icon":"Icon","label":"Label","attribute":"Attribute","styles":"Styles","operator":"Operator"}},"entities":{"entities_info":"These options are for setting up the right side entities."},"icon":{"disable_icon_animations":"Disable Icon Animations","disable_icon_color":"Disable Icon Color","icon_background":"Icon Background","icon_background_color_occupied":"Icon Background Color (Occupied)","hide_icon_only":"Hide Icon Only","hide_room_icon":"Hide Room Icon"},"card":{"card_border_color_occupied":"Card Border Color (Occupied)","disable_card_border":"Disable Card Border","disable_card_border_animations":"Disable Card Border Animations","skip_card_background_styles":"Skip Card Background Styles"},"sensor":{"sensor_classes":"Sensor classes","hide_sensor_icons":"Hide Sensor icons","hide_sensor_labels":"Hide Sensor labels","hide_sensors":"Hide Sensors","individual_sensor_entities":"Individual sensor entities","sensors_info":"Sensors appear on the top row below the card title. They can be clicked for more info.","features_info":"Configure sensor display features:","hide_sensors_desc":"Hide the climate/sensor information","hide_sensor_icons_desc":"Hide the icons next to sensor values","hide_sensor_labels_desc":"Hide the labels next to sensor icons"},"threshold":{"thresholds":"Thresholds","temperature_threshold":"Temperature threshold","temperature_operator":"Temperature Operator","temperature_entity":"Temperature Entity","humidity_threshold":"Humidity threshold","humidity_operator":"Humidity Operator","humidity_entity":"Humidity Entity","mold_threshold":"Mold threshold","operator":{"equal":"Equal (=)","greater_than":"Greater than (>)","greater_than_or_equal":"Greater than or equal (\u2265)","less_than":"Less than (<)","less_than_or_equal":"Less than or equal (\u2264)"}},"interactions":{"interactions":"Interactions","tap_action":"Tap Action","double_tap_action":"Double Tap Action","hold_action":"Hold Action","navigate_path":"Navigate path when card tapped"},"occupancy":{"occupancy_presence_detection":"Occupancy & Presence Detection","motion_occupancy_presence_sensors":"Motion/Occupancy/Presence Sensors","occupancy_options":"Options","occupancy_info":"Configure motion, occupancy, and presence detection sensors. When any sensor detects activity, the card border and room icon can change color to indicate the room is occupied."},"styles":{"styles":"Styles","css_styles":"Your CSS Styles","card_styles":"Card Styles","entities_container_styles":"Entities Container Styles","entity_icon_styles":"Entity Icon Styles","sensor_styles":"Sensor Styles","stats_styles":"Stats Styles","title_styles":"Title Styles","skip_climate_styles":"Skip Climate Styles"},"layout":{"content":"Content","sensor_layout":"Sensor Layout","default_in_label_area":"Default (in label area)","bottom":"Bottom","vertical_stack":"Vertical Stack"},"stats":{"hide_area_stats":"Hide Area Stats"},"features":{"features":"Features","exclude_default_entities":"Exclude Default Entities","sticky_entities":"Sticky Entities","sticky_entities_info":"Keep entity positions stable even when their state is unavailable. This prevents UI layout shifts and makes it easier to tap entities on touch dashboards.","features_info":"Configure global features that affect how entities are displayed and handled:","show_entity_labels_desc":"Show entity labels under each entity icon","exclude_default_entities_desc":"Don\'t include default light/fan entities","ignore_entity_desc":"Ignore the entity property in the configuration","sticky_entities_desc":"Keep entity positions even when state is unavailable","options":"Options"}}}');
+$9a28a77a5af263d9$exports = JSON.parse('{"editor":{"area":{"area":"Area","area_name":"Area name","area_side_entities":"Area side entities","room_entity":"Room entity"},"background":{"background":"Background","background_image":"Background Image","background_image_entity":"Background Image Entity","background_opacity":"Background Opacity","disable_background_image":"Disable Background Image","multi_light_background":"Multi-Light Background","light_entities":"Light Entities","multi_light_background_info":"Configure which light entities should be tracked for the multi-light background feature. When enabled, the card background (dark mode only) and room icon will light up when any of these lights are on. The card automatically discovers all lights in the area if no entities are specified."},"entity":{"entity_id":"Entity","entity_label":"Label","entity_attribute":"Attribute","entity_icon":"Icon","entity_on_color":"On Color","entity_off_color":"Off Color","ignore_entity":"Ignore Entity","show_entity_labels":"Show Entity Labels","use_entity_icon":"Use Entity Icon","states":"States","add_state":"Add State","thresholds":"Thresholds","add_threshold":"Add Threshold","state":{"state":"State","icon_color":"Icon Color","title_color":"Title Color","icon":"Icon","label":"Label","attribute":"Attribute","styles":"Styles"},"threshold":{"threshold":"Threshold","icon_color":"Icon Color","title_color":"Title Color","icon":"Icon","label":"Label","attribute":"Attribute","styles":"Styles","operator":"Operator"}},"entities":{"entities_info":"These options are for setting up the right side entities."},"icon":{"disable_icon_animations":"Disable Icon Animations","disable_icon_color":"Disable Icon Color","icon_background":"Icon Background","icon_background_color_occupied":"Icon Background Color (Occupied)","hide_icon_only":"Hide Icon Only","hide_room_icon":"Hide Room Icon"},"card":{"card_border_color_occupied":"Card Border Color (Occupied)","disable_card_border":"Disable Card Border","disable_card_border_animations":"Disable Card Border Animations","skip_card_background_styles":"Skip Card Background Styles"},"sensor":{"sensor_classes":"Sensor classes","hide_sensor_icons":"Hide Sensor icons","hide_sensor_labels":"Hide Sensor labels","hide_sensors":"Hide Sensors","individual_sensor_entities":"Individual sensor entities","sensors_info":"Sensors appear on the top row below the card title. They can be clicked for more info.","features_info":"Configure sensor display features:","hide_sensors_desc":"Hide the climate/sensor information","hide_sensor_icons_desc":"Hide the icons next to sensor values","hide_sensor_labels_desc":"Hide the labels next to sensor icons"},"threshold":{"thresholds":"Thresholds","temperature_threshold":"Temperature threshold","temperature_operator":"Temperature Operator","temperature_entity":"Temperature Entity","humidity_threshold":"Humidity threshold","humidity_operator":"Humidity Operator","humidity_entity":"Humidity Entity","mold_threshold":"Mold threshold","operator":{"equal":"Equal (=)","greater_than":"Greater than (>)","greater_than_or_equal":"Greater than or equal (\u2265)","less_than":"Less than (<)","less_than_or_equal":"Less than or equal (\u2264)"}},"interactions":{"interactions":"Interactions","tap_action":"Tap Action","double_tap_action":"Double Tap Action","hold_action":"Hold Action","navigate_path":"Navigate path when card tapped"},"occupancy":{"occupancy_presence_detection":"Occupancy & Presence Detection","motion_occupancy_presence_sensors":"Motion/Occupancy/Presence Sensors","occupancy_options":"Options","occupancy_info":"Configure motion, occupancy, and presence detection sensors. When any sensor detects activity, the card border and room icon can change color to indicate the room is occupied."},"styles":{"styles":"Styles","css_styles":"Your CSS Styles","card_styles":"Card Styles","entities_container_styles":"Entities Container Styles","entity_icon_styles":"Entity Icon Styles","sensor_styles":"Sensor Styles","stats_styles":"Stats Styles","title_styles":"Title Styles","skip_climate_styles":"Skip Climate Styles"},"layout":{"content":"Content","sensor_layout":"Sensor Layout","default_in_label_area":"Default (in label area)","bottom":"Bottom","vertical_stack":"Vertical Stack"},"stats":{"hide_area_stats":"Hide Area Stats"},"slider":{"slider_style":"Slider Style","minimalist":"Minimalist","track":"Track","line":"Line","filled":"Filled/Progress","gradient":"Gradient","dual_rail":"Dual Rail","dots":"Dots/Ticks","notched":"Notched","grid":"Grid","glow":"Glow","shadow_trail":"Shadow Trail","outlined":"Outlined Track"},"features":{"features":"Features","exclude_default_entities":"Exclude Default Entities","sticky_entities":"Sticky Entities","slider":"Slider","sticky_entities_info":"Keep entity positions stable even when their state is unavailable. This prevents UI layout shifts and makes it easier to tap entities on touch dashboards.","features_info":"Configure global features that affect how entities are displayed and handled:","show_entity_labels_desc":"Show entity labels under each entity icon","exclude_default_entities_desc":"Don\'t include default light/fan entities","ignore_entity_desc":"Ignore the entity property in the configuration","sticky_entities_desc":"Keep entity positions even when state is unavailable","slider_desc":"Display a single entity in a slider layout instead of the entity collection","options":"Options"}}}');
 
 
 // Import other languages as needed above this line and in order
@@ -3703,7 +3801,6 @@ function $623ffaa3e77fea87$var$getNestedTranslation(obj, path) {
     }
     return typeof result === 'string' ? result : undefined;
 }
-
 
 
 
@@ -4002,6 +4099,14 @@ class $339fa5a2edbd17e2$export$806f47322f907427 extends (0, $ab210b2da7b39b9d$ex
                     }
                 },
                 {
+                    name: 'title_color',
+                    required: false,
+                    label: 'editor.entity.state.title_color',
+                    selector: {
+                        ui_color: {}
+                    }
+                },
+                {
                     type: 'grid',
                     name: '',
                     label: 'editor.entity.entity_label',
@@ -4059,6 +4164,14 @@ class $339fa5a2edbd17e2$export$806f47322f907427 extends (0, $ab210b2da7b39b9d$ex
                     name: 'icon_color',
                     required: true,
                     label: 'editor.entity.threshold.icon_color',
+                    selector: {
+                        ui_color: {}
+                    }
+                },
+                {
+                    name: 'title_color',
+                    required: false,
+                    label: 'editor.entity.threshold.title_color',
                     selector: {
                         ui_color: {}
                     }
@@ -4739,6 +4852,415 @@ class $0fcae27d7768d7c7$export$b15c5e7ddecda86e extends (0, $216640a6cb8d8606$ex
 
 
 
+const $c34738cf2df51026$export$bfd42fd87279097a = async (hass, entityId, brightness)=>{
+    if (!entityId) return;
+    // Ensure brightness is within valid range
+    const clampedBrightness = Math.max(0, Math.min(255, Math.round(brightness)));
+    // If brightness is 0, turn off the light
+    if (clampedBrightness === 0) {
+        await hass.callService('light', 'turn_off', {
+            entity_id: entityId
+        });
+        return;
+    }
+    // Otherwise, turn on the light with the specified brightness
+    await hass.callService('light', 'turn_on', {
+        entity_id: entityId,
+        brightness: clampedBrightness
+    });
+};
+
+
+
+
+
+
+
+
+const $07d8827579112fd7$export$9dd6ff9ea0189349 = (0, $def2de46b9306e8a$export$dbf350e5966cf602)`
+  :host {
+    position: relative;
+    aspect-ratio: 0.23 / 1;
+    height: 80%;
+    margin: auto 0;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Sunken track/well that the icon slides along */
+  :host([slider='track'])::before {
+    content: '';
+    position: absolute;
+    top: -12%;
+    bottom: -12%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50%;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 100px;
+    box-shadow:
+      inset 0 2px 4px rgba(0, 0, 0, 0.3),
+      inset 0 -1px 2px rgba(255, 255, 255, 0.1);
+    z-index: 0;
+  }
+
+  /* Thin line slider */
+  :host([slider='line'])::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+    z-index: 0;
+  }
+
+  /* Filled/Progress bar - shows brightness level */
+  :host([slider='filled'])::before {
+    content: '';
+    position: absolute;
+    top: var(--slider-position, 50%);
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50%;
+    background: rgba(var(--rgb-primary-color, 0, 0, 0), 0.2);
+    border-radius: 100px;
+    z-index: 0;
+    transition: top 0.1s ease;
+  }
+
+  /* Gradient line */
+  :host([slider='gradient'])::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.5),
+      rgba(0, 0, 0, 0.3)
+    );
+    border-radius: 3px;
+    z-index: 0;
+  }
+
+  /* Dual rail - two parallel lines */
+  :host([slider='dual-rail'])::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    background: linear-gradient(
+      to right,
+      rgba(0, 0, 0, 0.2) 0%,
+      rgba(0, 0, 0, 0.2) 2px,
+      transparent 2px,
+      transparent 10px,
+      rgba(0, 0, 0, 0.2) 10px,
+      rgba(0, 0, 0, 0.2) 12px
+    );
+    z-index: 0;
+  }
+
+  /* Dots/Ticks at regular intervals */
+  :host([slider='dots'])::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0%,
+      transparent calc(25% - 3px),
+      rgba(0, 0, 0, 0.3) calc(25% - 3px),
+      rgba(0, 0, 0, 0.3) calc(25% + 3px),
+      transparent calc(25% + 3px)
+    );
+    border-radius: 4px;
+    z-index: 0;
+  }
+
+  /* Notched track with indents */
+  :host([slider='notched'])::before {
+    content: '';
+    position: absolute;
+    top: -12%;
+    bottom: -12%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50%;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.15) 0%,
+      rgba(0, 0, 0, 0.15) 10%,
+      rgba(0, 0, 0, 0.25) 10%,
+      rgba(0, 0, 0, 0.25) 12%,
+      rgba(0, 0, 0, 0.15) 12%
+    );
+    border-radius: 100px;
+    z-index: 0;
+  }
+
+  /* Grid with horizontal lines */
+  :host([slider='grid'])::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0%,
+      transparent calc(25% - 1px),
+      rgba(0, 0, 0, 0.15) calc(25% - 1px),
+      rgba(0, 0, 0, 0.15) calc(25% + 1px),
+      transparent calc(25% + 1px)
+    );
+    z-index: 0;
+  }
+
+  /* Glow line with blur effect */
+  :host([slider='glow'])::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    background: rgba(var(--rgb-primary-color, 66, 133, 244), 0.4);
+    border-radius: 3px;
+    box-shadow:
+      0 0 8px rgba(var(--rgb-primary-color, 66, 133, 244), 0.6),
+      0 0 12px rgba(var(--rgb-primary-color, 66, 133, 244), 0.3);
+    z-index: 0;
+  }
+
+  /* Shadow trail that follows icon position */
+  :host([slider='shadow-trail'])::after {
+    content: '';
+    position: absolute;
+    top: var(--slider-position, 50%);
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    height: 40px;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(0, 0, 0, 0.15) 0%,
+      transparent 70%
+    );
+    z-index: 0;
+    transition: top 0.1s ease;
+    pointer-events: none;
+  }
+
+  /* Outlined track */
+  :host([slider='outlined'])::before {
+    content: '';
+    position: absolute;
+    top: -12%;
+    bottom: -12%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50%;
+    background: transparent;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    border-radius: 100px;
+    z-index: 0;
+  }
+
+  .icon-container {
+    width: 100%;
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    transition: opacity 0.2s ease;
+    z-index: 1;
+  }
+
+  .icon-container.dragging {
+    cursor: grabbing;
+    opacity: 0.8;
+    transition: none;
+  }
+`;
+
+
+
+class $353d1a0e82ef1bcb$export$ec4599f0917a20c8 extends (0, $216640a6cb8d8606$export$19efda5681568302)((0, $ab210b2da7b39b9d$export$3f2f9f5909897157)) {
+    /**
+   * Returns the component's styles
+   */ static get styles() {
+        return 0, $07d8827579112fd7$export$9dd6ff9ea0189349;
+    }
+    /**
+   * Updates the card's state when Home Assistant state changes
+   * @param {HomeAssistant} hass - The Home Assistant instance
+   */ // @ts-ignore
+    set hass(hass) {
+        (0, $05178f191e044eb1$export$4368d992c4eafac0)(this.config, 'entity-slider', 'set hass');
+        // Update slider style from config
+        this.sliderStyle = this.config?.slider_style || 'minimalist';
+        const states = (0, $7a9f070414cbf86a$export$a2d3d3a06f345f20)(hass, this.config);
+        const firstEntity = {
+            ...states[0],
+            config: {
+                ...states[0]?.config,
+                tap_action: {
+                    action: 'none'
+                },
+                hold_action: {
+                    action: 'none'
+                },
+                double_tap_action: {
+                    action: 'none'
+                }
+            }
+        };
+        // Update entity only if it's changed
+        if (!$30856da572fd852b$exports(firstEntity, this._entity)) {
+            this._entity = firstEntity;
+            // Update position based on brightness attribute
+            const brightness = firstEntity?.state?.attributes?.brightness;
+            if (brightness !== undefined && brightness !== null) {
+                // Convert brightness (0-255) to position (100-0%)
+                // Higher brightness = higher position (lower percentage, towards top)
+                const brightnessNum = Number(brightness);
+                this._yPosition = 100 - brightnessNum / 255 * 100;
+            } else this._yPosition = 100;
+        }
+        this._hass = hass;
+    }
+    render() {
+        (0, $05178f191e044eb1$export$4368d992c4eafac0)(this.config, 'entity-slider', 'render');
+        if (!this._hass || !this._entity) return 0, $f58f44579a4747ac$export$45b790e32b2810ee;
+        const stateIcon = (0, $aae26e2a62e46297$export$6697a659ce63852)(this._hass, this._entity, this.config);
+        // Set CSS custom property for slider position (used by filled and shadow-trail styles)
+        this.style.setProperty('--slider-position', `${this._yPosition}%`);
+        return (0, $f58f44579a4747ac$export$c0bb0b647f701bb5)`
+      ${(0, $6fcbc68239868959$export$3703ea65b0ac4726)(this.config.styles?.entities)}
+      <div
+        class="icon-container ${this._isDragging ? 'dragging' : ''}"
+        style="top: ${this._yPosition}%"
+        @mousedown=${this._handleDragStart}
+        @touchstart=${this._handleTouchStart}
+      >
+        ${stateIcon}
+      </div>
+    `;
+    }
+    constructor(...args){
+        super(...args), /**
+   * Slider style - reflected to DOM as data-slider-style attribute
+   */ this.sliderStyle = 'minimalist', /**
+   * Whether the icon is currently being dragged
+   */ this._isDragging = false, /**
+   * Vertical position of the icon (0-100, percentage from top)
+   * Default: 50 (centered)
+   */ this._yPosition = 100, /**
+   * Store initial drag state
+   */ this._dragStartY = 0, this._dragStartPosition = 0, /**
+   * Handle drag start (mouse)
+   */ this._handleDragStart = (e)=>{
+            this._isDragging = true;
+            this._dragStartY = e.clientY;
+            this._dragStartPosition = this._yPosition;
+            document.addEventListener('mousemove', this._handleDragMove);
+            document.addEventListener('mouseup', this._handleDragEnd);
+        }, /**
+   * Handle drag start (touch)
+   */ this._handleTouchStart = (e)=>{
+            if (!e.touches[0]) return;
+            this._isDragging = true;
+            this._dragStartY = e.touches[0].clientY;
+            this._dragStartPosition = this._yPosition;
+            document.addEventListener('touchmove', this._handleTouchMove);
+            document.addEventListener('touchend', this._handleTouchEnd);
+        }, /**
+   * Handle drag move (mouse)
+   */ this._handleDragMove = (e)=>{
+            if (!this._isDragging) return;
+            const containerHeight = this.offsetHeight;
+            if (!containerHeight) return;
+            const deltaY = e.clientY - this._dragStartY;
+            const deltaPercent = deltaY / containerHeight * 100;
+            // Update position with constraints (0-100%)
+            this._yPosition = Math.max(0, Math.min(100, this._dragStartPosition + deltaPercent));
+        }, /**
+   * Handle drag move (touch)
+   */ this._handleTouchMove = (e)=>{
+            if (!this._isDragging || !e.touches[0]) return;
+            const containerHeight = this.offsetHeight;
+            if (!containerHeight) return;
+            const deltaY = e.touches[0].clientY - this._dragStartY;
+            const deltaPercent = deltaY / containerHeight * 100;
+            // Update position with constraints (0-100%)
+            this._yPosition = Math.max(0, Math.min(100, this._dragStartPosition + deltaPercent));
+        }, /**
+   * Handle drag end (mouse)
+   */ this._handleDragEnd = ()=>{
+            this._isDragging = false;
+            document.removeEventListener('mousemove', this._handleDragMove);
+            document.removeEventListener('mouseup', this._handleDragEnd);
+            // Update entity brightness: position (0-100%) to brightness (255-0)
+            (0, $c34738cf2df51026$export$bfd42fd87279097a)(this._hass, this._entity?.state?.entity_id, Math.round((100 - this._yPosition) * 2.55));
+        }, /**
+   * Handle drag end (touch)
+   */ this._handleTouchEnd = ()=>{
+            this._isDragging = false;
+            document.removeEventListener('touchmove', this._handleTouchMove);
+            document.removeEventListener('touchend', this._handleTouchEnd);
+            // Update entity brightness: position (0-100%) to brightness (255-0)
+            (0, $c34738cf2df51026$export$bfd42fd87279097a)(this._hass, this._entity?.state?.entity_id, Math.round((100 - this._yPosition) * 2.55));
+        };
+    }
+}
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $9cd908ed2625c047$export$d541bacb2bda4494)({
+        type: Object
+    })
+], $353d1a0e82ef1bcb$export$ec4599f0917a20c8.prototype, "config", void 0);
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $9cd908ed2625c047$export$d541bacb2bda4494)({
+        type: String,
+        reflect: true,
+        attribute: 'slider'
+    })
+], $353d1a0e82ef1bcb$export$ec4599f0917a20c8.prototype, "sliderStyle", void 0);
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $04c21ea1ce1f6057$export$ca000e230c0caa3e)()
+], $353d1a0e82ef1bcb$export$ec4599f0917a20c8.prototype, "_entity", void 0);
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $04c21ea1ce1f6057$export$ca000e230c0caa3e)()
+], $353d1a0e82ef1bcb$export$ec4599f0917a20c8.prototype, "_isDragging", void 0);
+(0, $24c52f343453d62d$export$29e00dfd3077644b)([
+    (0, $04c21ea1ce1f6057$export$ca000e230c0caa3e)()
+], $353d1a0e82ef1bcb$export$ec4599f0917a20c8.prototype, "_yPosition", void 0);
+
+
+
+
+
 
 /**
  * https://github.com/home-assistant/frontend/blob/dev/src/common/entity/compute_entity_name.ts
@@ -4823,14 +5345,17 @@ const $a950251b49a6f795$export$f11d5335cd202cec = (hass, entity, attribute, clas
 
 
 
-const $5b9da589bbdb01f3$export$5edf3a158822b217 = (hass, entity, isActive, image)=>{
+const $5b9da589bbdb01f3$export$5edf3a158822b217 = (hass, entity, isActive, image, isMainRoomEntity, config)=>{
     const styleData = (0, $5ee8d7c3f2d31d78$export$de2836153ec9a0b1)(hass, 'icon', entity, isActive);
     if (!styleData) return 0, $f58f44579a4747ac$export$45b790e32b2810ee;
+    // Calculate opacity for image backgrounds (similar to getBackgroundOpacity)
+    const userOpacity = config?.background?.opacity && isMainRoomEntity ? config.background.opacity / 100 : undefined;
+    const opacity = userOpacity ?? (image && styleData.active ? '1' : `var(--opacity-icon-fill-${styleData.activeClass})`);
     return (0, $19f464fcda7d2482$export$1e5b4ce2fa884e6a)({
         '--icon-color': styleData.cssColor,
         '--icon-opacity': `var(--opacity-icon-${styleData.activeClass})`,
         '--background-color-icon': styleData.cssColor,
-        '--background-opacity-icon': image && styleData.active ? '1' : `var(--opacity-icon-fill-${styleData.activeClass})`,
+        '--background-opacity-icon': opacity,
         '--state-color-icon-theme': styleData.themeOverride,
         '--background-image': image ? `url(${image})` : undefined
     });
@@ -4979,7 +5504,7 @@ class $6a98a39b7895ac2a$export$8063c4212d705050 extends (0, $216640a6cb8d8606$ex
         .actionHandler=${(0, $57febad8376708f1$export$8a44987212de21b)(this.entity)}
       ></div>`;
         const thresholdResult = (0, $2cc9f817abd21598$export$76969a794fd1f893)(this.entity);
-        const iconStyle = (0, $5b9da589bbdb01f3$export$5edf3a158822b217)(this._hass, this.entity, this.isActive, this._image);
+        const iconStyle = (0, $5b9da589bbdb01f3$export$5edf3a158822b217)(this._hass, this.entity, this.isActive, this._image, this.isMainRoomEntity, this._config);
         (0, $05178f191e044eb1$export$4368d992c4eafac0)(this._config, 'room-state-icon - iconStyle', iconStyle);
         const iconStyles = {
             ...this._config?.styles?.entity_icon,
@@ -5574,7 +6099,6 @@ class $caca5106d54ff8e3$export$265e5e10b1eff6c6 extends (0, $216640a6cb8d8606$ex
 
 
 
-
 /**
  * https://github.com/home-assistant/frontend/blob/dev/src/data/sensor.ts
  */ let $2777c354bcb8374f$var$sensorNumericDeviceClassesCache;
@@ -5585,6 +6109,7 @@ const $2777c354bcb8374f$export$932b0589381997d6 = async (hass)=>{
     });
     return $2777c354bcb8374f$var$sensorNumericDeviceClassesCache;
 };
+
 
 
 const $ad31ef27732cde8d$export$76fcdb2ea14db822 = {
@@ -5640,7 +6165,9 @@ const $30a2f8c2b7ac40e2$var$schemeStyles = (hass, entities)=>{
                         name: 'image',
                         label: 'editor.background.background_image',
                         selector: {
-                            image: {}
+                            media: {
+                                image_upload: true
+                            }
                         }
                     },
                     {
@@ -5868,36 +6395,8 @@ const $30a2f8c2b7ac40e2$var$schemeStyles = (hass, entities)=>{
         ]
     };
 };
-const $30a2f8c2b7ac40e2$export$f7981422eaaebd4b = (hass, entities)=>{
+const $30a2f8c2b7ac40e2$export$2763e19f10bf2cf8 = (hass)=>{
     return [
-        {
-            name: 'entities',
-            label: 'editor.area.area_side_entities',
-            required: false,
-            selector: {
-                entity: {
-                    multiple: true,
-                    include_entities: entities
-                }
-            }
-        },
-        {
-            name: 'lights',
-            label: 'editor.background.light_entities',
-            required: false,
-            selector: {
-                entity: {
-                    multiple: true,
-                    include_entities: entities,
-                    filter: {
-                        domain: [
-                            'light',
-                            'switch'
-                        ]
-                    }
-                }
-            }
-        },
         {
             name: 'styles',
             label: 'editor.styles.css_styles',
@@ -5921,34 +6420,68 @@ const $30a2f8c2b7ac40e2$export$f7981422eaaebd4b = (hass, entities)=>{
                     }
                 }
             ]
-        }
-    ];
-};
-const $30a2f8c2b7ac40e2$export$2763e19f10bf2cf8 = ()=>{
-    return {
-        name: 'styles',
-        label: 'editor.styles.css_styles',
-        type: 'grid',
-        column_min_width: '100%',
-        schema: [
-            {
-                name: 'entities',
-                label: 'editor.styles.entities_container_styles',
-                required: false,
-                selector: {
-                    object: {}
-                }
-            },
-            {
-                name: 'entity_icon',
-                label: 'editor.styles.entity_icon_styles',
-                required: false,
-                selector: {
-                    object: {}
+        },
+        {
+            name: 'slider_style',
+            label: 'editor.slider.slider_style',
+            required: false,
+            selector: {
+                select: {
+                    mode: 'dropdown',
+                    options: [
+                        {
+                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.slider.minimalist'),
+                            value: 'minimalist'
+                        },
+                        {
+                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.slider.track'),
+                            value: 'track'
+                        },
+                        {
+                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.slider.line'),
+                            value: 'line'
+                        },
+                        {
+                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.slider.filled'),
+                            value: 'filled'
+                        },
+                        {
+                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.slider.gradient'),
+                            value: 'gradient'
+                        },
+                        {
+                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.slider.dual_rail'),
+                            value: 'dual-rail'
+                        },
+                        {
+                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.slider.dots'),
+                            value: 'dots'
+                        },
+                        {
+                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.slider.notched'),
+                            value: 'notched'
+                        },
+                        {
+                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.slider.grid'),
+                            value: 'grid'
+                        },
+                        {
+                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.slider.glow'),
+                            value: 'glow'
+                        },
+                        {
+                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.slider.shadow_trail'),
+                            value: 'shadow-trail'
+                        },
+                        {
+                            label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.slider.outlined'),
+                            value: 'outlined'
+                        }
+                    ]
                 }
             }
-        ]
-    };
+        }
+    ];
 };
 const $30a2f8c2b7ac40e2$export$157fbfc8be11fdc6 = (hass, entities)=>{
     return [
@@ -6284,6 +6817,10 @@ const $30a2f8c2b7ac40e2$export$a3234059ca65f80a = (hass)=>{
                     {
                         label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.features.sticky_entities'),
                         value: 'sticky_entities'
+                    },
+                    {
+                        label: (0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, 'editor.features.slider'),
+                        value: 'slider'
                     }
                 ]
             }
@@ -6338,73 +6875,6 @@ const $30a2f8c2b7ac40e2$export$e8b24eae43edea4f = (hass)=>{
 };
 
 
-/**
- * Utility functions for cleaning up configuration objects
- */ /**
- * Removes empty arrays from a configuration object
- * @param config - The configuration object to clean
- * @param key - The key to check for empty arrays
- */ function $c9a41b042f1d429b$export$cad94c565c931d44(config, key) {
-    const arr = config[key];
-    if (Array.isArray(arr) && !arr.length) delete config[key];
-}
-function $c9a41b042f1d429b$export$4e25f33241712942(config, key) {
-    const obj = config[key];
-    if (!obj || typeof obj !== 'object') return;
-    for (const k of Object.keys(obj)){
-        !obj[k] && delete obj[k];
-        $c9a41b042f1d429b$export$cad94c565c931d44(obj, k);
-    }
-    if (!Object.keys(obj).length) delete config[key];
-}
-
-
-
-function $6cdd6567f08b70bb$export$57ed763a527776f2(element, config) {
-    if (!config) return;
-    // Clean default values
-    if (config.sensor_layout === 'default') delete config.sensor_layout;
-    // Clean up undefined entity field
-    if (config.entity === undefined) delete config.entity;
-    // Clean up empty arrays
-    (0, $c9a41b042f1d429b$export$cad94c565c931d44)(config, 'features');
-    (0, $c9a41b042f1d429b$export$cad94c565c931d44)(config, 'entities');
-    (0, $c9a41b042f1d429b$export$cad94c565c931d44)(config, 'lights');
-    (0, $c9a41b042f1d429b$export$cad94c565c931d44)(config, 'problem_entities');
-    (0, $c9a41b042f1d429b$export$cad94c565c931d44)(config, 'sensor_classes');
-    // Clean nested objects
-    (0, $c9a41b042f1d429b$export$4e25f33241712942)(config, 'background');
-    (0, $c9a41b042f1d429b$export$4e25f33241712942)(config, 'thresholds');
-    (0, $c9a41b042f1d429b$export$4e25f33241712942)(config, 'occupancy');
-    // @ts-ignore
-    (0, $9c83ab07519e6203$export$43835e9acf248a15)(element, 'config-changed', {
-        config: config
-    });
-}
-
-
-/**
- * Updates scroll indicators based on container scroll position
- * @param container - The scrollable container element
- * @returns Object with showLeftScroll and showRightScroll boolean values
- */ function $7f6650f55e9c4782$export$b08e81f6b8074e1b(container) {
-    if (!container) return {
-        showLeftScroll: false,
-        showRightScroll: false
-    };
-    const { scrollLeft: scrollLeft, scrollWidth: scrollWidth, clientWidth: clientWidth } = container;
-    // Show left indicator if scrolled right
-    const showLeftScroll = scrollLeft > 5;
-    // Show right indicator if there's more content to the right
-    const showRightScroll = scrollLeft < scrollWidth - clientWidth - 5;
-    return {
-        showLeftScroll: showLeftScroll,
-        showRightScroll: showRightScroll
-    };
-}
-
-
-
 
 function $7ebc302e6bf357b3$export$851056343f01ae23(hass, schema) {
     return `${(0, $623ffaa3e77fea87$export$b3bd0bc58e36cd63)(hass, schema.label)} ${schema.required ? `(${hass.localize('ui.panel.lovelace.editor.card.config.required')})` : `(${hass.localize('ui.panel.lovelace.editor.card.config.optional')})`}`;
@@ -6432,9 +6902,7 @@ function $18466046b6c71f95$export$633a60486668629e(params) {
       <ha-form
         .hass=${hass}
         .data=${config}
-        .schema=${[
-        (0, $30a2f8c2b7ac40e2$export$2763e19f10bf2cf8)()
-    ]}
+        .schema=${(0, $30a2f8c2b7ac40e2$export$2763e19f10bf2cf8)(hass)}
         .computeLabel=${(schema)=>(0, $7ebc302e6bf357b3$export$851056343f01ae23)(hass, schema)}
         @value-changed=${onValueChanged}
       ></ha-form>
@@ -6704,6 +7172,73 @@ function $915536f8a1faeb12$export$c12c36dfee4d12e2(params) {
       ${tabContent}
     </div>
   `;
+}
+
+
+
+/**
+ * Utility functions for cleaning up configuration objects
+ */ /**
+ * Removes empty arrays from a configuration object
+ * @param config - The configuration object to clean
+ * @param key - The key to check for empty arrays
+ */ function $c9a41b042f1d429b$export$cad94c565c931d44(config, key) {
+    const arr = config[key];
+    if (Array.isArray(arr) && !arr.length) delete config[key];
+}
+function $c9a41b042f1d429b$export$4e25f33241712942(config, key) {
+    const obj = config[key];
+    if (!obj || typeof obj !== 'object') return;
+    for (const k of Object.keys(obj)){
+        !obj[k] && delete obj[k];
+        $c9a41b042f1d429b$export$cad94c565c931d44(obj, k);
+    }
+    if (!Object.keys(obj).length) delete config[key];
+}
+
+
+
+function $6cdd6567f08b70bb$export$57ed763a527776f2(element, config) {
+    if (!config) return;
+    // Clean default values
+    if (config.sensor_layout === 'default') delete config.sensor_layout;
+    // Clean up undefined entity field
+    if (config.entity === undefined) delete config.entity;
+    // Clean up empty arrays
+    (0, $c9a41b042f1d429b$export$cad94c565c931d44)(config, 'features');
+    (0, $c9a41b042f1d429b$export$cad94c565c931d44)(config, 'entities');
+    (0, $c9a41b042f1d429b$export$cad94c565c931d44)(config, 'lights');
+    (0, $c9a41b042f1d429b$export$cad94c565c931d44)(config, 'problem_entities');
+    (0, $c9a41b042f1d429b$export$cad94c565c931d44)(config, 'sensor_classes');
+    // Clean nested objects
+    (0, $c9a41b042f1d429b$export$4e25f33241712942)(config, 'background');
+    (0, $c9a41b042f1d429b$export$4e25f33241712942)(config, 'thresholds');
+    (0, $c9a41b042f1d429b$export$4e25f33241712942)(config, 'occupancy');
+    // @ts-ignore
+    (0, $9c83ab07519e6203$export$43835e9acf248a15)(element, 'config-changed', {
+        config: config
+    });
+}
+
+
+/**
+ * Updates scroll indicators based on container scroll position
+ * @param container - The scrollable container element
+ * @returns Object with showLeftScroll and showRightScroll boolean values
+ */ function $7f6650f55e9c4782$export$b08e81f6b8074e1b(container) {
+    if (!container) return {
+        showLeftScroll: false,
+        showRightScroll: false
+    };
+    const { scrollLeft: scrollLeft, scrollWidth: scrollWidth, clientWidth: clientWidth } = container;
+    // Show left indicator if scrolled right
+    const showLeftScroll = scrollLeft > 5;
+    // Show right indicator if there's more content to the right
+    const showRightScroll = scrollLeft < scrollWidth - clientWidth - 5;
+    return {
+        showLeftScroll: showLeftScroll,
+        showRightScroll: showRightScroll
+    };
 }
 
 
@@ -7271,7 +7806,7 @@ class $b642db848cc622aa$export$be1ca41262ce011e extends (0, $ab210b2da7b39b9d$ex
 
 
 var $b06602ab53bd58a3$exports = {};
-$b06602ab53bd58a3$exports = JSON.parse("{\"name\":\"room-summary-card\",\"version\":\"0.49.0\",\"author\":\"Patrick Masters\",\"license\":\"ISC\",\"description\":\"Custom card Home Assistant which can show a summary of room entities.\",\"source\":\"src/index.ts\",\"module\":\"dist/room-summary-card.js\",\"targets\":{\"module\":{\"includeNodeModules\":true}},\"scripts\":{\"watch\":\"parcel watch\",\"build\":\"parcel build\",\"format\":\"prettier --write .\",\"test\":\"TS_NODE_PROJECT='./tsconfig.test.json' mocha\",\"test:coverage\":\"nyc npm run test\",\"test:watch\":\"TS_NODE_PROJECT='./tsconfig.test.json' mocha --watch\",\"update\":\"npx npm-check-updates -u && yarn install\"},\"devDependencies\":{\"@istanbuljs/nyc-config-typescript\":\"^1.0.2\",\"@open-wc/testing\":\"^4.0.0\",\"@parcel/transformer-inline-string\":\"^2.16.1\",\"@testing-library/dom\":\"^10.4.1\",\"@trivago/prettier-plugin-sort-imports\":\"^6.0.0\",\"@types/chai\":\"^5.2.3\",\"@types/jsdom\":\"^27.0.0\",\"@types/mocha\":\"^10.0.10\",\"@types/sinon\":\"^17.0.4\",\"chai\":\"^6.2.1\",\"jsdom\":\"^27.1.0\",\"mocha\":\"^11.7.5\",\"nyc\":\"^17.1.0\",\"parcel\":\"^2.16.1\",\"prettier\":\"3.6.2\",\"prettier-plugin-organize-imports\":\"^4.3.0\",\"proxyquire\":\"^2.1.3\",\"sinon\":\"^21.0.0\",\"ts-node\":\"^10.9.2\",\"tsconfig-paths\":\"^4.2.0\",\"typescript\":\"^5.9.3\"},\"dependencies\":{\"@lit/task\":\"^1.0.3\",\"async-memoize-one\":\"^1.1.9\",\"fast-deep-equal\":\"^3.1.3\",\"lit\":\"^3.3.1\",\"memoize-one\":\"^6.0.0\"}}");
+$b06602ab53bd58a3$exports = JSON.parse("{\"name\":\"room-summary-card\",\"version\":\"0.50.0\",\"author\":\"Patrick Masters\",\"license\":\"ISC\",\"description\":\"Custom card Home Assistant which can show a summary of room entities.\",\"source\":\"src/index.ts\",\"module\":\"dist/room-summary-card.js\",\"targets\":{\"module\":{\"includeNodeModules\":true}},\"scripts\":{\"watch\":\"parcel watch\",\"build\":\"parcel build\",\"format\":\"prettier --write .\",\"test\":\"TS_NODE_PROJECT='./tsconfig.test.json' mocha\",\"test:coverage\":\"nyc npm run test\",\"test:watch\":\"TS_NODE_PROJECT='./tsconfig.test.json' mocha --watch\",\"update\":\"npx npm-check-updates -u && yarn install\"},\"devDependencies\":{\"@istanbuljs/nyc-config-typescript\":\"^1.0.2\",\"@open-wc/testing\":\"^4.0.0\",\"@parcel/transformer-inline-string\":\"^2.16.1\",\"@testing-library/dom\":\"^10.4.1\",\"@trivago/prettier-plugin-sort-imports\":\"^6.0.0\",\"@types/chai\":\"^5.2.3\",\"@types/jsdom\":\"^27.0.0\",\"@types/mocha\":\"^10.0.10\",\"@types/sinon\":\"^17.0.4\",\"chai\":\"^6.2.1\",\"jsdom\":\"^27.1.0\",\"mocha\":\"^11.7.5\",\"nyc\":\"^17.1.0\",\"parcel\":\"^2.16.1\",\"prettier\":\"3.6.2\",\"prettier-plugin-organize-imports\":\"^4.3.0\",\"proxyquire\":\"^2.1.3\",\"sinon\":\"^21.0.0\",\"ts-node\":\"^10.9.2\",\"tsconfig-paths\":\"^4.2.0\",\"typescript\":\"^5.9.3\"},\"dependencies\":{\"@lit/task\":\"^1.0.3\",\"async-memoize-one\":\"^1.1.9\",\"fast-deep-equal\":\"^3.1.3\",\"lit\":\"^3.3.1\",\"memoize-one\":\"^6.0.0\"}}");
 
 
 // Register the custom element with the browser
@@ -7279,6 +7814,7 @@ customElements.define('room-summary-card', (0, $e4f1b26747081709$export$90a7a1e0
 customElements.define('room-summary-card-editor', (0, $b642db848cc622aa$export$be1ca41262ce011e));
 customElements.define('sensor-collection', (0, $caca5106d54ff8e3$export$265e5e10b1eff6c6));
 customElements.define('entity-collection', (0, $0fcae27d7768d7c7$export$b15c5e7ddecda86e));
+customElements.define('entity-slider', (0, $353d1a0e82ef1bcb$export$ec4599f0917a20c8));
 customElements.define('room-state-icon', (0, $6a98a39b7895ac2a$export$8063c4212d705050));
 customElements.define('room-summary-entity-detail-editor', (0, $4e8271826f46045c$export$5062b3ea8745e421));
 customElements.define('room-summary-entities-row-editor', (0, $18d86f7ebdbf3b5d$export$12e5e4192ee344c7));

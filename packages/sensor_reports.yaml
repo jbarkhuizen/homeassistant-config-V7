@@ -1,0 +1,42 @@
+# ==============================================================================
+# Sensor Reports - Daily export and on-demand test
+# File: /config/packages/sensor_reports.yaml
+# Purpose:
+#  - Daily CSV export of all HA entities to /config/sensor_reports
+#  - Manual test script callable from Developer Tools > Services
+# Notes:
+#  - Uses existing shell_command.extract_sensors defined in configuration.yaml
+#  - Triggers scheduled between 06:00 and 09:00 in line with your standard
+# ==============================================================================
+
+script:
+  test_sensor_reports_now:
+    alias: "Test Sensor Reports - Export Now"
+    sequence:
+      - service: shell_command.extract_sensors
+      - delay: "00:00:03"
+      - service: persistent_notification.create
+        data:
+          title: "Sensor Reports: Test Export"
+          message: >
+            A sensor report export was triggered manually.
+            File created (if successful): /config/sensor_reports/sensors_{{ now().strftime('%Y%m%d') }}.csv
+    mode: single
+
+automation:
+  - id: sensor_reports_daily_export_0820
+    alias: "Sensor Reports — Daily Export (08:20)"
+    description: "Exports all entities to CSV each morning."
+    trigger:
+      - platform: time
+        at: "08:20:00"
+    action:
+      - service: shell_command.extract_sensors
+      - delay: "00:00:05"
+      - service: persistent_notification.create
+        data:
+          title: "Sensor Reports: Daily Export Complete"
+          message: >
+            Export wrote /config/sensor_reports/sensors_{{ now().strftime('%Y%m%d') }}.csv
+            Check File Editor or Samba share to verify the file.
+    mode: single
