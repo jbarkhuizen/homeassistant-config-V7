@@ -24,16 +24,26 @@
     # Email
     - service: notify.email_notification_jbarkhuizen_gmail_com
       data:
-        title: "🧭 System Overview — {{ now().strftime('%Y-%m-%d') }}"
+        title: >-
+          {% set is_mon = (now().weekday() == 0) %}
+          {% if is_mon %}
+            {% set pv7 = states('sensor.solar_pv_energy_change_7d') | float(0) %}
+            {% set load7 = states('sensor.solar_load_energy_change_7d') | float(0) %}
+            {% set imp7 = states('sensor.solar_grid_import_energy_change_7d') | float(0) %}
+            {% set dep = (100 * imp7 / load7) if load7 > 0 else 0 %}
+            🧭 System Overview — {{ now().strftime('%Y-%m-%d') }} | Weekly Solar: PV {{ '{:.1f}'.format(pv7) }}kWh, GridDep {{ '{:.0f}'.format(dep) }}%
+          {% else %}
+            🧭 System Overview — {{ now().strftime('%Y-%m-%d') }}
+          {% endif %}
         message: >-
           {% from 'system_overview_notifications.jinja' import system_morning_overview_email %}
           {{ system_morning_overview_email() }}
 
-    # Telegram — replace 6167623299with your real chat_id, or use !secret telegram_chat_id
+    # Telegram — replace 123456789 with your real chat_id, or use !secret telegram_chat_id
     - service: telegram_bot.send_message
       data:
         target:
-          - 6167623299
+          - 123456789
         message: >-
           {% from 'system_overview_notifications.jinja' import system_morning_overview_telegram %}
           {{ system_morning_overview_telegram() }}

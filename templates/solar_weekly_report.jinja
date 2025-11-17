@@ -1,0 +1,138 @@
+{# =============================================================================
+SOLAR & INVERTER WEEKLY SUMMARY MACROS
+File: /config/templates/solar_weekly_report.jinja
+Purpose: Weekly (last 7d vs prior 7d) summary for Email + Telegram
+Updated: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+============================================================================= #}
+
+{# ------------------------------- HELPERS ---------------------------------- #}
+{%- macro _fmt(v, default='N/A') -%}
+  {{ (v if v not in [None, 'unknown', 'unavailable', 'None', ''] else default) }}
+{%- endmacro -%}
+
+{%- macro _num(v, prec=2, default='0') -%}
+  {%- set x = (v | float(default)) -%}
+  {{ ('{0:.' ~ prec ~ 'f}').format(x) }}
+{%- endmacro -%}
+
+{%- macro _kwh(v) -%}{{ _num(v, 2, 0) }} kWh{%- endmacro -%}
+{%- macro _pct(v) -%}{{ _num(v, 1, 0) }}%{%- endmacro -%}
+
+{%- macro _safe_sub(a, b) -%}
+  {%- set a1 = (a | float(0)) -%}
+  {%- set b1 = (b | float(0)) -%}
+  {{ (a1 - b1) }}
+{%- endmacro -%}
+
+{%- macro _safe_ratio(n, d, prec=1) -%}
+  {%- set n1 = (n | float(0)) -%}
+  {%- set d1 = (d | float(0)) -%}
+  {%- if d1 > 0 -%}
+    {{ _num(100.0 * n1 / d1, prec, 0) }}
+  {%- else -%}
+    N/A
+  {%- endif -%}
+{%- endmacro -%}
+
+{# ----------------------------- DATA LOOKUPS ------------------------------- #}
+{# 7d and 14d rolling energy changes from sensors built in the weekly package #}
+{%- set pv_7  = states('sensor.solar_pv_energy_change_7d') %}
+{%- set pv_14 = states('sensor.solar_pv_energy_change_14d') %}
+{%- set load_7  = states('sensor.solar_load_energy_change_7d') %}
+{%- set load_14 = states('sensor.solar_load_energy_change_14d') %}
+{%- set imp_7  = states('sensor.solar_grid_import_energy_change_7d') %}
+{%- set imp_14 = states('sensor.solar_grid_import_energy_change_14d') %}
+{%- set exp_7  = states('sensor.solar_grid_export_energy_change_7d') %}
+{%- set exp_14 = states('sensor.solar_grid_export_energy_change_14d') %}
+
+{# Prior-7d = 14d window minus last 7d window (guarded to non-negative) #}
+{%- set pv_prev   = [(_safe_sub(pv_14, pv_7) | float(0)), 0] | max %}
+{%- set load_prev = [(_safe_sub(load_14, load_7) | float(0)), 0] | max %}
+{%- set imp_prev  = [(_safe_sub(imp_14, imp_7) | float(0)), 0] | max %}
+{%- set exp_prev  = [(_safe_sub(exp_14, exp_7) | float(0)), 0] | max %}
+
+{# Derived metrics: self-consumption and grid dependency for each period #}
+{%- set self_7   = (pv_7 | float(0)) - (exp_7 | float(0)) %}
+{%- set self_prev = (pv_prev | float(0)) - (exp_prev | float(0)) %}
+
+{%- set self_pct_7   = _safe_ratio(self_7, pv_7, 1) %}
+{%- set self_pct_prev = _safe_ratio(self_prev, pv_prev, 1) %}
+
+{%- set grid_dep_7   = _safe_ratio(imp_7, load_7, 1) %}
+{%- set grid_dep_prev = _safe_ratio(imp_prev, load_prev, 1) %}
+
+{# Deltas and % change (new vs prior) #}
+{%- macro _delta_and_pct(new, old) -%}
+  {%- set d = (new | float(0)) - (old | float(0)) -%}
+  {%- set p = _safe_ratio(d, (old | float(0)), 1) -%}
+  {{ d }},{{ p }}
+{%- endmacro -%}
+
+{%- set pv_delta, pv_delta_pct = _delta_and_pct(pv_7, pv_prev).split(',') %}
+{%- set load_delta, load_delta_pct = _delta_and_pct(load_7, load_prev).split(',') %}
+{%- set imp_delta, imp_delta_pct = _delta_and_pct(imp_7, imp_prev).split(',') %}
+{%- set exp_delta, exp_delta_pct = _delta_and_pct(exp_7, exp_prev).split(',') %}
+
+{# Verdict line: prioritize load/grid dependency improvements #}
+{%- set verdict = (
+  'Load ↓' if (load_delta | float(0)) < 0 else
+  'Grid dependency ↓' if (grid_dep_7 is string and grid_dep_prev is string and (grid_dep_7.replace(\"%\",\"\") | float(0)) < (grid_dep_prev.replace(\"%\",\"\") | float(0))) else
+  'PV ↑' if (pv_delta | float(0)) > 0 else
+  'Stable'
+) %}
+
+{%- set ts = now().strftime('%Y-%m-%d %H:%M:%S') %}
+{%- set ip = '192.168.1.30:8123' %}
+{%- set cloud = 'https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/' %}
+
+{# ------------------------------ EMAIL VERSION ------------------------------ #}
+{% macro solar_weekly_report_email() -%}
+SOLAR & INVERTER — WEEKLY SUMMARY (Last 7d vs Prior 7d)
+Generated: {{ now().strftime('%A, %d %B %Y at %H:%M') }}
+===============================================================================
+
+TOPLINE VERDICT
+---------------
+- {{ verdict }}
+
+PERIOD TOTALS
+-------------
+                Last 7d              Prior 7d            Δ (kWh)      Δ (%)
+- PV:           {{ _kwh(pv_7) }}     | {{ _kwh(pv_prev) }}   | {{ _kwh(pv_delta) }}   | {{ _pct(pv_delta_pct) }}
+- Load:         {{ _kwh(load_7) }}   | {{ _kwh(load_prev) }} | {{ _kwh(load_delta) }} | {{ _pct(load_delta_pct) }}
+- Grid Import:  {{ _kwh(imp_7) }}    | {{ _kwh(imp_prev) }}  | {{ _kwh(imp_delta) }}  | {{ _pct(imp_delta_pct) }}
+- Grid Export:  {{ _kwh(exp_7) }}    | {{ _kwh(exp_prev) }}  | {{ _kwh(exp_delta) }}  | {{ _pct(exp_delta_pct) }}
+
+EFFICIENCY METRICS
+------------------
+- Self-consumption (of PV):
+  • Last 7d:  {{ _kwh(self_7) }} ({{ self_pct_7 }})
+  • Prior 7d: {{ _kwh(self_prev) }} ({{ self_pct_prev }})
+
+- Grid dependency (of Load):
+  • Last 7d:  {{ grid_dep_7 }}
+  • Prior 7d: {{ grid_dep_prev }}
+
+LINKS
+-----
+- Local: http://{{ ip }}
+- Cloud: {{ cloud }}
+
+Generated: {{ ts }}
+===============================================================================
+{%- endmacro %}
+
+{# ---------------------------- TELEGRAM VERSION ----------------------------- #}
+{% macro solar_weekly_report_telegram() -%}
+🔆 *Solar — Weekly Summary* (Last 7d vs Prior 7d)
+
+• Verdict: {{ verdict }}
+
+• PV: {{ _kwh(pv_7) }} vs {{ _kwh(pv_prev) }} (Δ {{ _kwh(pv_delta) }}, {{ _pct(pv_delta_pct) }})
+• Load: {{ _kwh(load_7) }} vs {{ _kwh(load_prev) }} (Δ {{ _kwh(load_delta) }}, {{ _pct(load_delta_pct) }})
+• Import: {{ _kwh(imp_7) }} vs {{ _kwh(imp_prev) }} (Δ {{ _kwh(imp_delta) }}, {{ _pct(imp_delta_pct) }})
+• Export: {{ _kwh(exp_7) }} vs {{ _kwh(exp_prev) }} (Δ {{ _kwh(exp_delta) }}, {{ _pct(exp_delta_pct) }})
+
+• Self-use: {{ _kwh(self_7) }} ({{ self_pct_7 }}) vs {{ _kwh(self_prev) }} ({{ self_pct_prev }})
+• Grid dep.: {{ grid_dep_7 }} vs {{ grid_dep_prev }}
+{%- endmacro %}

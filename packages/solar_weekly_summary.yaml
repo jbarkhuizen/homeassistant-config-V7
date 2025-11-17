@@ -1,0 +1,136 @@
+# =============================================================================
+# PACKAGE: Solar Weekly Summary Metrics
+# Builds weekly-capable metrics using integration and statistics sensors.
+# =============================================================================
+
+# 1) Template power split for Grid Import/Export from signed grid power (W)
+template:
+  - sensor:
+      - name: "deyeinvertercombined_grid_import_power"
+        unique_id: deyeinvertercombined_grid_import_power
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set g = states('sensor.deyeinvertercombined_grid_power_ct_clamp') | float(0) %}
+          {{ [g, 0] | max }}
+
+      - name: "deyeinvertercombined_grid_export_power"
+        unique_id: deyeinvertercombined_grid_export_power
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set g = states('sensor.deyeinvertercombined_grid_power_ct_clamp') | float(0) %}
+          {{ (0 - [g, 0] | min) }}
+
+# 2) Cumulative energy (kWh) via integration of power (W)
+sensor:
+  - platform: integration
+    name: solar_total_pv_energy
+    unique_id: solar_total_pv_energy
+    source: sensor.deyeinvertercombined_pv_power
+    method: left
+    unit_time: h
+    unit_prefix: k
+    round: 2
+
+  - platform: integration
+    name: solar_total_load_energy
+    unique_id: solar_total_load_energy
+    source: sensor.deyeinvertercombined_inverter_output_power
+    method: left
+    unit_time: h
+    unit_prefix: k
+    round: 2
+
+  - platform: integration
+    name: solar_total_grid_import_energy
+    unique_id: solar_total_grid_import_energy
+    source: sensor.deyeinvertercombined_grid_import_power
+    method: left
+    unit_time: h
+    unit_prefix: k
+    round: 2
+
+  - platform: integration
+    name: solar_total_grid_export_energy
+    unique_id: solar_total_grid_export_energy
+    source: sensor.deyeinvertercombined_grid_export_power
+    method: left
+    unit_time: h
+    unit_prefix: k
+    round: 2
+
+  # 3) Rolling-window weekly (7d) and prior-week via 14d delta
+  - platform: statistics
+    name: solar_pv_energy_change_7d
+    unique_id: solar_pv_energy_change_7d
+    entity_id: sensor.solar_total_pv_energy
+    state_characteristic: change
+    max_age:
+      days: 7
+    sampling_size: 10000
+
+  - platform: statistics
+    name: solar_pv_energy_change_14d
+    unique_id: solar_pv_energy_change_14d
+    entity_id: sensor.solar_total_pv_energy
+    state_characteristic: change
+    max_age:
+      days: 14
+    sampling_size: 20000
+
+  - platform: statistics
+    name: solar_load_energy_change_7d
+    unique_id: solar_load_energy_change_7d
+    entity_id: sensor.solar_total_load_energy
+    state_characteristic: change
+    max_age:
+      days: 7
+    sampling_size: 10000
+
+  - platform: statistics
+    name: solar_load_energy_change_14d
+    unique_id: solar_load_energy_change_14d
+    entity_id: sensor.solar_total_load_energy
+    state_characteristic: change
+    max_age:
+      days: 14
+    sampling_size: 20000
+
+  - platform: statistics
+    name: solar_grid_import_energy_change_7d
+    unique_id: solar_grid_import_energy_change_7d
+    entity_id: sensor.solar_total_grid_import_energy
+    state_characteristic: change
+    max_age:
+      days: 7
+    sampling_size: 10000
+
+  - platform: statistics
+    name: solar_grid_import_energy_change_14d
+    unique_id: solar_grid_import_energy_change_14d
+    entity_id: sensor.solar_total_grid_import_energy
+    state_characteristic: change
+    max_age:
+      days: 14
+    sampling_size: 20000
+
+  - platform: statistics
+    name: solar_grid_export_energy_change_7d
+    unique_id: solar_grid_export_energy_change_7d
+    entity_id: sensor.solar_total_grid_export_energy
+    state_characteristic: change
+    max_age:
+      days: 7
+    sampling_size: 10000
+
+  - platform: statistics
+    name: solar_grid_export_energy_change_14d
+    unique_id: solar_grid_export_energy_change_14d
+    entity_id: sensor.solar_total_grid_export_energy
+    state_characteristic: change
+    max_age:
+      days: 14
+    sampling_size: 20000

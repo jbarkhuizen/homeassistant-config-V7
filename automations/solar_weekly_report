@@ -1,0 +1,52 @@
+#===============================================================================
+# SOLAR: Weekly Solar Performance Summary (Mondays 08:40) — Email + Telegram
+#===============================================================================
+- id: solar_weekly_summary_0840
+  alias: "Solar: Weekly Performance Summary (Mon 08:40)"
+  description: >
+    Compares last 7 days vs prior 7 days for PV, Load, Grid Import, Grid Export.
+    Sends Email + Telegram. Guarded by Maintenance Mode (must be OFF).
+
+  trigger:
+    - platform: time
+      at: "08:40:00"
+
+  condition:
+    - condition: state
+      entity_id: input_boolean.maintenance_mode
+      state: "off"
+    - condition: time
+      weekday:
+        - mon
+
+  action:
+    # Slight delay to ensure statistics windows are updated
+    - delay:
+        seconds: 10
+
+    # Email
+    - service: notify.email_notification_jbarkhuizen_gmail_com
+      data:
+        title: "🔆 Weekly Solar Summary — {{ now().strftime('%Y-%m-%d') }}"
+        message: >-
+          {% from 'solar_weekly_report.jinja' import solar_weekly_report_email %}
+          {{ solar_weekly_report_email() }}
+
+    # Telegram — replace 123456789 with your real chat_id, or use !secret telegram_chat_id
+    - service: telegram_bot.send_message
+      data:
+        target:
+          - 123456789
+        message: >-
+          {% from 'solar_weekly_report.jinja' import solar_weekly_report_telegram %}
+          {{ solar_weekly_report_telegram() }}
+        parse_mode: markdown
+
+    # Log for auditing
+    - service: system_log.write
+      data:
+        message: >-
+          Solar Weekly Summary sent at {{ now().strftime('%Y-%m-%d %H:%M:%S') }}.
+        level: info
+
+  mode: single

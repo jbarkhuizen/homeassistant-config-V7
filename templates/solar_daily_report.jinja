@@ -1,0 +1,155 @@
+{# =============================================================================
+SOLAR & INVERTER DAILY REPORT MACROS
+File: /config/templates/solar_daily_report.jinja
+Purpose: Provide centralized macros for Solar Daily Report (Email + Telegram)
+Updated: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+============================================================================= #}
+
+{# ------------------------------- HELPERS ---------------------------------- #}
+{%- macro _fmt(v, default='N/A') -%}
+  {{ (v if v not in [None, 'unknown', 'unavailable', 'None', ''] else default) }}
+{%- endmacro -%}
+
+{%- macro _num(v, prec=2, default='0') -%}
+  {%- set x = (v | float(default)) -%}
+  {{ ('{0:.' ~ prec ~ 'f}').format(x) }}
+{%- endmacro -%}
+
+{%- macro _int(v, default=0) -%}
+  {{ (v | float(default)) | round(0) | int }}
+{%- endmacro -%}
+
+{%- macro _w(v) -%}{{ _int(v) }} W{%- endmacro -%}
+{%- macro _kwh(v) -%}{{ _num(v, 2, 0) }} kWh{%- endmacro -%}
+{%- macro _pct(v) -%}{{ _num(v, 1, 0) }}%{%- endmacro -%}
+
+{# --- Prefer COMBINED sensors; otherwise sum MASTER + SLAVE where possible --- #}
+{%- macro _pref_combined_or_sum(combined, master, slave, prec=2) -%}
+  {%- set c = states(combined) -%}
+  {%- if c not in ['unknown','unavailable','None',''] %}
+    {{ _num(c, prec, 0) }}
+  {%- else %}
+    {%- set m = states(master) | float(0) -%}
+    {%- set s = states(slave) | float(0) -%}
+    {{ _num(m + s, prec, 0) }}
+  {%- endif -%}
+{%- endmacro -%}
+
+{# Compute derived ratios safely #}
+{%- macro _safe_ratio(n, d, prec=1) -%}
+  {%- set n1 = (n | float(0)) -%}
+  {%- set d1 = (d | float(0)) -%}
+  {%- if d1 > 0 -%}
+    {{ _num(100.0 * n1 / d1, prec, 0) }}
+  {%- else -%}
+    N/A
+  {%- endif -%}
+{%- endmacro -%}
+
+{# ----------------------------- DATA LOOKUPS ------------------------------- #}
+{# Instant values #}
+{%- set pv_now = states('sensor.deyeinvertercombined_pv_power') %}
+{%- set grid_now = states('sensor.deyeinvertercombined_grid_power_ct_clamp') %}
+{%- set batt_soc_now = states('sensor.deyeinvertercombined_battery_soc') %}
+{%- set batt_out_now = states('sensor.deyeinvertercombined_battery_output_power') %}
+{%- if batt_out_now in ['unknown','unavailable','None',''] %}
+  {# fallback sum master+slave battery output #}
+  {%- set batt_out_now = (states('sensor.deyeinvertermaster_battery_output_power') | float(0)) + (states('sensor.deyeinverterslave_battery_output_power') | float(0)) %}
+{%- endif %}
+
+{# Today totals (prefer combined; else sum master/slave today_* sensors) #}
+{# PV today: combined preferred; if missing, keep N/A (varies by integration names) #}
+{%- set pv_today = _pref_combined_or_sum(
+  'sensor.deyeinvertercombined_summary_day_pv',
+  'sensor.deyeinvertermaster_today_pv' , 'sensor.deyeinverterslave_today_pv' , 2) %}
+{%- if pv_today == '0.00' and states('sensor.deyeinvertercombined_summary_day_pv') in ['unknown','unavailable','None',''] %}
+  {# If no combined and no today_pv sensors exist, keep as N/A #}
+  {%- set pv_today = 'N/A' %}
+{%- endif %}
+
+{%- set load_today = _pref_combined_or_sum(
+  'sensor.deyeinvertercombined_summary_day_load',
+  'sensor.deyeinvertermaster_today_load_consumption', 'sensor.deyeinverterslave_today_load_consumption', 2) %}
+
+{%- set grid_import_today = _pref_combined_or_sum(
+  'sensor.deyeinvertercombined_summary_day_grid_import_buy',
+  'sensor.deyeinvertermaster_today_energy_bought', 'sensor.deyeinverterslave_today_energy_bought', 2) %}
+
+{%- set grid_export_today = _pref_combined_or_sum(
+  'sensor.deyeinvertercombined_summary_day_grid_export_sell',
+  'sensor.deyeinvertermaster_today_energy_sold', 'sensor.deyeinverterslave_today_energy_sold', 2) %}
+
+{# Battery SOC min (12h statistics sensor you already have) #}
+{%- set batt_soc_min_12h = states('sensor.min_soc_battery') %}
+
+{# Optional optimization signals (existence-safe) #}
+{%- set opt_status = states('sensor.solar_optimization_status') %}
+{%- set opt_saved_today = states('sensor.solar_optimization_energy_saved_today') %}
+
+{# Helpers #}
+{%- set ts = now().strftime('%Y-%m-%d %H:%M:%S') %}
+{%- set ip = '192.168.1.30:8123' %}
+{%- set cloud = 'https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/' %}
+
+{# Derived metrics #}
+{%- set pv_today_f = (pv_today | float(0)) if pv_today != 'N/A' else 0 %}
+{%- set load_today_f = (load_today | float(0)) if load_today != 'N/A' else 0 %}
+{%- set export_today_f = (grid_export_today | float(0)) if grid_export_today != 'N/A' else 0 %}
+{%- set import_today_f = (grid_import_today | float(0)) if grid_import_today != 'N/A' else 0 %}
+{%- set self_consumption_kwh = (pv_today_f - export_today_f) %}
+{%- set self_consumption_pct = (_safe_ratio(self_consumption_kwh, pv_today_f, 1)) %}
+{%- set grid_dependency_pct = (_safe_ratio(import_today_f, load_today_f, 1)) %}
+
+{# ------------------------------ EMAIL VERSION ------------------------------ #}
+{% macro solar_daily_report_email() -%}
+SOLAR & INVERTER DAILY REPORT — {{ now().strftime('%A, %d %B %Y at %H:%M') }}
+===============================================================================
+
+SUMMARY
+-------
+- PV Today: {{ 'N/A' if pv_today == 'N/A' else _kwh(pv_today) }}
+- Load Today: {{ _kwh(load_today) }}
+- Grid Import Today: {{ _kwh(grid_import_today) }}
+- Grid Export Today: {{ _kwh(grid_export_today) }}
+- Self-Consumption: {{ 'N/A' if pv_today == 'N/A' else _kwh(self_consumption_kwh) }} ({{ self_consumption_pct if pv_today != 'N/A' else 'N/A' }})
+- Grid Dependency: {{ grid_dependency_pct }} of load
+
+INSTANT POWER
+-------------
+- PV Now: {{ _w(pv_now) }}
+- Grid Now: {{ _w(grid_now) }}
+- Battery Output Now: {{ _w(batt_out_now) }}
+- Battery SOC Now: {{ _pct(batt_soc_now) }}
+- Battery Min (last 12h): {{ _pct(batt_soc_min_12h) }}
+
+OPTIMIZATION
+------------
+- Status: {{ _fmt(opt_status, 'N/A') }}
+- Energy Saved Today: {{ _fmt(opt_saved_today, 'N/A') }}
+
+LINKS
+-----
+- Local: http://{{ ip }}
+- Cloud: {{ cloud }}
+
+Generated: {{ ts }}
+===============================================================================
+{%- endmacro %}
+
+{# ---------------------------- TELEGRAM VERSION ----------------------------- #}
+{% macro solar_daily_report_telegram() -%}
+🔆 *Solar & Inverter — {{ now().strftime('%Y-%m-%d %H:%M') }}*
+
+• PV Today: {{ 'N/A' if pv_today == 'N/A' else _kwh(pv_today) }}
+• Load Today: {{ _kwh(load_today) }}
+• Grid: ↑ {{ _kwh(grid_import_today) }} / ↓ {{ _kwh(grid_export_today) }}
+• Self-use: {{ 'N/A' if pv_today == 'N/A' else _kwh(self_consumption_kwh) }} ({{ self_consumption_pct if pv_today != 'N/A' else 'N/A' }})
+• Grid dep.: {{ grid_dependency_pct }}
+
+_Now_
+• PV {{ _w(pv_now) }} | Grid {{ _w(grid_now) }} | BattOut {{ _w(batt_out_now) }}
+• SOC {{ _pct(batt_soc_now) }} (min 12h {{ _pct(batt_soc_min_12h) }})
+
+_Optimization_
+• {{ _fmt(opt_status, 'N/A') }}, Saved: {{ _fmt(opt_saved_today, 'N/A') }}
+{%- endmacro %}

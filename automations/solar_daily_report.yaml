@@ -1,0 +1,49 @@
+#===============================================================================
+# SOLAR: Daily Solar & Inverter Report (08:25) — Email + Telegram
+#===============================================================================
+- id: solar_daily_report_0825
+  alias: "Solar: Daily Solar & Inverter Report 08:25 (Email + Telegram)"
+  description: >
+    Sends a daily solar & inverter summary at 08:25 via Email and Telegram.
+    Guarded by Maintenance Mode (must be OFF).
+
+  trigger:
+    - platform: time
+      at: "08:25:00"
+
+  condition:
+    - condition: state
+      entity_id: input_boolean.maintenance_mode
+      state: "off"
+
+  action:
+    # Small delay to ensure morning values have stabilized
+    - delay:
+        seconds: 10
+
+    # Email
+    - service: notify.email_notification_jbarkhuizen_gmail_com
+      data:
+        title: "🔆 Solar & Inverter — {{ now().strftime('%Y-%m-%d') }}"
+        message: >-
+          {% from 'solar_daily_report.jinja' import solar_daily_report_email %}
+          {{ solar_daily_report_email() }}
+
+    # Telegram — replace 6167623299 with your real chat_id, or use !secret telegram_chat_id
+    - service: telegram_bot.send_message
+      data:
+        target:
+          - 6167623299
+        message: >-
+          {% from 'solar_daily_report.jinja' import solar_daily_report_telegram %}
+          {{ solar_daily_report_telegram() }}
+        parse_mode: markdown
+
+    # Log for auditing
+    - service: system_log.write
+      data:
+        message: >-
+          Solar Daily Report sent at {{ now().strftime('%Y-%m-%d %H:%M:%S') }}.
+        level: info
+
+  mode: single

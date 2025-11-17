@@ -5,6 +5,7 @@ Purpose: Provide centralized macros for System Overview (Email + Telegram)
 Updated: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
 ============================================================================= #}
 
+{# ------------------------------- HELPERS ---------------------------------- #}
 {%- macro _fmt(v, default='unknown') -%}
   {{ (v if v not in [None, 'unknown', 'unavailable', 'None', ''] else default) }}
 {%- endmacro -%}
@@ -17,6 +18,30 @@ Updated: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
 {%- macro _mb_str(v) -%}
   {%- set x = (v | float(0)) -%}
   {{ '{:.2f} MB'.format(x) }}
+{%- endmacro -%}
+
+{%- macro _num(v, prec=2, default='0') -%}
+  {%- set x = (v | float(default)) -%}
+  {{ ('{0:.' ~ prec ~ 'f}').format(x) }}
+{%- endmacro -%}
+
+{%- macro _kwh(v) -%}{{ _num(v, 2, 0) }} kWh{%- endmacro -%}
+{%- macro _pct(v) -%}{{ _num(v, 1, 0) }}%{%- endmacro -%}
+
+{%- macro _safe_sub(a, b) -%}
+  {%- set a1 = (a | float(0)) -%}
+  {%- set b1 = (b | float(0)) -%}
+  {{ (a1 - b1) }}
+{%- endmacro -%}
+
+{%- macro _safe_ratio(n, d, prec=1) -%}
+  {%- set n1 = (n | float(0)) -%}
+  {%- set d1 = (d | float(0)) -%}
+  {%- if d1 > 0 -%}
+    {{ _num(100.0 * n1 / d1, prec, 0) }}
+  {%- else -%}
+    N/A
+  {%- endif -%}
 {%- endmacro -%}
 
 {# ------------------------------ DATA GATHERING ----------------------------- #}
@@ -75,7 +100,7 @@ Updated: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
 {%- set badlogin = states('sensor.badlogin') %}
 {%- set ipbans = states('sensor.home_assistant_ip_bans_count') %}
 
-{# Solar / Inverter #}
+{# Solar / Inverter (instant + today) #}
 {%- set soc_combined = states('sensor.deyeinvertercombined_battery_soc') %}
 {%- set pv_today = states('sensor.deyeinvertercombined_summary_day_pv') %}
 {%- set load_today = states('sensor.deyeinvertercombined_summary_day_load') %}
@@ -84,6 +109,35 @@ Updated: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
 {%- set pv_power_now = states('sensor.deyeinvertercombined_pv_power') %}
 {%- set grid_power_now = states('sensor.deyeinvertercombined_grid_power_ct_clamp') %}
 {%- set batt_soc = states('sensor.deyeinvertercombined_battery_soc') %}
+
+{# Weekly Solar metrics (7d vs prior 7d) — used only on Mondays #}
+{%- set pv_7  = states('sensor.solar_pv_energy_change_7d') %}
+{%- set pv_14 = states('sensor.solar_pv_energy_change_14d') %}
+{%- set load_7  = states('sensor.solar_load_energy_change_7d') %}
+{%- set load_14 = states('sensor.solar_load_energy_change_14d') %}
+{%- set imp_7  = states('sensor.solar_grid_import_energy_change_7d') %}
+{%- set imp_14 = states('sensor.solar_grid_import_energy_change_14d') %}
+{%- set exp_7  = states('sensor.solar_grid_export_energy_change_7d') %}
+{%- set exp_14 = states('sensor.solar_grid_export_energy_change_14d') %}
+
+{%- set pv_prev   = [(_safe_sub(pv_14, pv_7) | float(0)), 0] | max %}
+{%- set load_prev = [(_safe_sub(load_14, load_7) | float(0)), 0] | max %}
+{%- set imp_prev  = [(_safe_sub(imp_14, imp_7) | float(0)), 0] | max %}
+{%- set exp_prev  = [(_safe_sub(exp_14, exp_7) | float(0)), 0] | max %}
+
+{%- set self_7   = (pv_7 | float(0)) - (exp_7 | float(0)) %}
+{%- set self_prev = (pv_prev | float(0)) - (exp_prev | float(0)) %}
+{%- set self_pct_7   = _safe_ratio(self_7, pv_7, 1) %}
+{%- set self_pct_prev = _safe_ratio(self_prev, pv_prev, 1) %}
+{%- set grid_dep_7   = _safe_ratio(imp_7, load_7, 1) %}
+{%- set grid_dep_prev = _safe_ratio(imp_prev, load_prev, 1) %}
+
+{%- set verdict = (
+  'Load down' if ((load_7 | float(0)) < (load_prev | float(0))) else
+  'Grid dependency down' if ((grid_dep_7 is string) and (grid_dep_prev is string) and (grid_dep_7.replace('%','') | float(0) < grid_dep_prev.replace('%','') | float(0))) else
+  'PV up' if ((pv_7 | float(0)) > (pv_prev | float(0))) else
+  'Stable'
+) %}
 
 {# Helpers #}
 {%- set ip = '192.168.1.30:8123' %}
@@ -143,6 +197,19 @@ SOLAR / INVERTER
 - PV Power Now: {{ _fmt(pv_power_now,'0') }} W | Grid Power Now: {{ _fmt(grid_power_now,'0') }} W
 - Today: PV {{ _fmt(pv_today,'0.0') }} kWh | Load {{ _fmt(load_today,'0.0') }} kWh | Grid Import {{ _fmt(grid_buy_today,'0.0') }} kWh | Grid Export {{ _fmt(grid_sell_today,'0.0') }} kWh
 
+{# (1) NEW: WEEKLY SOLAR HIGHLIGHTS — Mondays only #}
+{% if now().weekday() == 0 %}
+WEEKLY SOLAR HIGHLIGHTS (Last 7d vs Prior 7d)
+---------------------------------------------
+- Verdict: {{ verdict }}
+- PV: {{ _kwh(pv_7) }} vs {{ _kwh(pv_prev) }}
+- Load: {{ _kwh(load_7) }} vs {{ _kwh(load_prev) }}
+- Import: {{ _kwh(imp_7) }} vs {{ _kwh(imp_prev) }}
+- Export: {{ _kwh(exp_7) }} vs {{ _kwh(exp_prev) }}
+- Self-use: {{ _kwh(self_7) }} ({{ self_pct_7 }}) vs {{ _kwh(self_prev) }} ({{ self_pct_prev }})
+- Grid Dependency: {{ grid_dep_7 }} vs {{ grid_dep_prev }}
+{% endif %}
+
 LINKS
 -----
 - Local: http://{{ ip }}
@@ -168,6 +235,16 @@ _System_
 • CPU {{ _fmt(cpu_use,'0') }}% | T {{ _fmt(cpu_temp,'0') }}°C | Mem {{ _fmt(mem_use_pct,'0.0') }}%
 • Disk: Used {{ _fmt(disk_used,'0') }} / Tot {{ _fmt(disk_total,'0') }} / Free {{ _fmt(disk_free,'0') }} GB
 • DB {{ _mb_str(db_size) }} | Log {{ _fmt(log_size,'0') }}
+
+{% if now().weekday() == 0 %}
+_Weekly Solar (7d vs prior 7d)_
+• Verdict: {{ verdict }}
+• PV {{ _kwh(pv_7) }} vs {{ _kwh(pv_prev) }}
+• Load {{ _kwh(load_7) }} vs {{ _kwh(load_prev) }}
+• Import {{ _kwh(imp_7) }} vs {{ _kwh(imp_prev) }} | Export {{ _kwh(exp_7) }} vs {{ _kwh(exp_prev) }}
+• Self-use {{ _kwh(self_7) }} ({{ self_pct_7 }}) vs {{ _kwh(self_prev) }} ({{ self_pct_prev }})
+• Grid dep. {{ grid_dep_7 }} vs {{ grid_dep_prev }}
+{% endif %}
 
 _Links_
 • Local: http://{{ ip }}
