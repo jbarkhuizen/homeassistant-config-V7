@@ -218,6 +218,7 @@ automation:
               - condition: template
                 value_template: "{{ stale_list | length > 0 }}"
             sequence:
+              # Persistant Notification Service
               - service: persistent_notification.create
                 data:
                   title: "InfluxDB Data Flow Warning"
@@ -233,6 +234,7 @@ automation:
               - condition: template
                 value_template: "{{ stale_list | length == 0 }}"
             sequence:
+              # Persistant Notification Service
               - service: persistent_notification.create
                 data:
                   title: "InfluxDB Data Flow OK"
@@ -263,6 +265,7 @@ automation:
               - condition: template
                 value_template: "{{ diff > 0 }}"
             sequence:
+              # Persistant Notification Service
               - service: persistent_notification.create
                 data:
                   title: "Security: New IP bans detected"
@@ -276,10 +279,10 @@ automation:
         data:
           value: "{{ current }}"
 
-  # Node-RED & Grafana + critical add-ons health — 08:15 — guarded
+  # Node-RED & Grafana health — 08:15 — guarded (can restart add-ons)
   - id: addons_health_check_0815
     alias: "Add-ons Health Check & Restart if needed (08:15)"
-    description: "Checks critical add-ons; restarts on failure; summarizes results via Telegram and persistent notification."
+    description: "Checks Node-RED and Grafana HTTP health; restarts add-on on failure."
     mode: single
     trigger:
       - platform: time
@@ -289,219 +292,33 @@ automation:
         entity_id: input_boolean.maintenance_mode
         state: "off"
     action:
-      # Pre-check statuses and whether restarts are needed
       - variables:
-          node_http: "{{ states('sensor.node_red_http_status_code') | int(0) }}"
-          graf_http: "{{ states('sensor.grafana_http_status_code') | int(0) }}"
-          node_running: "{{ is_state('binary_sensor.node_red_running', 'on') }}"
-          graf_running: "{{ is_state('binary_sensor.grafana_running', 'on') }}"
-          mosq_running: "{{ is_state('binary_sensor.mosquitto_broker_running', 'on') }}"
-          infl_running: "{{ is_state('binary_sensor.influxdb_running', 'on') }}"
-          adga_running: "{{ is_state('binary_sensor.adguard_home_running', 'on') }}"
-          code_running: "{{ is_state('binary_sensor.studio_code_server_running', 'on') }}"
-          samb_running: "{{ is_state('binary_sensor.samba_share_running', 'on') }}"
-          matt_running: "{{ is_state('binary_sensor.matter_server_running', 'on') }}"
-
-          need_restart_node: "{{ (node_http != 200) or (not node_running) }}"
-          need_restart_graf: "{{ (graf_http != 200) or (not graf_running) }}"
-          need_restart_mosq: "{{ not mosq_running }}"
-          need_restart_infl: "{{ not infl_running }}"
-          need_restart_adga: "{{ not adga_running }}"
-          need_restart_code: "{{ not code_running }}"
-          need_restart_samb: "{{ not samb_running }}"
-          need_restart_matt: "{{ not matt_running }}"
-
-      # Restart block per add-on (using official slugs where applicable)
+          node_status: "{{ states('sensor.node_red_http_status_code') | int(0) }}"
+          graf_status: "{{ states('sensor.grafana_http_status_code') | int(0) }}"
       - choose:
           - conditions:
               - condition: template
-                value_template: "{{ need_restart_node | bool }}"
+                value_template: "{{ node_status != 200 }}"
             sequence:
               - service: persistent_notification.create
                 data:
-                  title: "Add-on Health: Node-RED"
-                  message: "Unhealthy (HTTP {{ node_http }}) or not running. Attempting restart..."
+                  title: "Node-RED Health Alert"
+                  message: "HTTP status: {{ node_status }}. Attempting restart..."
               - service: hassio.addon_restart
                 data:
                   addon: "a0d7b954_nodered"
       - choose:
           - conditions:
               - condition: template
-                value_template: "{{ need_restart_graf | bool }}"
+                value_template: "{{ graf_status != 200 }}"
             sequence:
               - service: persistent_notification.create
                 data:
-                  title: "Add-on Health: Grafana"
-                  message: "Unhealthy (HTTP {{ graf_http }}) or not running. Attempting restart..."
+                  title: "Grafana Health Alert"
+                  message: "HTTP status: {{ graf_status }}. Attempting restart..."
               - service: hassio.addon_restart
                 data:
                   addon: "a0d7b954_grafana"
-      - choose:
-          - conditions:
-              - condition: template
-                value_template: "{{ need_restart_mosq | bool }}"
-            sequence:
-              - service: persistent_notification.create
-                data:
-                  title: "Add-on Health: Mosquitto broker"
-                  message: "Not running. Attempting restart..."
-              - service: hassio.addon_restart
-                data:
-                  addon: "core_mosquitto"
-      - choose:
-          - conditions:
-              - condition: template
-                value_template: "{{ need_restart_infl | bool }}"
-            sequence:
-              - service: persistent_notification.create
-                data:
-                  title: "Add-on Health: InfluxDB"
-                  message: "Not running. Attempting restart..."
-              - service: hassio.addon_restart
-                data:
-                  addon: "a0d7b954_influxdb"
-      - choose:
-          - conditions:
-              - condition: template
-                value_template: "{{ need_restart_adga | bool }}"
-            sequence:
-              - service: persistent_notification.create
-                data:
-                  title: "Add-on Health: AdGuard Home"
-                  message: "Not running. Attempting restart..."
-              - service: hassio.addon_restart
-                data:
-                  addon: "a0d7b954_adguard"
-      - choose:
-          - conditions:
-              - condition: template
-                value_template: "{{ need_restart_code | bool }}"
-            sequence:
-              - service: persistent_notification.create
-                data:
-                  title: "Add-on Health: Studio Code Server"
-                  message: "Not running. Attempting restart..."
-              - service: hassio.addon_restart
-                data:
-                  addon: "a0d7b954_vscode"
-      - choose:
-          - conditions:
-              - condition: template
-                value_template: "{{ need_restart_samb | bool }}"
-            sequence:
-              - service: persistent_notification.create
-                data:
-                  title: "Add-on Health: Samba share"
-                  message: "Not running. Attempting restart..."
-              - service: hassio.addon_restart
-                data:
-                  addon: "core_samba"
-      - choose:
-          - conditions:
-              - condition: template
-                value_template: "{{ need_restart_matt | bool }}"
-            sequence:
-              - service: persistent_notification.create
-                data:
-                  title: "Add-on Health: Matter Server"
-                  message: "Not running. Attempting restart..."
-              - service: hassio.addon_restart
-                data:
-                  addon: "core_matter_server"
-
-      # Allow services time to come back up
-      - delay:
-          seconds: 25
-
-      # Post-check results
-      - variables:
-          node_http_after: "{{ states('sensor.node_red_http_status_code') | int(0) }}"
-          graf_http_after: "{{ states('sensor.grafana_http_status_code') | int(0) }}"
-          node_running_after: "{{ is_state('binary_sensor.node_red_running', 'on') }}"
-          graf_running_after: "{{ is_state('binary_sensor.grafana_running', 'on') }}"
-          mosq_running_after: "{{ is_state('binary_sensor.mosquitto_broker_running', 'on') }}"
-          infl_running_after: "{{ is_state('binary_sensor.influxdb_running', 'on') }}"
-          adga_running_after: "{{ is_state('binary_sensor.adguard_home_running', 'on') }}"
-          code_running_after: "{{ is_state('binary_sensor.studio_code_server_running', 'on') }}"
-          samb_running_after: "{{ is_state('binary_sensor.samba_share_running', 'on') }}"
-          matt_running_after: "{{ is_state('binary_sensor.matter_server_running', 'on') }}"
-
-          still_down_list: >
-            {% set bad = [] %}
-            {% if not node_running_after %}{% set _ = bad.append('Node-RED') %}{% endif %}
-            {% if not graf_running_after %}{% set _ = bad.append('Grafana') %}{% endif %}
-            {% if not mosq_running_after %}{% set _ = bad.append('Mosquitto') %}{% endif %}
-            {% if not infl_running_after %}{% set _ = bad.append('InfluxDB') %}{% endif %}
-            {% if not adga_running_after %}{% set _ = bad.append('AdGuard Home') %}{% endif %}
-            {% if not code_running_after %}{% set _ = bad.append('Studio Code Server') %}{% endif %}
-            {% if not samb_running_after %}{% set _ = bad.append('Samba share') %}{% endif %}
-            {% if not matt_running_after %}{% set _ = bad.append('Matter Server') %}{% endif %}
-            {{ bad }}
-
-          any_attempted_restart: >
-            {{ (need_restart_node or need_restart_graf or need_restart_mosq or need_restart_infl
-                or need_restart_adga or need_restart_code or need_restart_samb or need_restart_matt) | bool }}
-
-      - choose:
-          # If something remains down, send alert
-          - conditions:
-              - condition: template
-                value_template: "{{ still_down_list | length > 0 }}"
-            sequence:
-              - service: persistent_notification.create
-                data:
-                  title: "Add-ons Health: Attention Required"
-                  message: >
-                    One or more add-ons remain unhealthy or stopped after attempted restart.
-                    Still down: {{ still_down_list }}
-                    Node-RED HTTP: {{ node_http_after }} | Grafana HTTP: {{ graf_http_after }}
-                    Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
-              # Telegram — replace 6167623299with your real chat_id
-              - service: telegram_bot.send_message
-                data:
-                  target:
-                    - 6167623299
-                  message: >-
-                    ❗ *Add-ons Health: Attention Required*
-                    • Still down: {{ still_down_list | join(', ') }}
-                    • Node-RED HTTP: {{ node_http_after }} | Grafana HTTP: {{ graf_http_after }}
-                    _{{ now().strftime('%Y-%m-%d %H:%M:%S') }}_
-                  parse_mode: markdown
-
-          # Else if restarts were attempted and now OK, send success summary
-          - conditions:
-              - condition: template
-                value_template: "{{ still_down_list | length == 0 and any_attempted_restart }}"
-            sequence:
-              - service: persistent_notification.create
-                data:
-                  title: "Add-ons Health: Recoveries Applied"
-                  message: >
-                    Add-on recoveries applied successfully.
-                    Node-RED HTTP: {{ node_http_after }} | Grafana HTTP: {{ graf_http_after }}
-                    Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
-              - service: telegram_bot.send_message
-                data:
-                  target:
-                    - 6167623299
-                  message: >-
-                    ✅ *Add-ons Health: Recoveries Applied*
-                    • All critical add-ons now healthy
-                    • Node-RED HTTP: {{ node_http_after }}, Grafana HTTP: {{ graf_http_after }}
-                    _{{ now().strftime('%Y-%m-%d %H:%M:%S') }}_
-                  parse_mode: markdown
-
-          # Else, everything healthy and no restarts needed — just log
-          - conditions:
-              - condition: template
-                value_template: "{{ still_down_list | length == 0 and not any_attempted_restart }}"
-            sequence:
-              - service: system_log.write
-                data:
-                  message: >-
-                    Add-ons Health 08:15 — All healthy, no restart required.
-                    Node-RED HTTP: {{ node_http_after }} | Grafana HTTP: {{ graf_http_after }}
-                  level: info
 
   # Sunsunk/Deye stale data detection — 06:35 and 08:35 — guarded (reloads integration)
   - id: deye_stale_data_recovery
@@ -552,7 +369,101 @@ automation:
                     Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
               - service: shell_command.restart_deye_integration
 
-# Template sensor summarizing last Influx verification (unchanged)
+  # ----------------------------------------------------------------------------
+  # (NEW) DB & Log Trend Alerts — 08:45
+  # ----------------------------------------------------------------------------
+  - id: db_log_trend_alert_0845
+    alias: "System: DB & Log Trend Alerts (08:45)"
+    description: >
+      Alerts on abnormal DB growth trends (3-day) and persistent log errors.
+      Notification-only (no purge), guarded by Maintenance Mode.
+    mode: single
+    trigger:
+      - platform: time
+        at: "08:45:00"
+    condition:
+      - condition: state
+        entity_id: input_boolean.maintenance_mode
+        state: "off"
+    action:
+      - variables:
+          # DB
+          db_current: "{{ states('sensor.homeassistant_db_size_mb') | float(0) }}"
+          db_baseline: "{{ states('input_number.homeassistant_db_baseline_mb') | float(0) }}"
+          db_change_3d: "{{ states('sensor.db_size_change_3d') | float(0) }}"
+          db_change_7d: "{{ states('sensor.db_size_change_7d') | float(0) }}"
+          db_pct_vs_baseline: >
+            {% if db_baseline > 0 %}
+              {{ (((db_current - db_baseline) / db_baseline) * 100) | round(1) }}
+            {% else %}0{% endif %}
+          # LOGS
+          log_mb: "{{ states('sensor.home_assistant_log_size_mb') | float(0) }}"
+          log_on_hours_48h: "{{ states('sensor.log_errors_on_hours_48h') | float(0) }}"
+          # Thresholds
+          db_3d_mb_threshold: 500
+          db_pct_threshold: 25
+          log_mb_threshold: 1.0
+          log_hours_threshold: 24
+          # Flags
+          db_alert: "{{ db_change_3d > db_3d_mb_threshold and db_pct_vs_baseline > db_pct_threshold }}"
+          log_alert: "{{ log_mb > log_mb_threshold or log_on_hours_48h >= log_hours_threshold }}"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ db_alert }}"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "Database Trend Alert (3-day)"
+                  message: >
+                    DB growth over 3 days appears high.
+                    Current: {{ db_current }} MB
+                    Baseline: {{ db_baseline }} MB
+                    3-day Change: {{ db_change_3d }} MB
+                    7-day Change: {{ db_change_7d }} MB
+                    Percent vs Baseline: {{ db_pct_vs_baseline }}%
+                    Thresholds: {{ db_3d_mb_threshold }} MB, {{ db_pct_threshold }}%
+                    Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+              - service: telegram_bot.send_message
+                data:
+                  target:
+                    - 6167623299
+                  message: >-
+                    ⚠️ *Database Trend Alert (3-day)*  
+                    Now: {{ db_current }} MB | Baseline: {{ db_baseline }} MB  
+                    3d Δ: {{ db_change_3d }} MB | 7d Δ: {{ db_change_7d }} MB  
+                    % vs baseline: {{ db_pct_vs_baseline }}%  
+                    _{{ now().strftime('%Y-%m-%d %H:%M:%S') }}_
+                  parse_mode: markdown
+          - conditions:
+              - condition: template
+                value_template: "{{ log_alert }}"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "Log Health Alert"
+                  message: >
+                    Logs indicate persistent errors or large size.
+                    Current Log Size: {{ log_mb }} MB
+                    Hours with errors in last 48h: {{ log_on_hours_48h }} h
+                    Thresholds: {{ log_mb_threshold }} MB or {{ log_hours_threshold }} h
+                    Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+              - service: telegram_bot.send_message
+                data:
+                  target:
+                    - 6167623299
+                  message: >-
+                    ⚠️ *Log Health Alert*  
+                    Size: {{ log_mb }} MB | 48h error hours: {{ log_on_hours_48h }}h  
+                    _{{ now().strftime('%Y-%m-%d %H:%M:%S') }}_
+                  parse_mode: markdown
+      - service: system_log.write
+        data:
+          message: >-
+            DB/Log Trend check: db_change_3d={{ db_change_3d }}MB, pct_vs_baseline={{ db_pct_vs_baseline }}%, log_mb={{ log_mb }}MB, log_hours48={{ log_on_hours_48h }}h
+          level: info
+
+# Template sensor summarizing last Influx verification (unchanged) + new template sensors
 template:
   - sensor:
       - name: "influxdb_flow_status"
@@ -572,6 +483,30 @@ template:
           {% if this.state == 'ok' %}mdi:database-check
           {% elif this.state == 'warning' %}mdi:database-alert
           {% else %}mdi:database-clock{% endif %}
+      # NEW: Convert log size to numeric MB for trend checks
+      - name: "Home Assistant Log Size (MB)"
+        unique_id: ha_log_size_mb
+        unit_of_measurement: MB
+        state: >
+          {% set raw = states('sensor.home_assistant_log_size') | string %}
+          {% if raw.endswith('M') %}
+            {{ raw[:-1] | float(0) }}
+          {% elif raw.endswith('K') %}
+            {{ (raw[:-1] | float(0)) / 1024 }}
+          {% elif raw.endswith('G') %}
+            {{ (raw[:-1] | float(0)) * 1024 }}
+          {% elif raw in ['unknown','unavailable','', None] %}
+            0
+          {% else %}
+            {{ raw | float(0) }}
+          {% endif %}
+  - binary_sensor:
+      - name: "Home Assistant Log Has Errors"
+        unique_id: ha_log_has_errors
+        device_class: problem
+        state: "{{ states('sensor.home_assistant_log_size_mb') | float(0) > 0.25 }}"
+        icon: >
+          {% if is_state(this.entity_id, 'on') %}mdi:alert-circle{% else %}mdi:check-circle{% endif %}
 
 # Replacement for the old file sensor
 command_line:
@@ -580,3 +515,34 @@ command_line:
       command: "cat /config/log_size.txt 2>/dev/null || echo 0"
       scan_interval: 300
       unique_id: home_assistant_log_size_sensor
+
+# NEW: Statistics and History sensors for trend analysis
+sensor:
+  # DB size change over rolling 3 days and 7 days
+  - platform: statistics
+    name: db_size_change_3d
+    unique_id: db_size_change_3d
+    entity_id: sensor.homeassistant_db_size_mb
+    state_characteristic: change
+    max_age:
+      days: 3
+    sampling_size: 5000
+
+  - platform: statistics
+    name: db_size_change_7d
+    unique_id: db_size_change_7d
+    entity_id: sensor.homeassistant_db_size_mb
+    state_characteristic: change
+    max_age:
+      days: 7
+    sampling_size: 10000
+
+  # Hours with 'log has errors' over last 48 hours
+  - platform: history_stats
+    name: log_errors_on_hours_48h
+    entity_id: binary_sensor.home_assistant_log_has_errors
+    state: "on"
+    type: time
+    duration:
+      hours: 48
+    end: "{{ now() }}"

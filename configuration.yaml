@@ -223,6 +223,8 @@ input_number:
 # ==============================================================================
 shell_command:
   git_commit: '/config/scripts/git_commit.sh'
+  git_commit_bash: '/bin/bash /config/scripts/git_commit_1.sh'
+  save_commit_message: 'bash -c "printf %s \"{{ message }}\" > /config/.last_commit_message"'
   backup_config: >
     cp -r /config /backup/ha-config-$(date +%Y%m%d_%H%M%S)
   check_system_status: >

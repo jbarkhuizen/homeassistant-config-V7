@@ -1,0 +1,69 @@
+#===============================================================================
+# SYSTEM: Daily Git Snapshot (08:55)
+# - Builds a concise commit message and commits/pushes the /config repo.
+# - Guarded by Maintenance Mode (must be OFF).
+# - Trigger inside 06:00–09:00 window.
+#===============================================================================
+- id: system_git_snapshot_0855
+  alias: "System: Git Snapshot 08:55 (Commit + Push)"
+  description: >
+    At 08:55, save a concise summary commit message, then commit and push the
+    current /config repository to Git. Skips when Maintenance Mode is ON.
+
+  trigger:
+    - platform: time
+      at: "08:55:00"
+
+  condition:
+    - condition: state
+      entity_id: input_boolean.maintenance_mode
+      state: "off"
+
+  action:
+    # Collect summary details for the commit message (one line)
+    - variables:
+        updates_total: "{{ state_attr('sensor.home_assistant_updates_summary', 'total_updates') | default(0) }}"
+        backup_state: "{{ states('sensor.backup_backup_manager_state') | default('unknown') }}"
+        backup_last_ok: "{{ states('sensor.backup_last_successful_automatic_backup') | default('unknown') }}"
+        addons: >
+          {{ [
+            ('Node-RED','binary_sensor.node_red_running'),
+            ('Grafana','binary_sensor.grafana_running'),
+            ('Mosquitto','binary_sensor.mosquitto_broker_running'),
+            ('InfluxDB','binary_sensor.influxdb_running'),
+            ('AdGuard','binary_sensor.adguard_home_running'),
+            ('Code','binary_sensor.studio_code_server_running'),
+            ('Samba','binary_sensor.samba_share_running'),
+            ('Matter','binary_sensor.matter_server_running')
+          ] }}
+        addons_down_list: >
+          {% set bad = [] %}
+          {% for name, ent in addons %}
+            {% if states(ent) not in ['on','True'] %}
+              {% set _ = bad.append(name) %}
+            {% endif %}
+          {% endfor %}
+          {{ bad }}
+        addons_down: "{{ addons_down_list | length }}"
+        msg: >-
+          Auto snapshot {{ now().strftime('%Y-%m-%d %H:%M') }} —
+          updates={{ updates_total }},
+          backup={{ backup_state }}/last_ok={{ backup_last_ok }},
+          addons_down={{ addons_down }}{% if addons_down > 0 %}({{ addons_down_list | join('/') }}){% endif %}
+
+    # Save commit message to /config/.last_commit_message
+    - service: shell_command.save_commit_message
+      data:
+        message: "{{ msg }}"
+
+    # Run the Git commit (and push) script via bash wrapper
+    - service: shell_command.git_commit_bash
+
+    # Audit log
+    - service: system_log.write
+      data:
+        message: >-
+          Git snapshot invoked at {{ now().strftime('%Y-%m-%d %H:%M:%S') }} with message: {{ msg }}
+        level: info
+
+  mode: single
