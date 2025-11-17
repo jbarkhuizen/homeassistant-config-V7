@@ -1,0 +1,49 @@
+#===============================================================================
+# SYSTEM: Morning System Overview (08:05) — Email + Telegram
+#===============================================================================
+- id: system_morning_overview_0805
+  alias: "System: Morning System Overview 08:05 (Email + Telegram)"
+  description: >
+    Sends a daily consolidated system health overview via Email and Telegram.
+    Guarded by Maintenance Mode (must be OFF).
+
+  trigger:
+    - platform: time
+      at: "08:05:00"
+
+  condition:
+    - condition: state
+      entity_id: input_boolean.maintenance_mode
+      state: "off"
+
+  action:
+    # Small delay to let early sensors settle
+    - delay:
+        seconds: 10
+
+    # Email
+    - service: notify.email_notification_jbarkhuizen_gmail_com
+      data:
+        title: "🧭 System Overview — {{ now().strftime('%Y-%m-%d') }}"
+        message: >-
+          {% from 'system_overview_notifications.jinja' import system_morning_overview_email %}
+          {{ system_morning_overview_email() }}
+
+    # Telegram — replace 123456789 with your real chat_id, or use !secret telegram_chat_id
+    - service: telegram_bot.send_message
+      data:
+        target:
+          - 6167623299
+        message: >-
+          {% from 'system_overview_notifications.jinja' import system_morning_overview_telegram %}
+          {{ system_morning_overview_telegram() }}
+        parse_mode: markdown
+
+    # Log for auditing
+    - service: system_log.write
+      data:
+        message: >-
+          Morning System Overview sent at {{ now().strftime('%Y-%m-%d %H:%M:%S') }}.
+        level: info
+
+  mode: single

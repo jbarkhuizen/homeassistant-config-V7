@@ -1,0 +1,175 @@
+{# =============================================================================
+SYSTEM OVERVIEW NOTIFICATION MACROS
+File: /config/templates/system_overview_notifications.jinja
+Purpose: Provide centralized macros for System Overview (Email + Telegram)
+Updated: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+============================================================================= #}
+
+{%- macro _fmt(v, default='unknown') -%}
+  {{ (v if v not in [None, 'unknown', 'unavailable', 'None', ''] else default) }}
+{%- endmacro -%}
+
+{%- macro _pct_str(v) -%}
+  {%- set x = (v | float(0)) -%}
+  {{ '{:.1f}%'.format(x) }}
+{%- endmacro -%}
+
+{%- macro _mb_str(v) -%}
+  {%- set x = (v | float(0)) -%}
+  {{ '{:.2f} MB'.format(x) }}
+{%- endmacro -%}
+
+{# ------------------------------ DATA GATHERING ----------------------------- #}
+{%- set ts = now().strftime('%Y-%m-%d %H:%M:%S') %}
+
+{# System Health #}
+{%- set cpu_use = states('sensor.system_monitor_processor_use') %}
+{%- set cpu_temp = states('sensor.system_monitor_processor_temperature') %}
+{%- set mem_use_pct = states('sensor.system_monitor_memory_usage') %}
+{%- set disk_used = states('sensor.home_assistant_host_disk_used') %}
+{%- set disk_total = states('sensor.home_assistant_host_disk_total') %}
+{%- set disk_free = states('sensor.home_assistant_host_disk_free') %}
+{%- set health_score = states('sensor.system_health_score') %}
+
+{# Database / Logs #}
+{%- set db_size = states('sensor.homeassistant_db_size_mb') %}
+{%- set log_size = states('sensor.home_assistant_log_size') %}
+
+{# Updates #}
+{%- set updates_total = state_attr('sensor.home_assistant_updates_summary', 'total_updates') | default(0) %}
+{%- set updates_friendly = state_attr('sensor.home_assistant_updates_summary', 'friendly_summary') | default('No summary available') %}
+{%- set updates_binary = states('binary_sensor.updates_available') %}
+
+{# Add-on health (Running) #}
+{%- set addons = [
+  ('Node-RED','binary_sensor.node_red_running'),
+  ('Grafana','binary_sensor.grafana_running'),
+  ('Mosquitto','binary_sensor.mosquitto_broker_running'),
+  ('InfluxDB','binary_sensor.influxdb_running'),
+  ('AdGuard Home','binary_sensor.adguard_home_running'),
+  ('Studio Code Server','binary_sensor.studio_code_server_running'),
+  ('Samba Share','binary_sensor.samba_share_running'),
+  ('Matter Server','binary_sensor.matter_server_running')
+] %}
+{%- set ns = namespace(down=[]) %}
+{%- for name, ent in addons %}
+  {%- if states(ent) not in ['on', 'True'] %}
+    {%- set ns.down = ns.down + [name] %}
+  {%- endif %}
+{%- endfor %}
+{%- set addons_down = ns.down %}
+
+{# Backups #}
+{%- set backup_state = states('sensor.backup_backup_manager_state') %}
+{%- set backup_last_success = states('sensor.backup_last_successful_automatic_backup') %}
+{%- set backup_last_attempt = states('sensor.backup_last_attempted_automatic_backup') %}
+{%- set backup_next = states('sensor.backup_next_scheduled_automatic_backup') %}
+
+{# Network / Connectivity #}
+{%- set remote_ui = states('binary_sensor.remote_ui') %}
+{%- set router_ping = states('binary_sensor.192_168_1_1') %}
+{%- set node_http = states('sensor.node_red_http_status_code') %}
+{%- set graf_http = states('sensor.grafana_http_status_code') %}
+
+{# Security #}
+{%- set badlogin = states('sensor.badlogin') %}
+{%- set ipbans = states('sensor.home_assistant_ip_bans_count') %}
+
+{# Solar / Inverter #}
+{%- set soc_combined = states('sensor.deyeinvertercombined_battery_soc') %}
+{%- set pv_today = states('sensor.deyeinvertercombined_summary_day_pv') %}
+{%- set load_today = states('sensor.deyeinvertercombined_summary_day_load') %}
+{%- set grid_buy_today = states('sensor.deyeinvertercombined_summary_day_grid_import_buy') %}
+{%- set grid_sell_today = states('sensor.deyeinvertercombined_summary_day_grid_export_sell') %}
+{%- set pv_power_now = states('sensor.deyeinvertercombined_pv_power') %}
+{%- set grid_power_now = states('sensor.deyeinvertercombined_grid_power_ct_clamp') %}
+{%- set batt_soc = states('sensor.deyeinvertercombined_battery_soc') %}
+
+{# Helpers #}
+{%- set ip = '192.168.1.30:8123' %}
+{%- set cloud = 'https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/' %}
+
+{# ------------------------------ EMAIL VERSION ------------------------------ #}
+{% macro system_morning_overview_email() -%}
+SYSTEM OVERVIEW — {{ now().strftime('%A, %d %B %Y at %H:%M') }}
+===============================================================================
+
+SUMMARY
+-------
+- System Health Score: {{ _fmt(health_score, 'unknown') }}/100
+- Updates: {{ _fmt(updates_total, '0') }} ({{ updates_friendly }})
+- Add-ons down: {{ (addons_down | length) }}{% if addons_down | length > 0 %} — {{ addons_down | join(', ') }}{% endif %}
+- Backups: State {{ _fmt(backup_state, 'unknown') }}, Last Success {{ _fmt(backup_last_success) }}
+- Network: Remote UI {{ _fmt(remote_ui) }}, Router Ping {{ _fmt(router_ping) }}, Node-RED {{ _fmt(node_http) }}, Grafana {{ _fmt(graf_http) }}
+- Security: Bad logins {{ _fmt(badlogin, '0') }}, IP bans {{ _fmt(ipbans, '0') }}
+- Solar: SOC {{ _fmt(soc_combined, '0') }}%, PV Today {{ _fmt(pv_today, '0.0') }} kWh, Load Today {{ _fmt(load_today, '0.0') }} kWh
+
+SYSTEM HEALTH
+-------------
+- CPU: {{ _fmt(cpu_use,'0') }}% | Temp: {{ _fmt(cpu_temp,'0') }}°C | Memory: {{ _fmt(mem_use_pct,'0.0') }}%
+- Disk: Used {{ _fmt(disk_used,'0') }} GB / Total {{ _fmt(disk_total,'0') }} GB / Free {{ _fmt(disk_free,'0') }} GB
+- HA DB Size: {{ _mb_str(db_size) }} | Log Size: {{ _fmt(log_size,'0') }}
+
+UPDATES
+-------
+- Status: {% if updates_total | int(0) > 0 %}NEEDS ATTENTION{% else %}OK{% endif %}
+- Summary: {{ updates_friendly }}
+
+ADD-ONS
+-------
+- Down count: {{ (addons_down | length) }}{% if addons_down | length > 0 %} — {{ addons_down | join(', ') }}{% else %} — None detected{% endif %}
+
+BACKUPS
+-------
+- Manager State: {{ _fmt(backup_state, 'unknown') }}
+- Last Successful: {{ _fmt(backup_last_success, 'unknown') }}
+- Last Attempt: {{ _fmt(backup_last_attempt, 'unknown') }}
+- Next Scheduled: {{ _fmt(backup_next, 'unknown') }}
+
+NETWORK
+-------
+- Remote UI: {{ _fmt(remote_ui, 'unknown') }}
+- Router(192.168.1.1) Reachable: {{ _fmt(router_ping, 'unknown') }}
+- Node-RED HTTP: {{ _fmt(node_http, 'unknown') }} | Grafana HTTP: {{ _fmt(graf_http, 'unknown') }}
+
+SECURITY
+--------
+- Bad logins (all time): {{ _fmt(badlogin, '0') }}
+- IP bans (current): {{ _fmt(ipbans, '0') }}
+
+SOLAR / INVERTER
+----------------
+- Battery SOC: {{ _fmt(batt_soc,'0') }}%
+- PV Power Now: {{ _fmt(pv_power_now,'0') }} W | Grid Power Now: {{ _fmt(grid_power_now,'0') }} W
+- Today: PV {{ _fmt(pv_today,'0.0') }} kWh | Load {{ _fmt(load_today,'0.0') }} kWh | Grid Import {{ _fmt(grid_buy_today,'0.0') }} kWh | Grid Export {{ _fmt(grid_sell_today,'0.0') }} kWh
+
+LINKS
+-----
+- Local: http://{{ ip }}
+- Cloud: {{ cloud }}
+
+Generated: {{ ts }}
+===============================================================================
+{%- endmacro %}
+
+{# ---------------------------- TELEGRAM VERSION ----------------------------- #}
+{% macro system_morning_overview_telegram() -%}
+🧭 *System Overview* — {{ now().strftime('%Y-%m-%d %H:%M') }}
+
+• Health: {{ _fmt(health_score,'unknown') }}/100
+• Updates: {{ _fmt(updates_total,'0') }} ({{ updates_friendly }})
+• Add-ons down: {{ (addons_down | length) }}{% if addons_down | length > 0 %} — {{ addons_down | join(', ') }}{% endif %}
+• Backups: {{ _fmt(backup_state,'unknown') }}, Last OK: {{ _fmt(backup_last_success,'unknown') }}
+• Network: RemoteUI {{ _fmt(remote_ui) }}, Router {{ _fmt(router_ping) }}, NR {{ _fmt(node_http) }}, Graf {{ _fmt(graf_http) }}
+• Security: Badlogins {{ _fmt(badlogin,'0') }}, Bans {{ _fmt(ipbans,'0') }}
+• Solar: SOC {{ _fmt(soc_combined,'0') }}%, PV {{ _fmt(pv_today,'0.0') }} kWh, Load {{ _fmt(load_today,'0.0') }} kWh
+
+_System_
+• CPU {{ _fmt(cpu_use,'0') }}% | T {{ _fmt(cpu_temp,'0') }}°C | Mem {{ _fmt(mem_use_pct,'0.0') }}%
+• Disk: Used {{ _fmt(disk_used,'0') }} / Tot {{ _fmt(disk_total,'0') }} / Free {{ _fmt(disk_free,'0') }} GB
+• DB {{ _mb_str(db_size) }} | Log {{ _fmt(log_size,'0') }}
+
+_Links_
+• Local: http://{{ ip }}
+• Cloud: {{ cloud }}
+{%- endmacro %}
