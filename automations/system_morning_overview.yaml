@@ -29,7 +29,7 @@
           {% from 'system_overview_notifications.jinja' import system_morning_overview_email %}
           {{ system_morning_overview_email() }}
 
-    # Telegram — replace 123456789 with your real chat_id, or use !secret telegram_chat_id
+    # Telegram — replace 6167623299with your real chat_id, or use !secret telegram_chat_id
     - service: telegram_bot.send_message
       data:
         target:

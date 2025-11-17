@@ -9,7 +9,7 @@ sensor:
 
   #essential = inverter_power_175 + grid_power_169  - aux_power_166
   - name: "deyeinvertermaster_essential_load"
-    state: "{{ (states('sensor.deyeinvertermaster_inverter_output_power') |float(0)  + (states('sensor.deyeinvertermaster_grid_load') |float(0) - states('sensor.deyeinvertermaster_aux_output_power') |float(0) )) | round(0)}}"
+    state: "{{ (states('sensor.deyeinvertermaster_inverter_output_power') |float(0)  + (states('sensor.deyeinvertermaster_grid_load') |float(0) - states('sensor.deyeinvertermaster_aux_output_power[...]"
     unit_of_measurement: "W"
     device_class: power
     state_class: measurement
@@ -34,6 +34,7 @@ sensor:
 # Home Assistant Template Entities
 # File: template.yaml
 # ==============================================================================
+
 # ==============================================================================
 # Automation Dashboard - Last Run & Status Sensors
 # Added by Copilot GPT on 2025-11-16
@@ -42,7 +43,6 @@ sensor:
     # -------------------------
     # Inverter Automations
     # -------------------------
-
   - name: "Automation InverterConfig Update Times Last Run"
     unique_id: automation_inverterconfig_update_times_last_run
     state: >
@@ -201,7 +201,6 @@ sensor:
   # -------------------------
   # Prepaid Meter
   # -------------------------
-
   - name: "Automation Prepaid Daily Status Last Run"
     unique_id: automation_prepaid_daily_status_last_run
     state: >
@@ -331,7 +330,6 @@ sensor:
   # -------------------------
   # System Health / Updates
   # -------------------------
-
   - name: "Automation System Morning Email Last Run"
     unique_id: automation_system_morning_test_email_last_run
     state: >
@@ -415,3 +413,32 @@ sensor:
         Disabled
       {% endif %}
     icon: mdi:toggle-switch
+
+# ------------------------------------------------------------------------------
+# (1) NEW: Trigger-based Template Sensor for Auto Update Status
+#     Populated by the 08:15 auto-update automation firing event 'auto_update_cycle_complete'
+# ------------------------------------------------------------------------------
+template:
+  - trigger:
+      - platform: event
+        event_type: auto_update_cycle_complete
+    sensor:
+      - name: "Auto Update Status"
+        unique_id: auto_update_status
+        icon: >
+          {% set status = trigger.event.data.status %}
+          {% if status == 'success' %}mdi:update
+          {% elif status == 'partial' %}mdi:update-alert
+          {% elif status == 'failure' %}mdi:alert-circle-outline
+          {% elif status == 'no_updates' %}mdi:update-off
+          {% else %}mdi:progress-clock{% endif %}
+        state: "{{ trigger.event.data.status }}"
+        attributes:
+          last_run: "{{ trigger.event.data.last_run }}"
+          pre_count: "{{ trigger.event.data.pre_count }}"
+          post_count: "{{ trigger.event.data.post_count }}"
+          attempted_entities: "{{ trigger.event.data.attempted_entities }}"
+          remaining_entities: "{{ trigger.event.data.remaining_entities }}"
+          duration_seconds: "{{ trigger.event.data.duration_seconds }}"
+          restart_required: "{{ trigger.event.data.restart_required }}"
+          status_detail: "{{ trigger.event.data.status_detail }}"

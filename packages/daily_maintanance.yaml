@@ -155,7 +155,7 @@ automation:
         weekday:
           - mon
       - condition: template
-        value_template: "{{ now().day <= 7 }}"   # First Monday window (day 1–7)
+        value_template: "{{ now().day <= 7 }}" # First Monday window (day 1–7)
     action:
       - variables:
           pre_size: "{{ states('sensor.homeassistant_db_size_mb') | float(0) }}"
@@ -456,7 +456,7 @@ automation:
                     Still down: {{ still_down_list }}
                     Node-RED HTTP: {{ node_http_after }} | Grafana HTTP: {{ graf_http_after }}
                     Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
-              # Telegram — replace 123456789 with your real chat_id
+              # Telegram — replace 6167623299with your real chat_id
               - service: telegram_bot.send_message
                 data:
                   target:

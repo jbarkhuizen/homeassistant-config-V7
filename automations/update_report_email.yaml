@@ -5,7 +5,7 @@
 
 #-----------------------------------------------------------------------------
 # 1) DAILY UPDATE REPORT - EMAIL NOTIFICATION (08:00)
-#    Now guarded by Maintenance Mode (must be OFF)
+#    Guarded by Maintenance Mode
 #-----------------------------------------------------------------------------
 - id: daily_update_status_report_email
   alias: "System: Daily Update Status Report at 08:00 (Email)"
@@ -16,11 +16,9 @@
       at: "08:00:00"
 
   condition:
-    # Maintenance Mode must be OFF
     - condition: state
       entity_id: input_boolean.maintenance_mode
       state: "off"
-    # Only send email if updates are available or it's Monday (weekly summary)
     - condition: or
       conditions:
         - condition: template
@@ -30,11 +28,9 @@
             - mon
 
   action:
-    # Wait for update sensors to stabilize
     - delay:
         seconds: 10
 
-    # Send Email Report
     - service: notify.email_notification_jbarkhuizen_gmail_com
       data:
         title: "📊 Daily Home Assistant Update Report - {{ now().strftime('%Y-%m-%d') }}"
@@ -115,7 +111,6 @@
 
           📅 {{ now().strftime('%A, %d %B %Y at %H:%M') }}
 
-    # Log the report
     - service: system_log.write
       data:
         message: >-
@@ -126,69 +121,68 @@
 
 
 #-----------------------------------------------------------------------------
-# 2) DAILY AUTOMATIC UPDATES + SUCCESS NOTIFICATIONS (08:15)
-#    Now guarded by Maintenance Mode (must be OFF)
+# 2) DAILY AUTOMATIC UPDATES + SUCCESS / FAILURE NOTIFICATIONS (08:15)
+#    Hardened with status sensor event firing & failure notices
 #-----------------------------------------------------------------------------
 - id: daily_automatic_updates_and_notifications_0815
   alias: "System: Daily Automatic Updates and Notifications at 08:15"
   description: >
-    At 08:15, automatically install Home Assistant and add-on updates
-    (when available) and send a success notification via Email, Telegram,
-    and persistent notification.
+    Automatically install available updates and report success or failure.
+    Fires event 'auto_update_cycle_complete' for status sensor.
 
   trigger:
     - platform: time
       at: "08:15:00"
 
   condition:
-    # Maintenance Mode must be OFF
     - condition: state
       entity_id: input_boolean.maintenance_mode
       state: "off"
-    # Only attempt updates if there are actually updates available
     - condition: template
       value_template: "{{ state_attr('sensor.home_assistant_updates_summary', 'total_updates') | int(0) > 0 }}"
 
   action:
-    # Capture pre-update count
+    # (A1) Snapshot pre-update
     - variables:
+        cycle_start: "{{ now() }}"
         pre_count: "{{ state_attr('sensor.home_assistant_updates_summary', 'total_updates') | int(0) }}"
+        core_on: "{{ is_state('update.home_assistant_core_update','on') }}"
+        os_on: "{{ is_state('update.home_assistant_operating_system_update','on') }}"
+        supervisor_on: "{{ is_state('update.home_assistant_supervisor_update','on') }}"
+        attempted_entities: >
+          {% set ignore = [] %}
+          {% set base = states.update
+             | selectattr('state','eq','on')
+             | map(attribute='entity_id')
+             | list %}
+          {{ base }}
 
-    # Small delay to allow 08:00 checks to complete
     - delay:
-        minutes: 1
+        seconds: 30  # allow sensors to settle more thoroughly before acting
 
-    # Install Core / OS / Supervisor updates if available
+    # (A2) Install core components individually
     - choose:
-        # Home Assistant Core
         - conditions:
-            - condition: state
-              entity_id: update.home_assistant_core_update
-              state: "on"
+            - condition: template
+              value_template: "{{ core_on | bool }}"
           sequence:
             - service: update.install
               target:
                 entity_id: update.home_assistant_core_update
               data:
                 backup: true
-
-        # Home Assistant Operating System
         - conditions:
-            - condition: state
-              entity_id: update.home_assistant_operating_system_update
-              state: "on"
+            - condition: template
+              value_template: "{{ os_on | bool }}"
           sequence:
             - service: update.install
               target:
                 entity_id: update.home_assistant_operating_system_update
               data:
                 backup: true
-
-        # Home Assistant Supervisor
         - conditions:
-            - condition: state
-              entity_id: update.home_assistant_supervisor_update
-              state: "on"
+            - condition: template
+              value_template: "{{ supervisor_on | bool }}"
           sequence:
             - service: update.install
               target:
@@ -196,107 +190,209 @@
               data:
                 backup: true
 
-    # Install other add-on / integration updates generically
+    # (A3) Install all other add-on/integration updates
     - service: update.install
       data:
         backup: true
       target:
         entity_id: >
           {% set ignore = [
-              'update.home_assistant_core_update',
-              'update.home_assistant_operating_system_update',
-              'update.home_assistant_supervisor_update'
+            'update.home_assistant_core_update',
+            'update.home_assistant_operating_system_update',
+            'update.home_assistant_supervisor_update'
           ] %}
-          {% set updates = states.update
-              | selectattr('state', 'eq', 'on')
-              | rejectattr('entity_id', 'in', ignore)
+          {% set others = states.update
+              | selectattr('state','eq','on')
+              | rejectattr('entity_id','in',ignore)
               | map(attribute='entity_id')
               | list %}
-          {{ updates }}
+          {{ others }}
 
-    # Wait a bit to let installations start/settle (large updates may still run)
+    # (A4) Wait for installations to start
     - delay:
         minutes: 3
 
-    # Capture post-update values and summary
+    # (A5) Post-update snapshot
     - variables:
         post_count: "{{ state_attr('sensor.home_assistant_updates_summary', 'total_updates') | int(0) }}"
-        friendly_summary: "{{ state_attr('sensor.home_assistant_updates_summary', 'friendly_summary') | default('Update summary not available') }}"
+        remaining_entities: >
+          {% set still = states.update
+              | selectattr('state','eq','on')
+              | map(attribute='entity_id')
+              | list %}
+          {{ still }}
+        restart_required: "{{ core_on or os_on or supervisor_on }}"
+        duration_seconds: "{{ (as_timestamp(now()) - as_timestamp(cycle_start)) | int }}"
 
-    # Send success EMAIL notification
+    # (A6) Determine status & detail
+    - variables:
+        status: >
+          {% if pre_count == 0 %}
+            no_updates
+          {% elif post_count < pre_count %}
+            success
+          {% elif post_count == pre_count and pre_count > 0 and (remaining_entities | length) > 0 %}
+            partial
+          {% elif post_count == pre_count and pre_count > 0 and (remaining_entities | length) == 0 %}
+            success
+          {% else %}
+            failure
+          {% endif %}
+        status_detail: >
+          {% if status == 'success' %}
+            Updates decreased from {{ pre_count }} to {{ post_count }}.
+          {% elif status == 'partial' %}
+            Some updates remain: {{ remaining_entities }}.
+          {% elif status == 'failure' %}
+            No reduction in update count ({{ pre_count }} -> {{ post_count }}).
+          {% elif status == 'no_updates' %}
+            No updates were pending.
+          {% else %}
+            Undefined status condition.
+          {% endif %}
+
+    # (A7) Conditional notifications based on status
+    - choose:
+        # Failure path
+        - conditions:
+            - condition: template
+              value_template: "{{ status == 'failure' }}"
+          sequence:
+            - service: persistent_notification.create
+              data:
+                title: "Auto Update Failure"
+                message: >
+                  Automatic update routine did not reduce available updates.
+                  Pre-count: {{ pre_count }} | Post-count: {{ post_count }}
+                  Remaining entities: {{ remaining_entities }}
+                  Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+                notification_id: "auto_update_failure"
+            - service: telegram_bot.send_message
+              data:
+                target:
+                  - 123456789
+                message: >-
+                  ❌ *Auto Update Failure*  
+                  Pre: {{ pre_count }} | Post: {{ post_count }}  
+                  Remaining: {{ remaining_entities | join(', ') if remaining_entities else 'None' }}  
+                  _{{ now().strftime('%Y-%m-%d %H:%M:%S') }}_
+                parse_mode: markdown
+
+        # Partial path
+        - conditions:
+            - condition: template
+              value_template: "{{ status == 'partial' }}"
+          sequence:
+            - service: persistent_notification.create
+              data:
+                title: "Auto Update Partial"
+                message: >
+                  Some updates remain after attempt.
+                  Pre-count: {{ pre_count }} | Post-count: {{ post_count }}
+                  Remaining: {{ remaining_entities }}
+                  Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+                notification_id: "auto_update_partial"
+            - service: telegram_bot.send_message
+              data:
+                target:
+                  - 123456789
+                message: >-
+                  ⚠️ *Auto Update Partial*  
+                  Pre: {{ pre_count }} | Post: {{ post_count }}  
+                  Remaining: {{ remaining_entities | join(', ') if remaining_entities else 'None' }}  
+                  _{{ now().strftime('%Y-%m-%d %H:%M:%S') }}_
+                parse_mode: markdown
+
+        # Success path
+        - conditions:
+            - condition: template
+              value_template: "{{ status == 'success' }}"
+          sequence:
+            - service: persistent_notification.create
+              data:
+                title: "Auto Update Success"
+                message: >
+                  Updates successfully processed.
+                  Pre-count: {{ pre_count }} | Post-count: {{ post_count }}
+                  Restart Required: {{ restart_required }}
+                  Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+                notification_id: "auto_update_success"
+            - service: telegram_bot.send_message
+              data:
+                target:
+                  - 123456789
+                message: >-
+                  ✅ *Auto Update Success*  
+                  Pre: {{ pre_count }} | Post: {{ post_count }}  
+                  Remaining: {{ remaining_entities | length }}  
+                  Restart Required: {{ restart_required }}  
+                  _{{ now().strftime('%Y-%m-%d %H:%M:%S') }}_
+                parse_mode: markdown
+
+        # No updates path (should rarely trigger due to condition)
+        - conditions:
+            - condition: template
+              value_template: "{{ status == 'no_updates' }}"
+          sequence:
+            - service: system_log.write
+              data:
+                message: "Auto Update: No updates were pending at {{ now().strftime('%Y-%m-%d %H:%M:%S') }}."
+                level: info
+
+    # (A8) Fire event for trigger-based status sensor
+    - service: event.fire
+      data:
+        event_type: auto_update_cycle_complete
+        event_data:
+          last_run: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+          pre_count: "{{ pre_count }}"
+          post_count: "{{ post_count }}"
+          attempted_entities: "{{ attempted_entities }}"
+          remaining_entities: "{{ remaining_entities }}"
+          duration_seconds: "{{ duration_seconds }}"
+          restart_required: "{{ restart_required }}"
+          status: "{{ status }}"
+          status_detail: "{{ status_detail }}"
+
+    # (A9) Log outcome
+    - service: system_log.write
+      data:
+        message: >
+          Auto Update Cycle finished status={{ status }} pre={{ pre_count }} post={{ post_count }}
+          remaining={{ remaining_entities }} restart_required={{ restart_required }}
+          duration={{ duration_seconds }}s
+        level: info
+
+    # (A10) Email summary (always sent)
     - service: notify.email_notification_jbarkhuizen_gmail_com
       data:
-        title: "✅ Home Assistant Updates Installed - {{ now().strftime('%Y-%m-%d') }}"
+        title: "🔄 Auto Update Result — {{ status | capitalize }} ({{ now().strftime('%Y-%m-%d') }})"
         message: >-
-          HOME ASSISTANT AUTOMATED UPDATE SUMMARY
+          AUTO UPDATE RESULT
 
-          Time: {{ now().strftime('%A, %d %B %Y at %H:%M:%S') }}
+          Status: {{ status | upper }}
+          Detail: {{ status_detail }}
+
+          Start: {{ cycle_start.strftime('%Y-%m-%d %H:%M:%S') }}
+          End: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+          Duration: {{ duration_seconds }} seconds
+
+          Pre-count: {{ pre_count }}
+          Post-count: {{ post_count }}
+          Attempted Entities:
+          {% for e in attempted_entities %}
+            - {{ e }}
+          {% endfor %}
+
+          Remaining After Attempt:
+          {% for r in remaining_entities %}
+            - {{ r }}
+          {% endfor %}
+          {% if remaining_entities | length == 0 %}None{% endif %}
+
+          Restart Required: {{ restart_required }}
 
           IP: 192.168.1.30:8123
           Cloud: https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/
-
-          ------------------------------------------------------------------------
-          RESULT
-          ------------------------------------------------------------------------
-
-          Updates were automatically triggered at approximately 08:15.
-
-          Previous total updates detected: {{ pre_count }}
-          Current total updates reported:  {{ post_count }}
-
-          Summary:
-          {{ friendly_summary }}
-
-          Note:
-          - Large updates (OS / Supervisor) may still be applying.
-          - A restart may be required.
-          Check the Supervisor and Updates dashboards in Home Assistant
-          if anything still shows as pending.
-
-    # Send success TELEGRAM notification (replace 123456789 with your chat_id)
-    - service: telegram_bot.send_message
-      data:
-        target:
-          - 123456789
-        message: >-
-          ✅ *Home Assistant Automated Updates Completed*
-
-          Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
-
-          *Previous updates:* {{ pre_count }}
-          *Current updates:*  {{ post_count }}
-
-          _Summary:_ {{ friendly_summary }}
-
-          Check the Home Assistant *Updates* and *Supervisor* pages
-          for more detail.
-        parse_mode: markdown
-
-    # Send success notification in the UI (Persistent Notification)
-    - service: persistent_notification.create
-      data:
-        title: "Home Assistant Automated Updates"
-        message: >-
-          ✅ Home Assistant automatic update routine has been executed.
-
-          Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
-
-          Previous total updates detected: {{ pre_count }}
-          Current total updates reported:  {{ post_count }}
-
-          Summary:
-          {{ friendly_summary }}
-
-          For details, open *Settings → System → Updates* and the Supervisor panel.
-
-        notification_id: "ha_automatic_updates_status"
-
-    # Log to system_log for auditing
-    - service: system_log.write
-      data:
-        message: >-
-          Automatic updates routine run at {{ now().strftime('%Y-%m-%d %H:%M:%S') }}.
-          Before: {{ pre_count }} updates. Now: {{ post_count }} updates.
-        level: info
 
   mode: single
