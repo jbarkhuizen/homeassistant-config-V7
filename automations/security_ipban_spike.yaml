@@ -1,0 +1,52 @@
+#===============================================================================
+# SECURITY: IP Ban Spike Detector (06:14)
+# Runs BEFORE your existing 06:15 baseline-update automation.
+#===============================================================================
+
+- id: security_ip_bans_spike_0614
+  alias: "Security - IP Ban Spike Alert (06:14)"
+  description: >
+    Compares today's current IP bans vs yesterday's baseline; if increase >= threshold,
+    sends Telegram + persistent notification. Does not modify the baseline.
+  trigger:
+    - platform: time
+      at: "06:14:00"
+  mode: single
+  action:
+    - variables:
+        threshold: 1
+        current: "{{ states('sensor.home_assistant_ip_bans_count') | int(0) }}"
+        baseline: "{{ states('input_number.ipbans_previous_count') | int(0) }}"
+        diff: "{{ (current - baseline) | int }}"
+        detail: >
+          Baseline: {{ baseline }} | Current: {{ current }} | Increase: {{ diff }} | Threshold: {{ threshold }}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ diff >= threshold }}"
+          sequence:
+            - service: persistent_notification.create
+              data:
+                title: "Security: IP Ban Spike Detected"
+                message: >
+                  New IP bans detected since yesterday.
+                  {{ detail }}
+                  Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+                notification_id: "security_ip_bans_spike"
+            - service: telegram_bot.send_message
+              data:
+                target:
+                  - 6167623299
+                message: >-
+                  ❗ *Security: IP Ban Spike*
+                  {{ detail }}
+                  _{{ now().strftime('%Y-%m-%d %H:%M:%S') }}_
+                parse_mode: markdown
+        - conditions:
+            - condition: template
+              value_template: "{{ diff < threshold }}"
+          sequence:
+            - service: system_log.write
+              data:
+                message: "IP bans OK at 06:14 — {{ detail }}"
+                level: info

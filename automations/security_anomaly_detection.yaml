@@ -1,0 +1,102 @@
+#===============================================================================
+# SECURITY: Bad Login Baseline + Daily Spike Check
+#===============================================================================
+
+# 1) Initialize Baseline (06:10)
+#    - Sets the baseline to today's current count if:
+#      a) baseline = 0 (first run) OR
+#      b) baseline > current (log rotated)
+- id: security_badlogin_initialize_baseline_0610
+  alias: "Security - Badlogin Initialize Baseline (06:10)"
+  description: >
+    Initialize baseline to current badlogin count when missing or when the log
+    rotated and the count decreased. Keeps daily comparison stable.
+  trigger:
+    - platform: time
+      at: "06:10:00"
+  mode: single
+  action:
+    - variables:
+        current: "{{ states('sensor.badlogin') | int(0) }}"
+        baseline: "{{ states('input_number.badlogin_previous_count') | int(0) }}"
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ baseline == 0 or baseline > current }}"
+          sequence:
+            - service: input_number.set_value
+              target:
+                entity_id: input_number.badlogin_previous_count
+              data:
+                value: "{{ current }}"
+            - service: system_log.write
+              data:
+                message: "Badlogin baseline initialized/reset to {{ current }} at 06:10."
+                level: info
+
+# 2) Daily Spike Check (09:00)
+#    - Compares current vs yesterday's baseline.
+#    - If delta >= threshold, notify via Telegram + Email + persistent notification.
+#    - Rolls the baseline forward to current after check to represent “end of period”.
+- id: security_badlogin_daily_09h00_check
+  alias: "Security - Badlogin Daily 09h00 Check"
+  description: >
+    Detects daily bad-login spikes vs yesterday's baseline; alerts when over threshold.
+    Rolls the baseline after the check for a clean daily window.
+  trigger:
+    - platform: time
+      at: "09:00:00"
+  mode: single
+  action:
+    - variables:
+        threshold: 25
+        current: "{{ states('sensor.badlogin') | int(0) }}"
+        baseline: "{{ states('input_number.badlogin_previous_count') | int(0) }}"
+        diff: "{{ (current - baseline) | int }}"
+        detail: >
+          Baseline: {{ baseline }} | Current: {{ current }} | Increase: {{ diff }} | Threshold: {{ threshold }}
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ diff >= threshold }}"
+          sequence:
+            - service: persistent_notification.create
+              data:
+                title: "Security: Bad Logins Spike Detected"
+                message: >
+                  Bad login attempts increased since yesterday.
+                  {{ detail }}
+                  Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+                notification_id: "security_badlogins_spike"
+            - service: telegram_bot.send_message
+              data:
+                target:
+                  - 6167623299
+                message: >-
+                  ❗ *Security: Bad Logins Spike*
+                  {{ detail }}
+                  _{{ now().strftime('%Y-%m-%d %H:%M:%S') }}_
+                parse_mode: markdown
+            - service: notify.email_notification_jbarkhuizen_gmail_com
+              data:
+                title: "❗ Security: Bad Logins Spike - {{ now().strftime('%Y-%m-%d') }}"
+                message: >-
+                  Security Alert: Bad Logins Spike
+
+                  {{ detail }}
+
+                  Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+        - conditions:
+            - condition: template
+              value_template: "{{ diff < threshold }}"
+          sequence:
+            - service: system_log.write
+              data:
+                message: "Badlogins OK at 09:00 — {{ detail }}"
+                level: info
+    # Roll baseline forward for the next 24h window
+    - service: input_number.set_value
+      target:
+        entity_id: input_number.badlogin_previous_count
+      data:
+        value: "{{ current }}"
