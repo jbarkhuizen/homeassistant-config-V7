@@ -1,4 +1,6 @@
 # Package: Daily maintenance and housekeeping tasks
+# All tasks triggered between 06:00 and 09:00.
+# NOTE: Existing code is preserved; automations are guarded by Maintenance Mode.
 
 automation:
   - id: daily_maintenance_0900
@@ -274,10 +276,10 @@ automation:
         data:
           value: "{{ current }}"
 
-  # Node-RED & Grafana health — 08:15 — guarded (can restart add-ons)
+  # Node-RED & Grafana + critical add-ons health — 08:15 — guarded
   - id: addons_health_check_0815
     alias: "Add-ons Health Check & Restart if needed (08:15)"
-    description: "Checks Node-RED and Grafana HTTP health; restarts add-on on failure."
+    description: "Checks critical add-ons; restarts on failure; summarizes results via Telegram and persistent notification."
     mode: single
     trigger:
       - platform: time
@@ -287,33 +289,219 @@ automation:
         entity_id: input_boolean.maintenance_mode
         state: "off"
     action:
+      # Pre-check statuses and whether restarts are needed
       - variables:
-          node_status: "{{ states('sensor.node_red_http_status_code') | int(0) }}"
-          graf_status: "{{ states('sensor.grafana_http_status_code') | int(0) }}"
+          node_http: "{{ states('sensor.node_red_http_status_code') | int(0) }}"
+          graf_http: "{{ states('sensor.grafana_http_status_code') | int(0) }}"
+          node_running: "{{ is_state('binary_sensor.node_red_running', 'on') }}"
+          graf_running: "{{ is_state('binary_sensor.grafana_running', 'on') }}"
+          mosq_running: "{{ is_state('binary_sensor.mosquitto_broker_running', 'on') }}"
+          infl_running: "{{ is_state('binary_sensor.influxdb_running', 'on') }}"
+          adga_running: "{{ is_state('binary_sensor.adguard_home_running', 'on') }}"
+          code_running: "{{ is_state('binary_sensor.studio_code_server_running', 'on') }}"
+          samb_running: "{{ is_state('binary_sensor.samba_share_running', 'on') }}"
+          matt_running: "{{ is_state('binary_sensor.matter_server_running', 'on') }}"
+
+          need_restart_node: "{{ (node_http != 200) or (not node_running) }}"
+          need_restart_graf: "{{ (graf_http != 200) or (not graf_running) }}"
+          need_restart_mosq: "{{ not mosq_running }}"
+          need_restart_infl: "{{ not infl_running }}"
+          need_restart_adga: "{{ not adga_running }}"
+          need_restart_code: "{{ not code_running }}"
+          need_restart_samb: "{{ not samb_running }}"
+          need_restart_matt: "{{ not matt_running }}"
+
+      # Restart block per add-on (using official slugs where applicable)
       - choose:
           - conditions:
               - condition: template
-                value_template: "{{ node_status != 200 }}"
+                value_template: "{{ need_restart_node | bool }}"
             sequence:
               - service: persistent_notification.create
                 data:
-                  title: "Node-RED Health Alert"
-                  message: "HTTP status: {{ node_status }}. Attempting restart..."
+                  title: "Add-on Health: Node-RED"
+                  message: "Unhealthy (HTTP {{ node_http }}) or not running. Attempting restart..."
               - service: hassio.addon_restart
                 data:
                   addon: "a0d7b954_nodered"
       - choose:
           - conditions:
               - condition: template
-                value_template: "{{ graf_status != 200 }}"
+                value_template: "{{ need_restart_graf | bool }}"
             sequence:
               - service: persistent_notification.create
                 data:
-                  title: "Grafana Health Alert"
-                  message: "HTTP status: {{ graf_status }}. Attempting restart..."
+                  title: "Add-on Health: Grafana"
+                  message: "Unhealthy (HTTP {{ graf_http }}) or not running. Attempting restart..."
               - service: hassio.addon_restart
                 data:
                   addon: "a0d7b954_grafana"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ need_restart_mosq | bool }}"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "Add-on Health: Mosquitto broker"
+                  message: "Not running. Attempting restart..."
+              - service: hassio.addon_restart
+                data:
+                  addon: "core_mosquitto"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ need_restart_infl | bool }}"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "Add-on Health: InfluxDB"
+                  message: "Not running. Attempting restart..."
+              - service: hassio.addon_restart
+                data:
+                  addon: "a0d7b954_influxdb"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ need_restart_adga | bool }}"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "Add-on Health: AdGuard Home"
+                  message: "Not running. Attempting restart..."
+              - service: hassio.addon_restart
+                data:
+                  addon: "a0d7b954_adguard"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ need_restart_code | bool }}"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "Add-on Health: Studio Code Server"
+                  message: "Not running. Attempting restart..."
+              - service: hassio.addon_restart
+                data:
+                  addon: "a0d7b954_vscode"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ need_restart_samb | bool }}"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "Add-on Health: Samba share"
+                  message: "Not running. Attempting restart..."
+              - service: hassio.addon_restart
+                data:
+                  addon: "core_samba"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ need_restart_matt | bool }}"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "Add-on Health: Matter Server"
+                  message: "Not running. Attempting restart..."
+              - service: hassio.addon_restart
+                data:
+                  addon: "core_matter_server"
+
+      # Allow services time to come back up
+      - delay:
+          seconds: 25
+
+      # Post-check results
+      - variables:
+          node_http_after: "{{ states('sensor.node_red_http_status_code') | int(0) }}"
+          graf_http_after: "{{ states('sensor.grafana_http_status_code') | int(0) }}"
+          node_running_after: "{{ is_state('binary_sensor.node_red_running', 'on') }}"
+          graf_running_after: "{{ is_state('binary_sensor.grafana_running', 'on') }}"
+          mosq_running_after: "{{ is_state('binary_sensor.mosquitto_broker_running', 'on') }}"
+          infl_running_after: "{{ is_state('binary_sensor.influxdb_running', 'on') }}"
+          adga_running_after: "{{ is_state('binary_sensor.adguard_home_running', 'on') }}"
+          code_running_after: "{{ is_state('binary_sensor.studio_code_server_running', 'on') }}"
+          samb_running_after: "{{ is_state('binary_sensor.samba_share_running', 'on') }}"
+          matt_running_after: "{{ is_state('binary_sensor.matter_server_running', 'on') }}"
+
+          still_down_list: >
+            {% set bad = [] %}
+            {% if not node_running_after %}{% set _ = bad.append('Node-RED') %}{% endif %}
+            {% if not graf_running_after %}{% set _ = bad.append('Grafana') %}{% endif %}
+            {% if not mosq_running_after %}{% set _ = bad.append('Mosquitto') %}{% endif %}
+            {% if not infl_running_after %}{% set _ = bad.append('InfluxDB') %}{% endif %}
+            {% if not adga_running_after %}{% set _ = bad.append('AdGuard Home') %}{% endif %}
+            {% if not code_running_after %}{% set _ = bad.append('Studio Code Server') %}{% endif %}
+            {% if not samb_running_after %}{% set _ = bad.append('Samba share') %}{% endif %}
+            {% if not matt_running_after %}{% set _ = bad.append('Matter Server') %}{% endif %}
+            {{ bad }}
+
+          any_attempted_restart: >
+            {{ (need_restart_node or need_restart_graf or need_restart_mosq or need_restart_infl
+                or need_restart_adga or need_restart_code or need_restart_samb or need_restart_matt) | bool }}
+
+      - choose:
+          # If something remains down, send alert
+          - conditions:
+              - condition: template
+                value_template: "{{ still_down_list | length > 0 }}"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "Add-ons Health: Attention Required"
+                  message: >
+                    One or more add-ons remain unhealthy or stopped after attempted restart.
+                    Still down: {{ still_down_list }}
+                    Node-RED HTTP: {{ node_http_after }} | Grafana HTTP: {{ graf_http_after }}
+                    Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+              # Telegram — replace 123456789 with your real chat_id
+              - service: telegram_bot.send_message
+                data:
+                  target:
+                    - 6167623299
+                  message: >-
+                    ❗ *Add-ons Health: Attention Required*
+                    • Still down: {{ still_down_list | join(', ') }}
+                    • Node-RED HTTP: {{ node_http_after }} | Grafana HTTP: {{ graf_http_after }}
+                    _{{ now().strftime('%Y-%m-%d %H:%M:%S') }}_
+                  parse_mode: markdown
+
+          # Else if restarts were attempted and now OK, send success summary
+          - conditions:
+              - condition: template
+                value_template: "{{ still_down_list | length == 0 and any_attempted_restart }}"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "Add-ons Health: Recoveries Applied"
+                  message: >
+                    Add-on recoveries applied successfully.
+                    Node-RED HTTP: {{ node_http_after }} | Grafana HTTP: {{ graf_http_after }}
+                    Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+              - service: telegram_bot.send_message
+                data:
+                  target:
+                    - 6167623299
+                  message: >-
+                    ✅ *Add-ons Health: Recoveries Applied*
+                    • All critical add-ons now healthy
+                    • Node-RED HTTP: {{ node_http_after }}, Grafana HTTP: {{ graf_http_after }}
+                    _{{ now().strftime('%Y-%m-%d %H:%M:%S') }}_
+                  parse_mode: markdown
+
+          # Else, everything healthy and no restarts needed — just log
+          - conditions:
+              - condition: template
+                value_template: "{{ still_down_list | length == 0 and not any_attempted_restart }}"
+            sequence:
+              - service: system_log.write
+                data:
+                  message: >-
+                    Add-ons Health 08:15 — All healthy, no restart required.
+                    Node-RED HTTP: {{ node_http_after }} | Grafana HTTP: {{ graf_http_after }}
+                  level: info
 
   # Sunsunk/Deye stale data detection — 06:35 and 08:35 — guarded (reloads integration)
   - id: deye_stale_data_recovery
@@ -385,7 +573,7 @@ template:
           {% elif this.state == 'warning' %}mdi:database-alert
           {% else %}mdi:database-clock{% endif %}
 
-# Replacement for the old file sensor (unchanged)
+# Replacement for the old file sensor
 command_line:
   - sensor:
       name: Home Assistant Log Size
