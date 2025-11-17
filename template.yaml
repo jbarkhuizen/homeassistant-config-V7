@@ -433,7 +433,7 @@ template:
           pre_count: "{{ trigger.event.data.pre_count }}"
           post_count: "{{ trigger.event.data.post_count }}"
           attempted_entities: "{{ trigger.event.data.attempted_entities }}"
-            remaining_entities: "{{ trigger.event.data.remaining_entities }}"
+          remaining_entities: "{{ trigger.event.data.remaining_entities }}"
           duration_seconds: "{{ trigger.event.data.duration_seconds }}"
           restart_required: "{{ trigger.event.data.restart_required }}"
           status_detail: "{{ trigger.event.data.status_detail }}"
