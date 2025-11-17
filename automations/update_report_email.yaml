@@ -119,7 +119,6 @@
 
   mode: single
 
-
 #-----------------------------------------------------------------------------
 # 2) DAILY AUTOMATIC UPDATES + SUCCESS / FAILURE NOTIFICATIONS (08:15)
 #    Hardened with status sensor event firing & failure notices
@@ -158,7 +157,7 @@
           {{ base }}
 
     - delay:
-        seconds: 30  # allow sensors to settle more thoroughly before acting
+        seconds: 30 # allow sensors to settle more thoroughly before acting
 
     # (A2) Install core components individually
     - choose:
@@ -270,7 +269,7 @@
             - service: telegram_bot.send_message
               data:
                 target:
-                  - 123456789
+                  - 6167623299
                 message: >-
                   ❌ *Auto Update Failure*  
                   Pre: {{ pre_count }} | Post: {{ post_count }}  
@@ -295,7 +294,7 @@
             - service: telegram_bot.send_message
               data:
                 target:
-                  - 123456789
+                  - 6167623299
                 message: >-
                   ⚠️ *Auto Update Partial*  
                   Pre: {{ pre_count }} | Post: {{ post_count }}  
@@ -320,7 +319,7 @@
             - service: telegram_bot.send_message
               data:
                 target:
-                  - 123456789
+                  - 6167623299
                 message: >-
                   ✅ *Auto Update Success*  
                   Pre: {{ pre_count }} | Post: {{ post_count }}  

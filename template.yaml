@@ -7,14 +7,12 @@ sensor:
     device_class: energy
     state_class: total_increasing
 
-  #essential = inverter_power_175 + grid_power_169  - aux_power_166
   - name: "deyeinvertermaster_essential_load"
     state: "{{ (states('sensor.deyeinvertermaster_inverter_output_power') |float(0)  + (states('sensor.deyeinvertermaster_grid_load') |float(0) - states('sensor.deyeinvertermaster_aux_output_power[...]"
     unit_of_measurement: "W"
     device_class: power
     state_class: measurement
 
-  #nonessential = grid_ct_power_172 - grid_power_167 (L1)
   - name: "deyeinvertermaster_non_essential_load"
     state: "{{ (states('sensor.deyeinvertermaster_grid_power_ct_clamp') |float(0)  - (states('sensor.deyeinvertermaster_grid_load_l1') |float(0))) | round(0)}}"
     unit_of_measurement: "W"
@@ -88,7 +86,6 @@ sensor:
   # -------------------------
   # Security / Access
   # -------------------------
-
   - name: "Automation Badlogin Initialize Baseline Last Run"
     unique_id: automation_badlogin_initialize_baseline_last_run
     state: >
@@ -155,7 +152,6 @@ sensor:
   # -------------------------
   # Recorder / Database
   # -------------------------
-
   - name: "Automation DB Initialize Baseline Last Run"
     unique_id: automation_recorder_initialize_baseline_last_run
     state: >
@@ -415,8 +411,7 @@ sensor:
     icon: mdi:toggle-switch
 
 # ------------------------------------------------------------------------------
-# (1) NEW: Trigger-based Template Sensor for Auto Update Status
-#     Populated by the 08:15 auto-update automation firing event 'auto_update_cycle_complete'
+# (1) Trigger-based Template Sensor: Auto Update Status (existing)
 # ------------------------------------------------------------------------------
 template:
   - trigger:
@@ -438,7 +433,34 @@ template:
           pre_count: "{{ trigger.event.data.pre_count }}"
           post_count: "{{ trigger.event.data.post_count }}"
           attempted_entities: "{{ trigger.event.data.attempted_entities }}"
-          remaining_entities: "{{ trigger.event.data.remaining_entities }}"
+            remaining_entities: "{{ trigger.event.data.remaining_entities }}"
           duration_seconds: "{{ trigger.event.data.duration_seconds }}"
           restart_required: "{{ trigger.event.data.restart_required }}"
           status_detail: "{{ trigger.event.data.status_detail }}"
+
+# ------------------------------------------------------------------------------
+# (2) NEW: Trigger-based Template Sensor: Backup Health Status
+#     Populated by event 'backup_health_cycle_complete'
+# ------------------------------------------------------------------------------
+  - trigger:
+      - platform: event
+        event_type: backup_health_cycle_complete
+    sensor:
+      - name: "Backup Health Status"
+        unique_id: backup_health_status
+        icon: >
+          {% set status = trigger.event.data.status %}
+          {% if status == 'success' %}mdi:backup-restore
+          {% elif status == 'warning' %}mdi:progress-alert
+          {% elif status == 'failure' %}mdi:alert-circle
+          {% else %}mdi:progress-clock{% endif %}
+        state: "{{ trigger.event.data.status }}"
+        attributes:
+          last_run: "{{ trigger.event.data.last_run }}"
+          last_success: "{{ trigger.event.data.last_success }}"
+          last_attempt: "{{ trigger.event.data.last_attempt }}"
+          next_backup: "{{ trigger.event.data.next_backup }}"
+          age_hours: "{{ trigger.event.data.age_hours }}"
+          manager_state: "{{ trigger.event.data.manager_state }}"
+          status_detail: "{{ trigger.event.data.status_detail }}"
+          threshold_hours: "{{ trigger.event.data.threshold_hours }}"
