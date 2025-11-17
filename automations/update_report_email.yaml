@@ -5,7 +5,7 @@
 
 #-----------------------------------------------------------------------------
 # 1) DAILY UPDATE REPORT - EMAIL NOTIFICATION (08:00)
-#    Existing automation preserved
+#    Now guarded by Maintenance Mode (must be OFF)
 #-----------------------------------------------------------------------------
 - id: daily_update_status_report_email
   alias: "System: Daily Update Status Report at 08:00 (Email)"
@@ -16,6 +16,10 @@
       at: "08:00:00"
 
   condition:
+    # Maintenance Mode must be OFF
+    - condition: state
+      entity_id: input_boolean.maintenance_mode
+      state: "off"
     # Only send email if updates are available or it's Monday (weekly summary)
     - condition: or
       conditions:
@@ -123,7 +127,7 @@
 
 #-----------------------------------------------------------------------------
 # 2) DAILY AUTOMATIC UPDATES + SUCCESS NOTIFICATIONS (08:15)
-#    New automation appended
+#    Now guarded by Maintenance Mode (must be OFF)
 #-----------------------------------------------------------------------------
 - id: daily_automatic_updates_and_notifications_0815
   alias: "System: Daily Automatic Updates and Notifications at 08:15"
@@ -137,6 +141,10 @@
       at: "08:15:00"
 
   condition:
+    # Maintenance Mode must be OFF
+    - condition: state
+      entity_id: input_boolean.maintenance_mode
+      state: "off"
     # Only attempt updates if there are actually updates available
     - condition: template
       value_template: "{{ state_attr('sensor.home_assistant_updates_summary', 'total_updates') | int(0) > 0 }}"

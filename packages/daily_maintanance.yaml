@@ -1,7 +1,4 @@
 # Package: Daily maintenance and housekeeping tasks
-# All tasks triggered at 09:00, per your requirement.
-# NOTE: The former 'file sensor' approach is now deprecated for YAML.
-# We keep the original block commented out for reference and provide a command_line sensor replacement.
 
 automation:
   - id: daily_maintenance_0900
@@ -10,6 +7,11 @@ automation:
     trigger:
       - platform: time
         at: "09:00:00"
+    # Maintenance Mode must be OFF
+    condition:
+      - condition: state
+        entity_id: input_boolean.maintenance_mode
+        state: "off"
     action:
       - service: shell_command.cleanup_logs
       - service: shell_command.check_log_size
@@ -25,6 +27,10 @@ automation:
       - platform: time
         at: "09:00:00"
     condition:
+      # Maintenance Mode must be OFF
+      - condition: state
+        entity_id: input_boolean.maintenance_mode
+        state: "off"
       - condition: time
         weekday:
           - mon
@@ -32,7 +38,7 @@ automation:
       - service: homeassistant.restart
     mode: single
 
-  # Database baseline initializer (Startup)
+  # Database baseline initializer (Startup) — not guarded
   - id: recorder_initialize_baseline
     alias: "Database - Initialize Baseline (Startup)"
     description: "Set initial DB size baseline and default threshold after restart if not set."
@@ -66,7 +72,7 @@ automation:
                 data:
                   value: 20
 
-  # Daily 09h00 DB growth check
+  # Daily 09h00 DB growth check — guarded (purge/repack can be disruptive)
   - id: recorder_daily_growth_check
     alias: "Database - Daily 09h00 Growth Check"
     description: "Evaluate DB growth; purge & repack if abnormal; then refresh baseline."
@@ -74,6 +80,10 @@ automation:
     trigger:
       - platform: time
         at: "09:00:00"
+    condition:
+      - condition: state
+        entity_id: input_boolean.maintenance_mode
+        state: "off"
     action:
       - variables:
           current: "{{ states('sensor.homeassistant_db_size_mb') | float(0) }}"
@@ -127,7 +137,7 @@ automation:
         data:
           value: "{{ current }}"
 
-  # Monthly DB backup & compaction — First Monday 06:30
+  # Monthly DB backup & compaction — First Monday 06:30 — guarded
   - id: recorder_monthly_backup_compaction
     alias: "Database - Monthly Backup & Compaction (First Monday 06:30)"
     description: "Create monthly DB backup with checksum, then compact (repack)."
@@ -136,6 +146,9 @@ automation:
       - platform: time
         at: "06:30:00"
     condition:
+      - condition: state
+        entity_id: input_boolean.maintenance_mode
+        state: "off"
       - condition: time
         weekday:
           - mon
@@ -154,7 +167,6 @@ automation:
       - delay: "00:00:05"
       - variables:
           post_size: "{{ states('sensor.homeassistant_db_size_mb') | float(0) }}"
-      # Persistant Notification Service
       - service: persistent_notification.create
         data:
           title: "Monthly DB Backup & Compaction Complete"
@@ -166,7 +178,7 @@ automation:
             Retention: 360 days
             Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
 
-  # Daily InfluxDB data flow verification — 08:00
+  # Daily InfluxDB data flow verification — 08:00 (read-only, not guarded)
   - id: influxdb_flow_verification_0800
     alias: "InfluxDB Data Flow Verification 08h00"
     description: "Verify critical inverter sensors updated recently (proxy for data feed & write)."
@@ -204,7 +216,6 @@ automation:
               - condition: template
                 value_template: "{{ stale_list | length > 0 }}"
             sequence:
-              # Persistant Notification Service
               - service: persistent_notification.create
                 data:
                   title: "InfluxDB Data Flow Warning"
@@ -220,7 +231,6 @@ automation:
               - condition: template
                 value_template: "{{ stale_list | length == 0 }}"
             sequence:
-            # Persistant Notification Service
               - service: persistent_notification.create
                 data:
                   title: "InfluxDB Data Flow OK"
@@ -233,7 +243,7 @@ automation:
                   entity_id: sensor.influxdb_flow_status
       - delay: "00:00:02"
 
-  # Security: IP ban delta & summary — 06:15
+  # Security: IP ban delta & summary — 06:15 (read-only, not guarded)
   - id: security_ip_bans_summary_0615
     alias: "Security - IP Ban Daily Summary (06:15)"
     description: "Report new IP bans vs baseline; send Telegram if increased."
@@ -251,7 +261,6 @@ automation:
               - condition: template
                 value_template: "{{ diff > 0 }}"
             sequence:
-              # Persistant Notification Service
               - service: persistent_notification.create
                 data:
                   title: "Security: New IP bans detected"
@@ -259,22 +268,13 @@ automation:
                     IP bans increased since yesterday.
                     Previous: {{ baseline }} | Current: {{ current }} | Increase: {{ diff }}
                     Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
-                    # Telegram Notification Service
-                    - service: notify.barkiehome
-                data:
-                  title: "Security: New IP bans"
-                  message: "Increase: {{ diff }} (Now: {{ current }}, Prev: {{ baseline }})"
-              - service: notify.johanbarkhuizen
-                data:
-                  title: "Security: New IP bans"
-                  message: "Increase: {{ diff }} (Now: {{ current }}, Prev: {{ baseline }})"
       - service: input_number.set_value
         target:
           entity_id: input_number.ipbans_previous_count
         data:
           value: "{{ current }}"
 
-  # Node-RED & Grafana health — 08:15
+  # Node-RED & Grafana health — 08:15 — guarded (can restart add-ons)
   - id: addons_health_check_0815
     alias: "Add-ons Health Check & Restart if needed (08:15)"
     description: "Checks Node-RED and Grafana HTTP health; restarts add-on on failure."
@@ -282,6 +282,10 @@ automation:
     trigger:
       - platform: time
         at: "08:15:00"
+    condition:
+      - condition: state
+        entity_id: input_boolean.maintenance_mode
+        state: "off"
     action:
       - variables:
           node_status: "{{ states('sensor.node_red_http_status_code') | int(0) }}"
@@ -311,7 +315,7 @@ automation:
                 data:
                   addon: "a0d7b954_grafana"
 
-  # Sunsunk/Deye stale data detection — 06:35 and 08:35
+  # Sunsunk/Deye stale data detection — 06:35 and 08:35 — guarded (reloads integration)
   - id: deye_stale_data_recovery
     alias: "Sunsunk Inverters - Stale Data Recovery (06:35 & 08:35)"
     description: "If key inverter sensors are stale >10 min, reload Deye integration."
@@ -321,6 +325,10 @@ automation:
         at: "06:35:00"
       - platform: time
         at: "08:35:00"
+    condition:
+      - condition: state
+        entity_id: input_boolean.maintenance_mode
+        state: "off"
     action:
       - variables:
           keys: >
@@ -356,7 +364,7 @@ automation:
                     Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
               - service: shell_command.restart_deye_integration
 
-# Template sensor summarizing last Influx verification
+# Template sensor summarizing last Influx verification (unchanged)
 template:
   - sensor:
       - name: "influxdb_flow_status"
@@ -377,38 +385,10 @@ template:
           {% elif this.state == 'warning' %}mdi:database-alert
           {% else %}mdi:database-clock{% endif %}
 
-# ORIGINAL (NOW INVALID) FILE SENSOR BLOCK — COMMENTED OUT, DO NOT DELETE
-# Kept for historical context per your instruction not to remove existing code.
-#
-# sensor:
-#   - platform: file
-#     name: Home Assistant Log Size
-#     file_path: /config/log_size.txt
-#     value_template: "{{ value | trim }}"
-#     scan_interval: 300
-
-# Replacement for the old file sensor
+# Replacement for the old file sensor (unchanged)
 command_line:
   - sensor:
       name: Home Assistant Log Size
       command: "cat /config/log_size.txt 2>/dev/null || echo 0"
       scan_interval: 300
       unique_id: home_assistant_log_size_sensor
-
-# OPTIONAL FUTURE IMPROVEMENT (COMMENTED):
-# template:
-#   - sensor:
-#       - name: "Home Assistant Log Size (MB)"
-#         unique_id: ha_log_size_mb
-#         unit_of_measurement: MB
-#         state: >
-#           {% set raw = states('sensor.home_assistant_log_size') %}
-#           {% if raw.endswith('M') %}
-#             {{ raw[:-1] | float }}
-#           {% elif raw.endswith('K') %}
-#             {{ (raw[:-1] | float) / 1024 }}
-#           {% elif raw.endswith('G') %}
-#             {{ (raw[:-1] | float) * 1024 }}
-#           {% else %}
-#             0
-#           {% endif %}
