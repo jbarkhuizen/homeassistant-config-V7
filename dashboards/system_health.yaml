@@ -1,0 +1,122 @@
+title: System Health
+views:
+  - title: Overview
+    path: overview
+    icon: mdi:heart-pulse
+    badges: []
+    cards:
+      - type: markdown
+        title: System Health Summary
+        content: |
+          **Core KPIs**
+          - Health Score: {{ states('sensor.system_health_score') }}
+          - DB Size: {{ states('sensor.homeassistant_db_size_mb') }} MB (Baseline: {{ states('input_number.homeassistant_db_baseline_mb') }})
+          - Log Size Raw: {{ states('sensor.home_assistant_log_size') }}
+          - CPU Use: {{ states('sensor.system_monitor_processor_use') }}%
+          - Memory Use: {{ states('sensor.system_monitor_memory_usage') }}%
+          - Load (1/5/15m): {{ states('sensor.system_monitor_load_1_min') }}/{{ states('sensor.system_monitor_load_5_min') }}/{{ states('sensor.system_monitor_load_15_min') }}
+          - Last Boot: {{ states('sensor.system_monitor_last_boot') }}
+          - Folding@home CPU: {{ states('sensor.folding_home_cpu_percent') }}% (If high, verify cooling)
+          - Updates Available: {{ state_attr('sensor.home_assistant_updates_summary','total_updates') }}
+          - Maintenance Mode: {{ states('input_boolean.maintenance_mode') }}
+
+      - type: entities
+        title: Resource Utilization
+        entities:
+          - sensor.system_monitor_processor_use
+          - sensor.system_monitor_memory_usage
+          - sensor.system_monitor_swap_usage
+          - sensor.system_monitor_load_1_min
+          - sensor.system_monitor_load_5_min
+          - sensor.system_monitor_load_15_min
+          - sensor.homeassistant_db_size_mb
+          - sensor.home_assistant_log_size
+          - sensor.folding_home_cpu_percent
+          - sensor.folding_home_memory_percent
+
+      - type: statistics-graph
+        title: CPU & Memory Trends (Last 24h)
+        chart_type: line
+        period: hour
+        days_to_show: 1
+        stat_types:
+          - mean
+        entities:
+          - sensor.system_monitor_processor_use
+          - sensor.system_monitor_memory_usage
+
+      - type: statistics-graph
+        title: DB Size & Log Size Trend (Last 7d)
+        chart_type: line
+        period: day
+        days_to_show: 7
+        stat_types:
+          - mean
+        entities:
+          - sensor.homeassistant_db_size_mb
+          - sensor.home_assistant_log_size
+
+      - type: gauge
+        name: CPU Usage
+        entity: sensor.system_monitor_processor_use
+        min: 0
+        max: 100
+        severity:
+          green: 0
+          yellow: 70
+          red: 90
+
+      - type: gauge
+        name: Memory Usage
+        entity: sensor.system_monitor_memory_usage
+        min: 0
+        max: 100
+        severity:
+          green: 0
+          yellow: 70
+          red: 90
+
+      - type: gauge
+        name: Health Score
+        entity: sensor.system_health_score
+        min: 0
+        max: 100
+        severity:
+          red: 40
+          yellow: 70
+          green: 90
+
+      - type: entities
+        title: System Services Status
+        entities:
+          - binary_sensor.grafana_running
+          - binary_sensor.node_red_running
+          - binary_sensor.influxdb_running
+          - binary_sensor.adguard_home_running
+          - binary_sensor.mosquitto_broker_running
+          - binary_sensor.studio_code_server_running
+          - binary_sensor.samba_share_running
+          - binary_sensor.matter_server_running
+
+      - type: markdown
+        title: Disk & Network
+        content: |
+          **Disk**
+          - Total: {{ states('sensor.home_assistant_host_disk_total') }} GB
+          - Used: {{ states('sensor.home_assistant_host_disk_used') }} GB
+          - Free: {{ states('sensor.home_assistant_host_disk_free') }} GB
+
+          **Network**
+          - Router reachable: {{ states('binary_sensor.192_168_1_1') }}
+          - Ping avg: {{ states('sensor.192_168_1_1_round_trip_time_average') }} ms
+          - Ping jitter: {{ states('sensor.192_168_1_1_jitter') }} ms
+
+      - type: entities
+        title: Backup Status
+        entities:
+          - sensor.backup_backup_manager_state
+          - sensor.backup_last_successful_automatic_backup
+          - sensor.backup_last_attempted_automatic_backup
+          - sensor.backup_next_scheduled_automatic_backup
+          - sensor.backup_health_status
+          - sensor.auto_update_status

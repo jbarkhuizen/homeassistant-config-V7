@@ -1,0 +1,131 @@
+title: Alerts
+views:
+  - title: Active Alerts
+    path: active
+    icon: mdi:alert-decagram
+    badges: []
+    cards:
+      - type: markdown
+        title: Alerts Overview
+        content: |
+          The most important system alerts and counters at a glance.
+
+          - Updates available: {{ state_attr('sensor.home_assistant_updates_summary','total_updates') }}
+          - Battery Alerts Active: {{ states('binary_sensor.battery_alert_active') }}
+          - System Health Critical: {{ states('binary_sensor.system_health_critical') }}
+          - Log has errors (size>0): {{ states('binary_sensor.home_assistant_log_has_errors') }}
+          - DB Size vs Baseline: {{ states('sensor.homeassistant_db_size_mb') }} MB / {{ states('input_number.homeassistant_db_baseline_mb') }} MB
+          - Router reachable (192.168.1.1): {{ states('binary_sensor.192_168_1_1') }}
+          - Remote UI: {{ states('binary_sensor.remote_ui') }}
+          - Node-RED HTTP: {{ states('sensor.node_red_http_status_code') }} | Grafana HTTP: {{ states('sensor.grafana_http_status_code') }}
+
+      - type: glance
+        title: Critical Flags
+        columns: 5
+        entities:
+          - entity: binary_sensor.battery_alert_active
+            name: Battery Alerts
+          - entity: binary_sensor.system_health_critical
+            name: Health Critical
+          - entity: binary_sensor.home_assistant_log_has_errors
+            name: Log Errors
+          - entity: binary_sensor.updates_available
+            name: Updates
+          - entity: binary_sensor.remote_ui
+            name: Remote UI
+
+      - type: glance
+        title: Connectivity
+        columns: 4
+        entities:
+          - entity: binary_sensor.192_168_1_1
+            name: Router
+          - entity: sensor.192_168_1_1_round_trip_time_average
+            name: Ping Avg (ms)
+          - entity: sensor.192_168_1_1_jitter
+            name: Jitter (ms)
+          - entity: sensor.internet_home_gateway_device_wan_status
+            name: WAN
+
+      - type: entities
+        title: Security & Updates
+        entities:
+          - sensor.badlogin
+          - input_number.badlogin_previous_count
+          - sensor.home_assistant_ip_bans_count
+          - input_number.ipbans_previous_count
+          - sensor.home_assistant_updates_summary
+          - binary_sensor.updates_available
+
+      - type: entities
+        title: DB & Logs
+        entities:
+          - sensor.homeassistant_db_size_mb
+          - input_number.homeassistant_db_baseline_mb
+          - input_number.homeassistant_db_growth_threshold_percent
+          - sensor.home_assistant_log_size
+          - sensor.home_assistant_log_size_mb
+          - binary_sensor.home_assistant_log_has_errors
+
+      - type: entities
+        title: Add-on HTTP Health
+        entities:
+          - sensor.node_red_http_status_code
+          - sensor.grafana_http_status_code
+
+      - type: entities
+        title: Performance Snapshot
+        entities:
+          - sensor.system_monitor_processor_use
+          - sensor.system_monitor_memory_usage
+          - sensor.system_monitor_load_1_min
+          - sensor.system_monitor_load_5_min
+          - sensor.system_monitor_load_15_min
+
+  - title: Trends & History
+    path: trends
+    icon: mdi:timeline
+    badges: []
+    cards:
+      - type: statistics-graph
+        title: CPU & Memory (24h)
+        chart_type: line
+        period: hour
+        days_to_show: 1
+        stat_types:
+          - mean
+        entities:
+          - sensor.system_monitor_processor_use
+          - sensor.system_monitor_memory_usage
+
+      - type: statistics-graph
+        title: DB & Log Size (7d)
+        chart_type: line
+        period: day
+        days_to_show: 7
+        stat_types:
+          - mean
+        entities:
+          - sensor.homeassistant_db_size_mb
+          - sensor.home_assistant_log_size_mb
+
+      - type: statistics-graph
+        title: Log Error Presence (48h)
+        chart_type: line
+        period: hour
+        days_to_show: 2
+        stat_types:
+          - sum
+        entities:
+          - sensor.log_errors_on_hours_48h
+
+      - type: history-graph
+        title: Alert States (24h)
+        hours_to_show: 24
+        entities:
+          - binary_sensor.battery_alert_active
+          - binary_sensor.system_health_critical
+          - binary_sensor.home_assistant_log_has_errors
+          - binary_sensor.updates_available
+          - binary_sensor.remote_ui
+          - binary_sensor.192_168_1_1

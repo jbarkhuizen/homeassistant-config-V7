@@ -1,0 +1,118 @@
+title: Automation & Updates
+views:
+  - title: Update Status
+    path: updates
+    icon: mdi:package-up
+    cards:
+      - type: markdown
+        title: Update Summary
+        content: |
+          - Total Updates: {{ state_attr('sensor.home_assistant_updates_summary','total_updates') }}
+          - Friendly Summary: {{ state_attr('sensor.home_assistant_updates_summary','friendly_summary') }}
+          - Auto Update Status: {{ states('sensor.auto_update_status') }} (Detail: {{ state_attr('sensor.auto_update_status','status_detail') }})
+          - Restart Required: {{ state_attr('sensor.auto_update_status','restart_required') }}
+
+      - type: entities
+        title: Critical Updates
+        entities:
+          - update.home_assistant_core_update
+          - update.home_assistant_supervisor_update
+          - update.home_assistant_operating_system_update
+
+      - type: entities
+        title: Selected Add-on / Integration Updates
+        entities:
+          - update.studio_code_server_update
+          - update.mosquitto_broker_update
+          - update.node_red_update
+          - update.grafana_update
+          - update.influxdb_update
+          - update.adguard_home_update
+
+  - title: Automation Monitoring
+    path: automation-monitoring
+    icon: mdi:robot-outline
+    cards:
+      - type: markdown
+        title: Automation Overview
+        content: |
+          Below are key automations with last run timestamps and enabled state.
+          - Maintenance Mode: {{ states('input_boolean.maintenance_mode') }}
+
+      - type: entities
+        title: Core Maintenance Automations
+        entities:
+          - sensor.automation_db_daily_growth_check_last_run
+          - sensor.automation_db_daily_growth_check_status
+          - sensor.automation_inverterconfig_update_times_last_run
+          - sensor.automation_inverterconfig_update_times_status
+          - sensor.automation_server_sync_clock_last_run
+          - sensor.automation_server_sync_clock_status
+          - sensor.automation_badlogin_daily_check_last_run
+          - sensor.automation_badlogin_daily_check_status
+
+      - type: entities
+        title: Prepaid & Battery Alerts
+        entities:
+          - sensor.automation_prepaid_daily_status_last_run
+          - sensor.automation_prepaid_daily_status_status
+          - sensor.automation_prepaid_warning_alert_last_run
+          - sensor.automation_prepaid_warning_alert_status
+          - sensor.automation_prepaid_critical_alert_last_run
+          - sensor.automation_prepaid_critical_alert_status
+          - sensor.battery_devices_low_count
+          - sensor.battery_devices_critical_count
+          - sensor.battery_system_health_score
+
+      - type: statistics-graph
+        title: Battery Health (Counts - 7 Days)
+        chart_type: line
+        period: day
+        days_to_show: 7
+        stat_types:
+          - mean
+        entities:
+          - sensor.battery_devices_low_count
+          - sensor.battery_devices_critical_count
+          - sensor.battery_devices_total_count
+
+      - type: markdown
+        title: Backup & Update Cycle
+        content: |
+          - Backup Health Status: {{ states('sensor.backup_health_status') }}
+          - Last Backup Success: {{ state_attr('sensor.backup_health_status','last_success') }}
+          - Next Scheduled Backup: {{ state_attr('sensor.backup_health_status','next_backup') }}
+          - Auto Update Last Run: {{ state_attr('sensor.auto_update_status','last_run') }}
+
+  - title: Scheduled Windows
+    path: schedule
+    icon: mdi:calendar-clock
+    cards:
+      - type: markdown
+        title: Daily Schedule (06h00–09h00 Window)
+        content: |
+          - 06:10 Badlogin Baseline
+          - 06:14 IP Ban Spike
+          - 06:15 IP Ban Summary
+          - 06:30 Monthly DB (First Monday)
+          - 06:35 Stale Data Recovery
+          - 08:00 Influx Flow Verification
+          - 08:05 System Overview Email
+          - 08:15 Add-ons Health & Update Telegram
+          - 08:18 Backup Health Check
+          - 08:25 Solar Daily Report
+          - 08:35 Stale Data Recovery (Second run)
+          - 08:40 Weekly Solar Summary (Monday)
+          - 08:45 DB & Log Trend Alert
+          - 08:50 Maintenance Mode Reminder
+          - 08:55 Git Snapshot
+          - 09:00 DB Growth Check / Maintenance / Weekly Restart (Mon)
+
+      - type: entities
+        title: Maintenance Flags
+        entities:
+          - input_boolean.maintenance_mode
+          - sensor.auto_update_status
+          - sensor.backup_health_status
+          - sensor.home_assistant_ip_bans_count
+          - sensor.badlogin

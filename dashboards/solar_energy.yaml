@@ -1,0 +1,117 @@
+title: Solar & Energy
+views:
+  - title: Daily Performance
+    path: daily
+    icon: mdi:solar-power
+    cards:
+      - type: markdown
+        title: Solar Daily KPIs
+        content: |
+          - Battery SOC: {{ states('sensor.deyeinvertercombined_battery_soc') }}%
+          - PV Today: {{ states('sensor.deyeinvertercombined_summary_day_pv') }} kWh
+          - Load Today: {{ states('sensor.deyeinvertercombined_summary_day_load') }} kWh
+          - Grid Import Today: {{ states('sensor.deyeinvertercombined_summary_day_grid_import_buy') }} kWh
+          - Grid Export Today: {{ states('sensor.deyeinvertercombined_summary_day_grid_export_sell') }} kWh
+          - Min SOC (12h): {{ states('sensor.min_soc_battery') }}%
+          - Optimization Status: {{ states('sensor.solar_optimization_status') }}
+          - Saved Today: {{ states('sensor.solar_optimization_energy_saved_today') }} kWh
+
+      - type: entities
+        title: Combined Instant Power
+        entities:
+          - sensor.deyeinvertercombined_pv_power
+          - sensor.deyeinvertercombined_inverter_output_power
+          - sensor.deyeinvertercombined_grid_power_ct_clamp
+          - sensor.deyeinvertercombined_battery_output_power
+
+      - type: entities
+        title: Combined Day Energy
+        entities:
+          - sensor.deyeinvertercombined_summary_day_pv
+          - sensor.deyeinvertercombined_summary_day_load
+          - sensor.deyeinvertercombined_summary_day_grid_import_buy
+          - sensor.deyeinvertercombined_summary_day_grid_export_sell
+          - sensor.deyeinvertercombined_summary_day_battery_charge
+          - sensor.deyeinvertercombined_summary_day_battery_discharge
+
+      - type: statistics-graph
+        title: PV / Load / Import / Export (7 days)
+        chart_type: line
+        period: day
+        days_to_show: 7
+        stat_types:
+          - mean
+        entities:
+          - sensor.solar_pv_energy_change_7d
+          - sensor.solar_load_energy_change_7d
+          - sensor.solar_grid_import_energy_change_7d
+          - sensor.solar_grid_export_energy_change_7d
+
+  - title: Weekly Comparison
+    path: weekly
+    icon: mdi:calendar-week
+    cards:
+      - type: markdown
+        title: Weekly Comparison (7d vs prior 7d)
+        content: |
+          **Verdict:** {{ states('sensor.solar_weekly_verdict') }}
+          - PV 7d: {{ states('sensor.solar_pv_energy_change_7d') }} kWh | Prior: {{ states('sensor.solar_pv_energy_change_prior_7d') }} kWh
+          - Load 7d: {{ states('sensor.solar_load_energy_change_7d') }} kWh | Prior: {{ states('sensor.solar_load_energy_change_prior_7d') }} kWh
+          - Import 7d: {{ states('sensor.solar_grid_import_energy_change_7d') }} kWh | Prior: {{ states('sensor.solar_grid_import_energy_change_prior_7d') }} kWh
+          - Export 7d: {{ states('sensor.solar_grid_export_energy_change_7d') }} kWh | Prior: {{ states('sensor.solar_grid_export_energy_change_prior_7d') }} kWh
+          - Self-consumption 7d: {{ states('sensor.solar_self_consumption_7d') }} kWh | Prior: {{ states('sensor.solar_self_consumption_prior_7d') }} kWh
+          - Grid Dependency 7d: {{ states('sensor.solar_grid_dependency_7d') }}% | Prior: {{ states('sensor.solar_grid_dependency_prior_7d') }}%
+
+      - type: entities
+        title: Weekly Deltas
+        entities:
+          - sensor.solar_pv_energy_delta_7d
+          - sensor.solar_pv_energy_delta_pct_7d
+          - sensor.solar_load_energy_delta_7d
+          - sensor.solar_load_energy_delta_pct_7d
+          - sensor.solar_grid_import_energy_delta_7d
+          - sensor.solar_grid_import_energy_delta_pct_7d
+          - sensor.solar_grid_export_energy_delta_7d
+          - sensor.solar_grid_export_energy_delta_pct_7d
+          - sensor.solar_weekly_verdict
+
+      - type: statistics-graph
+        title: PV & Load (14-day Trend)
+        chart_type: line
+        period: day
+        days_to_show: 14
+        stat_types:
+          - change
+        entities:
+          - sensor.solar_total_pv_energy
+          - sensor.solar_total_load_energy
+
+  - title: Inverter Breakdown
+    path: inverters
+    icon: mdi:transmission-tower
+    cards:
+      - type: entities
+        title: Master Inverter Instant
+        entities:
+          - sensor.deyeinvertermaster_pv_power
+          - sensor.deyeinvertermaster_inverter_output_power
+          - sensor.deyeinvertermaster_battery_output_power
+          - sensor.deyeinvertermaster_battery_soc
+          - sensor.deyeinvertermaster_grid_power_ct_clamp
+
+      - type: entities
+        title: Slave Inverter Instant
+        entities:
+          - sensor.deyeinverterslave_pv_power
+          - sensor.deyeinverterslave_inverter_output_power
+          - sensor.deyeinverterslave_battery_output_power
+          - sensor.deyeinverterslave_battery_soc
+          - sensor.deyeinverterslave_grid_power_ct_clamp
+
+      - type: markdown
+        title: Balance & Efficiency
+        content: |
+          - PV String Balance: {{ states('sensor.pv_string_balance') }}%
+          - Daily Charge Efficiency: {{ states('sensor.deyeinvertercombined_daily_charge_efficiency_percent') }}%
+          - PV Utilization: {{ states('sensor.deyeinvertercombined_pv_utilization_ratio_percent') }}%
+          - Grid Dependency Ratio: {{ states('sensor.deyeinvertercombined_grid_dependency_ratio_percent') }}%

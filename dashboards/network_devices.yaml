@@ -1,0 +1,132 @@
+title: Network & Devices
+views:
+  - title: Network Summary
+    path: net-summary
+    icon: mdi:lan
+    cards:
+      - type: markdown
+        title: Network Health
+        content: |
+          - Router Reachable (192.168.1.1): {{ states('binary_sensor.192_168_1_1') }}
+          - Ping Avg: {{ states('sensor.192_168_1_1_round_trip_time_average') }} ms
+          - Ping Jitter: {{ states('sensor.192_168_1_1_jitter') }} ms
+          - External IP (Home Gateway): {{ states('sensor.internet_home_gateway_device_external_ip') }}
+          - WAN Status: {{ states('sensor.internet_home_gateway_device_wan_status') }}
+          - Devices Tracked (Network Scanner): {{ states('sensor.network_scanner') }}
+
+      - type: entities
+        title: WAN / Gateway Metrics
+        entities:
+          - sensor.internet_home_gateway_device_external_ip
+          - sensor.internet_home_gateway_device_data_received
+          - sensor.internet_home_gateway_device_data_sent
+          - sensor.internet_home_gateway_device_download_speed
+          - sensor.internet_home_gateway_device_upload_speed
+          - sensor.internet_home_gateway_device_packet_download_speed
+          - sensor.internet_home_gateway_device_packet_upload_speed
+
+      - type: statistics-graph
+        title: Gateway Data Rates (24h)
+        chart_type: line
+        period: hour
+        days_to_show: 1
+        stat_types:
+          - mean
+        entities:
+          - sensor.internet_home_gateway_device_download_speed
+          - sensor.internet_home_gateway_device_upload_speed
+
+      - type: glance
+        title: Core Network Status
+        entities:
+          - binary_sensor.192_168_1_1
+          - sensor.192_168_1_1_round_trip_time_average
+          - sensor.192_168_1_1_jitter
+          - sensor.internet_home_gateway_device_wan_status
+
+  - title: Device Presence
+    path: device-presence
+    icon: mdi:account-network
+    cards:
+      - type: markdown
+        title: Presence Counts
+        content: |
+          Summary of selected trackers (HOME vs NOT_HOME).
+          This pulls from existing device_tracker entities.
+
+      - type: entities
+        title: Key Trackers (Sample)
+        entities:
+          - device_tracker.dsldevice
+          - device_tracker.tp_link_technologies_cb_53_30
+          - device_tracker.apple_cd_c0_59
+          - device_tracker.espressif_d0_d1_88
+          - device_tracker.bouffalo_lab_nanjing_01_91_d5
+          - device_tracker.tuya_smart_ad_5d_64
+          - device_tracker.tuya_smart_95_d9_d1
+          - device_tracker.espressif_98_b7_35
+
+  - title: Add-on Performance (CPU / Memory)
+    path: addon-performance
+    icon: mdi:server
+    cards:
+      - type: markdown
+        title: Add-on Resource Snapshot
+        content: |
+          - Node-RED Memory: {{ states('sensor.node_red_memory_percent') }}%
+          - Grafana Memory: {{ states('sensor.grafana_memory_percent') }}%
+          - InfluxDB Memory: {{ states('sensor.influxdb_memory_percent') }}%
+          - Studio Code Server Memory: {{ states('sensor.studio_code_server_memory_percent') }}%
+          - AdGuard Home Memory: {{ states('sensor.adguard_home_memory_percent') }}%
+
+      - type: entities
+        title: CPU %
+        entities:
+          - sensor.node_red_cpu_percent
+          - sensor.grafana_cpu_percent
+          - sensor.influxdb_cpu_percent
+          - sensor.studio_code_server_cpu_percent
+          - sensor.adguard_home_cpu_percent
+          - sensor.folding_home_cpu_percent
+          - sensor.home_assistant_core_cpu_percent
+          - sensor.home_assistant_supervisor_cpu_percent
+
+      - type: entities
+        title: Memory %
+        entities:
+          - sensor.node_red_memory_percent
+          - sensor.grafana_memory_percent
+          - sensor.influxdb_memory_percent
+          - sensor.studio_code_server_memory_percent
+          - sensor.adguard_home_memory_percent
+          - sensor.folding_home_memory_percent
+          - sensor.home_assistant_core_memory_percent
+          - sensor.home_assistant_supervisor_memory_percent
+
+      - type: statistics-graph
+        title: Add-on CPU Trend (24h)
+        chart_type: line
+        period: hour
+        days_to_show: 1
+        stat_types:
+          - mean
+        entities:
+          - sensor.node_red_cpu_percent
+          - sensor.grafana_cpu_percent
+          - sensor.influxdb_cpu_percent
+          - sensor.studio_code_server_cpu_percent
+          - sensor.adguard_home_cpu_percent
+
+      - type: statistics-graph
+        title: Add-on Memory Trend (24h)
+        chart_type: line
+        period: hour
+        days_to_show: 1
+        stat_types:
+          - mean
+        entities:
+          - sensor.node_red_memory_percent
+          - sensor.grafana_memory_percent
+          - sensor.influxdb_memory_percent
+          - sensor.studio_code_server_memory_percent
+          - sensor.adguard_home_memory_percent

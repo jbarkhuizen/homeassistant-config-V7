@@ -420,3 +420,51 @@ lovelace:
       show_in_sidebar: true
       require_admin: false
       filename: dashboards/weekly_solar.yaml
+        # (1) ADDED: System Health Dashboard
+    system-health:
+      mode: yaml
+      title: "System Health"
+      icon: mdi:heart-pulse
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/system_health.yaml
+    # (2) ADDED: Security & Maintenance Dashboard
+    security-maintenance:
+      mode: yaml
+      title: "Security & Maintenance"
+      icon: mdi:shield-check
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/security_maintenance.yaml
+    # (3) ADDED: Solar & Energy Dashboard
+    solar-energy:
+      mode: yaml
+      title: "Solar & Energy"
+      icon: mdi:solar-power
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/solar_energy.yaml
+    # (4) ADDED: Automation & Updates Dashboard
+    automation-updates:
+      mode: yaml
+      title: "Automation & Updates"
+      icon: mdi:robot
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/automation_updates.yaml
+    # (5) ADDED: Network & Devices Dashboard
+    network-devices:
+      mode: yaml
+      title: "Network & Devices"
+      icon: mdi:lan
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/network_devices.yaml
+    # (6) ADDED: Alerts Dashboard
+    alerts-dashboard:
+      mode: yaml
+      title: "Alerts"
+      icon: mdi:alert-decagram
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/alerts.yaml
