@@ -1,22 +1,11 @@
 #===============================================================================
 # DAILY UPDATE REPORT AUTOMATIONS
 # File: automations/update_report_email.yaml
-# Purpose:
-#   - Send a daily status report of Home Assistant updates via Email at 08:00
-#   - (NEW) At 08:15, automatically run/install updates and send success
-#           notifications via Email, Telegram, and persistent notification.
 #===============================================================================
 
 #-----------------------------------------------------------------------------
-# EXISTING AUTOMATIONS
-#-----------------------------------------------------------------------------
-# NOTE: Keep all your existing automations at the top of this file.
-# I am not removing or changing them here, just showing the known one below.
-#-----------------------------------------------------------------------------
-
-#-----------------------------------------------------------------------------
 # 1) DAILY UPDATE REPORT - EMAIL NOTIFICATION (08:00)
-#    Existing automation: "Daily Home Assistant Update Report"
+#    Existing automation preserved
 #-----------------------------------------------------------------------------
 - id: daily_update_status_report_email
   alias: "System: Daily Update Status Report at 08:00 (Email)"
@@ -37,11 +26,11 @@
             - mon
 
   action:
-    # 1.1) Wait for update sensors to stabilize
+    # Wait for update sensors to stabilize
     - delay:
         seconds: 10
 
-    # 1.2) Send Email Report
+    # Send Email Report
     - service: notify.email_notification_jbarkhuizen_gmail_com
       data:
         title: "📊 Daily Home Assistant Update Report - {{ now().strftime('%Y-%m-%d') }}"
@@ -122,7 +111,7 @@
 
           📅 {{ now().strftime('%A, %d %B %Y at %H:%M') }}
 
-    # 1.3) Log the report
+    # Log the report
     - service: system_log.write
       data:
         message: >-
@@ -133,15 +122,8 @@
 
 
 #-----------------------------------------------------------------------------
-# NEW AUTOMATION
-#-----------------------------------------------------------------------------
 # 2) DAILY AUTOMATIC UPDATES + SUCCESS NOTIFICATIONS (08:15)
-#    This is what you asked to add.
-#    It:
-#      - Triggers at 08:15
-#      - Installs Core / OS / Supervisor / Add-on updates
-#      - Sends success email, Telegram, and persistent notification
-#      - Logs result to system_log
+#    New automation appended
 #-----------------------------------------------------------------------------
 - id: daily_automatic_updates_and_notifications_0815
   alias: "System: Daily Automatic Updates and Notifications at 08:15"
@@ -155,18 +137,22 @@
       at: "08:15:00"
 
   condition:
-    # 2.1) Only attempt updates if there are actually updates available
+    # Only attempt updates if there are actually updates available
     - condition: template
       value_template: "{{ state_attr('sensor.home_assistant_updates_summary', 'total_updates') | int(0) > 0 }}"
 
   action:
-    # 2.2) Small delay to allow 08:00 report & sensors to complete
+    # Capture pre-update count
+    - variables:
+        pre_count: "{{ state_attr('sensor.home_assistant_updates_summary', 'total_updates') | int(0) }}"
+
+    # Small delay to allow 08:00 checks to complete
     - delay:
         minutes: 1
 
-    # 2.3) Install Core, OS, Supervisor updates individually if available
+    # Install Core / OS / Supervisor updates if available
     - choose:
-        # 2.3.1) Home Assistant Core
+        # Home Assistant Core
         - conditions:
             - condition: state
               entity_id: update.home_assistant_core_update
@@ -178,7 +164,7 @@
               data:
                 backup: true
 
-        # 2.3.2) Home Assistant Operating System
+        # Home Assistant Operating System
         - conditions:
             - condition: state
               entity_id: update.home_assistant_operating_system_update
@@ -190,7 +176,7 @@
               data:
                 backup: true
 
-        # 2.3.3) Home Assistant Supervisor
+        # Home Assistant Supervisor
         - conditions:
             - condition: state
               entity_id: update.home_assistant_supervisor_update
@@ -202,11 +188,7 @@
               data:
                 backup: true
 
-    # 2.4) Install other add-on / integration updates generically
-    #
-    #   - Loops all 'update' entities
-    #   - Skips the three core ones handled above
-    #   - Installs any that are 'on'
+    # Install other add-on / integration updates generically
     - service: update.install
       data:
         backup: true
@@ -224,18 +206,16 @@
               | list %}
           {{ updates }}
 
-    # 2.5) Wait a bit to let installations start/settle
-    #      (Big updates may still be running after this)
+    # Wait a bit to let installations start/settle (large updates may still run)
     - delay:
         minutes: 3
 
-    # 2.6) Calculate a simple post-update summary
+    # Capture post-update values and summary
     - variables:
-        before_count: "{{ state_attr('sensor.home_assistant_updates_summary', 'total_updates') | int(0) }}"
-        now_count: "{{ state_attr('sensor.home_assistant_updates_summary', 'total_updates') | int(0) }}"
+        post_count: "{{ state_attr('sensor.home_assistant_updates_summary', 'total_updates') | int(0) }}"
         friendly_summary: "{{ state_attr('sensor.home_assistant_updates_summary', 'friendly_summary') | default('Update summary not available') }}"
 
-    # 2.7) Send success EMAIL notification
+    # Send success EMAIL notification
     - service: notify.email_notification_jbarkhuizen_gmail_com
       data:
         title: "✅ Home Assistant Updates Installed - {{ now().strftime('%Y-%m-%d') }}"
@@ -253,8 +233,8 @@
 
           Updates were automatically triggered at approximately 08:15.
 
-          Previous total updates detected: {{ before_count }}
-          Current total updates reported:  {{ now_count }}
+          Previous total updates detected: {{ pre_count }}
+          Current total updates reported:  {{ post_count }}
 
           Summary:
           {{ friendly_summary }}
@@ -265,11 +245,7 @@
           Check the Supervisor and Updates dashboards in Home Assistant
           if anything still shows as pending.
 
-    # 2.8) Send success TELEGRAM notification
-    #
-    # Telegram service: telegram_bot.send_message
-    # You must provide at least 'target' (chat_id or list of chat_ids) and 'message'.
-    # Replace 123456789 with your real chat_id.
+    # Send success TELEGRAM notification (replace 123456789 with your chat_id)
     - service: telegram_bot.send_message
       data:
         target:
@@ -279,8 +255,8 @@
 
           Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
 
-          *Previous updates:* {{ before_count }}
-          *Current updates:*  {{ now_count }}
+          *Previous updates:* {{ pre_count }}
+          *Current updates:*  {{ post_count }}
 
           _Summary:_ {{ friendly_summary }}
 
@@ -288,7 +264,7 @@
           for more detail.
         parse_mode: markdown
 
-    # 2.9) Send success notification in the UI (Persistent Notification)
+    # Send success notification in the UI (Persistent Notification)
     - service: persistent_notification.create
       data:
         title: "Home Assistant Automated Updates"
@@ -297,8 +273,8 @@
 
           Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
 
-          Previous total updates detected: {{ before_count }}
-          Current total updates reported:  {{ now_count }}
+          Previous total updates detected: {{ pre_count }}
+          Current total updates reported:  {{ post_count }}
 
           Summary:
           {{ friendly_summary }}
@@ -307,12 +283,12 @@
 
         notification_id: "ha_automatic_updates_status"
 
-    # 2.10) Log to system_log for auditing
+    # Log to system_log for auditing
     - service: system_log.write
       data:
         message: >-
           Automatic updates routine run at {{ now().strftime('%Y-%m-%d %H:%M:%S') }}.
-          Before: {{ before_count }} updates. Now: {{ now_count }} updates.
+          Before: {{ pre_count }} updates. Now: {{ post_count }} updates.
         level: info
 
   mode: single
