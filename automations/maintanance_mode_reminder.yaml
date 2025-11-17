@@ -1,0 +1,70 @@
+#===============================================================================
+# SYSTEM: Maintenance Mode Reminder (08:50)
+# - Reminds you if Maintenance Mode is still ON near the end of your morning window.
+# - Sends Telegram + Persistent Notification + system log.
+# - Trigger inside 06:00–09:00 window as requested.
+#===============================================================================
+- id: maintenance_mode_reminder_0850
+  alias: "System: Maintenance Mode Reminder 08:50 (Telegram + Persistent)"
+  description: >
+    At 08:50, if Maintenance Mode is still ON, send a reminder via Telegram and
+    a persistent notification, including how long it has been on.
+
+  trigger:
+    - platform: time
+      at: "08:50:00"
+
+  condition:
+    - condition: state
+      entity_id: input_boolean.maintenance_mode
+      state: "on"
+
+  action:
+    # Compute a simple "duration on" in hours/minutes from last_changed
+    - variables:
+        seconds_on: "{{ (as_timestamp(now()) - as_timestamp(states.input_boolean.maintenance_mode.last_changed)) | int(0) }}"
+        hours_on: "{{ (seconds_on // 3600) | int }}"
+        minutes_on: "{{ ((seconds_on % 3600) // 60) | int }}"
+        duration_hm: >-
+          {% if hours_on > 0 %}
+            {{ hours_on }}h {{ minutes_on }}m
+          {% else %}
+            {{ minutes_on }}m
+          {% endif %}
+        cloud_url: "https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/"
+        local_url: "http://192.168.1.30:8123/"
+
+    # Persistent notification in UI
+    - service: persistent_notification.create
+      data:
+        title: "Maintenance Mode is still ON"
+        message: >-
+          Maintenance Mode has been ON for {{ duration_hm }}.
+          Some scheduled automations may be suppressed until it is turned OFF.
+
+          Quick links:
+          • Local UI: {{ local_url }}
+          • Cloud UI: {{ cloud_url }}
+
+          Toggle in: Settings → Devices & Services → Helpers → input_boolean.maintenance_mode
+        notification_id: "maintenance_mode_reminder"
+
+    # Telegram — replace 6167623299 with your real chat_id, or use !secret telegram_chat_id
+    - service: telegram_bot.send_message
+      data:
+        target:
+          - 6167623299
+        message: >-
+          ⚠️ Maintenance Mode is still ON ({{ duration_hm }}).
+          Some scheduled automations may be suppressed.
+          Turn OFF from your Home Assistant UI.
+        parse_mode: markdown
+
+    # Audit log
+    - service: system_log.write
+      data:
+        message: >-
+          Maintenance Mode reminder sent at {{ now().strftime('%Y-%m-%d %H:%M:%S') }} (ON for {{ duration_hm }}).
+        level: info
+
+  mode: single

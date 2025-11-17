@@ -1,0 +1,100 @@
+title: Weekly Solar
+views:
+  - title: Weekly Solar
+    path: weekly-solar
+    icon: mdi:solar-power-variant
+    badges: []
+    cards:
+      - type: markdown
+        title: Weekly Solar – Overview
+        content: |
+          This dashboard compares the last 7 days with the prior 7 days.
+          - Verdict: {{ states('sensor.solar_weekly_verdict') }}
+          - Self-consumption (7d): {{ states('sensor.solar_self_consumption_7d') }} kWh
+          - Self-consumption (prior 7d): {{ states('sensor.solar_self_consumption_prior_7d') }} kWh
+          - Grid dependency (7d): {{ states('sensor.solar_grid_dependency_7d') }} %
+          - Grid dependency (prior 7d): {{ states('sensor.solar_grid_dependency_prior_7d') }} %
+
+      - type: entities
+        title: PV (7d vs Prior 7d)
+        show_header_toggle: false
+        entities:
+          - entity: sensor.solar_pv_energy_change_7d
+            name: PV — Last 7 days
+          - entity: sensor.solar_pv_energy_change_prior_7d
+            name: PV — Prior 7 days
+          - entity: sensor.solar_pv_energy_delta_7d
+            name: Δ PV (kWh)
+          - entity: sensor.solar_pv_energy_delta_pct_7d
+            name: Δ PV (%)
+
+      - type: entities
+        title: Load (7d vs Prior 7d)
+        show_header_toggle: false
+        entities:
+          - entity: sensor.solar_load_energy_change_7d
+            name: Load — Last 7 days
+          - entity: sensor.solar_load_energy_change_prior_7d
+            name: Load — Prior 7 days
+          - entity: sensor.solar_load_energy_delta_7d
+            name: Δ Load (kWh)
+          - entity: sensor.solar_load_energy_delta_pct_7d
+            name: Δ Load (%)
+
+      - type: entities
+        title: Grid Import (7d vs Prior 7d)
+        show_header_toggle: false
+        entities:
+          - entity: sensor.solar_grid_import_energy_change_7d
+            name: Import — Last 7 days
+          - entity: sensor.solar_grid_import_energy_change_prior_7d
+            name: Import — Prior 7 days
+          - entity: sensor.solar_grid_import_energy_delta_7d
+            name: Δ Import (kWh)
+          - entity: sensor.solar_grid_import_energy_delta_pct_7d
+            name: Δ Import (%)
+
+      - type: entities
+        title: Grid Export (7d vs Prior 7d)
+        show_header_toggle: false
+        entities:
+          - entity: sensor.solar_grid_export_energy_change_7d
+            name: Export — Last 7 days
+          - entity: sensor.solar_grid_export_energy_change_prior_7d
+            name: Export — Prior 7 days
+          - entity: sensor.solar_grid_export_energy_delta_7d
+            name: Δ Export (kWh)
+          - entity: sensor.solar_grid_export_energy_delta_pct_7d
+            name: Δ Export (%)
+
+      - type: entities
+        title: Efficiency KPIs
+        show_header_toggle: false
+        entities:
+          - entity: sensor.solar_self_consumption_7d
+            name: Self-consumption — Last 7 days (kWh)
+          - entity: sensor.solar_self_consumption_prior_7d
+            name: Self-consumption — Prior 7 days (kWh)
+          - entity: sensor.solar_grid_dependency_7d
+            name: Grid dependency — Last 7 days (%)
+          - entity: sensor.solar_grid_dependency_prior_7d
+            name: Grid dependency — Prior 7 days (%)
+          - entity: sensor.solar_weekly_verdict
+            name: Weekly verdict
+
+      - type: statistics-graph
+        title: Daily Energy Changes (last 14 days)
+        chart_type: bar
+        period: day
+        days_to_show: 14
+        stat_types:
+          - change
+        entities:
+          - entity: sensor.solar_total_pv_energy
+            name: PV
+          - entity: sensor.solar_total_load_energy
+            name: Load
+          - entity: sensor.solar_total_grid_import_energy
+            name: Grid Import
+          - entity: sensor.solar_total_grid_export_energy
+            name: Grid Export

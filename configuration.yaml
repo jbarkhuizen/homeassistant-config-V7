@@ -405,3 +405,16 @@ recorder:
       - sensor.node_red_*
       - sensor.telegram_*
       - sensor.spotify_*
+
+# ==============================================================================
+# Lovelace Dashboards
+# ==============================================================================
+lovelace:
+  dashboards:
+    weekly-solar:
+      mode: yaml
+      title: "Weekly Solar"
+      icon: mdi:solar-power-variant
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/weekly_solar.yaml
