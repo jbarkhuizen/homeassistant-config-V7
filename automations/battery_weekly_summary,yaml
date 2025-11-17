@@ -37,11 +37,11 @@
           {% from 'battery_weekly_report.jinja' import battery_weekly_email %}
           {{ battery_weekly_email() }}
 
-    # Telegram — replace 123456789 with your chat_id or use !secret telegram_chat_id
+    # Telegram — replace 6167623299 with your chat_id or use !secret telegram_chat_id
     - service: telegram_bot.send_message
       data:
         target:
-          - 123456789
+          - 6167623299
         message: >-
           {% from 'battery_weekly_report.jinja' import battery_weekly_telegram %}
           {{ battery_weekly_telegram() }}

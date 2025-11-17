@@ -1,0 +1,202 @@
+#===============================================================================
+# SOLAR: Pool Pump Management by PV Production (06:00–18:00)
+# - Turn OFF if PV < 2500 W for 15 min
+# - Turn ON  if PV > 3599 W for 15 min
+# - Acts only between 06:00 and 18:00 local time
+# - Guarded by Maintenance Mode (must be OFF)
+# - Includes periodic re-evaluation every 5 minutes
+# - Uses:
+#     PV sensor: sensor.deyeinvertercombined_pv_power (W)
+#     Pump switch: switch.pool_pump
+# - Notifies: Persistent Notification + Telegram + Email + System Log
+#===============================================================================
+
+#----------------------------------------------------------------------------
+# Turn OFF pool pump when PV is insufficient
+#----------------------------------------------------------------------------
+- id: pool_pump_off_on_low_pv
+  alias: "Solar: Pool Pump OFF when PV < 2500 W (06:00–18:00)"
+  description: >
+    If PV production drops below 2500 W (sustained 15 minutes) during 06:00–18:00,
+    turn the pool pump OFF (if it is running). Guarded by Maintenance Mode.
+
+  trigger:
+    # Primary trigger: PV falls and stays below threshold for 15 minutes
+    - platform: numeric_state
+      entity_id: sensor.deyeinvertercombined_pv_power
+      below: 2500
+      for:
+        minutes: 15
+    # Fallback: periodic check in case HA started below threshold and never crossed it
+    - platform: time_pattern
+      minutes: "/5"
+
+  condition:
+    - condition: state
+      entity_id: input_boolean.maintenance_mode
+      state: "off"
+    - condition: time
+      after: "06:00:00"
+      before: "18:00:00"
+    # Ensure pump is currently ON
+    - condition: state
+      entity_id: switch.pool_pump
+      state: "on"
+    # Ensure PV is indeed below threshold (covers the periodic trigger)
+    - condition: template
+      value_template: "{{ states('sensor.deyeinvertercombined_pv_power')|float(0) < 2500 }}"
+
+  action:
+    - variables:
+        pv_now: "{{ states('sensor.deyeinvertercombined_pv_power')|float(0) }}"
+        threshold_off: 2500
+        local_url: "http://192.168.1.30:8123/"
+        cloud_url: "https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/"
+
+    - service: switch.turn_off
+      target:
+        entity_id: switch.pool_pump
+
+    # UI notification
+    - service: persistent_notification.create
+      data:
+        title: "Pool Pump OFF — PV low"
+        message: >-
+          Pool pump turned OFF because PV stayed below {{ threshold_off }} W for 15 minutes.
+          Current PV: {{ pv_now | round(0) }} W.
+
+          Quick links:
+          • Local: {{ local_url }}
+          • Cloud: {{ cloud_url }}
+
+          Managed by: Solar pool pump automation
+        notification_id: "pool_pump_solar_manager"
+
+    # Telegram — replace 6167623299 with your chat_id or use !secret
+    - service: telegram_bot.send_message
+      data:
+        target:
+          - 6167623299
+        message: >-
+          🛑 *Pool Pump OFF — PV low*
+          PV: {{ pv_now | round(0) }} W (< {{ threshold_off }} W for 15 min)
+          {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+        parse_mode: markdown
+
+    # Email
+    - service: notify.email_notification_jbarkhuizen_gmail_com
+      data:
+        title: "Pool Pump OFF — PV low"
+        message: >-
+          Pool pump turned OFF because PV stayed below {{ threshold_off }} W for 15 minutes.
+          Current PV: {{ pv_now | round(0) }} W.
+          Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+
+          Managed by: Solar pool pump automation
+          Local: {{ local_url }}
+          Cloud: {{ cloud_url }}
+
+    # System log
+    - service: system_log.write
+      data:
+        message: >-
+          Pool Pump OFF due to low PV: {{ pv_now | round(0) }} W (< {{ threshold_off }} W for 15 min)
+          at {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+        level: info
+
+  mode: single
+
+#----------------------------------------------------------------------------
+# Turn ON pool pump when PV is sufficient
+#----------------------------------------------------------------------------
+- id: pool_pump_on_on_high_pv
+  alias: "Solar: Pool Pump ON when PV > 3599 W (06:00–18:00)"
+  description: >
+    If PV production rises above 3599 W (sustained 15 minutes) during 06:00–18:00,
+    turn the pool pump ON (if it is OFF). Guarded by Maintenance Mode.
+
+  trigger:
+    # Primary trigger: PV rises and stays above threshold for 15 minutes
+    - platform: numeric_state
+      entity_id: sensor.deyeinvertercombined_pv_power
+      above: 3599
+      for:
+        minutes: 15
+    # Fallback: periodic check
+    - platform: time_pattern
+      minutes: "/5"
+
+  condition:
+    - condition: state
+      entity_id: input_boolean.maintenance_mode
+      state: "off"
+    - condition: time
+      after: "06:00:00"
+      before: "18:00:00"
+    # Ensure pump is currently OFF
+    - condition: state
+      entity_id: switch.pool_pump
+      state: "off"
+    # Ensure PV is indeed above threshold (covers the periodic trigger)
+    - condition: template
+      value_template: "{{ states('sensor.deyeinvertercombined_pv_power')|float(0) > 3599 }}"
+
+  action:
+    - variables:
+        pv_now: "{{ states('sensor.deyeinvertercombined_pv_power')|float(0) }}"
+        threshold_on: 3599
+        local_url: "http://192.168.1.30:8123/"
+        cloud_url: "https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/"
+
+    - service: switch.turn_on
+      target:
+        entity_id: switch.pool_pump
+
+    # UI notification
+    - service: persistent_notification.create
+      data:
+        title: "Pool Pump ON — PV sufficient"
+        message: >-
+          Pool pump turned ON because PV stayed above {{ threshold_on }} W for 15 minutes.
+          Current PV: {{ pv_now | round(0) }} W.
+
+          Quick links:
+          • Local: {{ local_url }}
+          • Cloud: {{ cloud_url }}
+
+          Managed by: Solar pool pump automation
+        notification_id: "pool_pump_solar_manager"
+
+    # Telegram — replace 6167623299 with your chat_id or use !secret
+    - service: telegram_bot.send_message
+      data:
+        target:
+          - 6167623299
+        message: >-
+          ✅ *Pool Pump ON — PV sufficient*
+          PV: {{ pv_now | round(0) }} W (> {{ threshold_on }} W for 15 min)
+          {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+        parse_mode: markdown
+
+    # Email
+    - service: notify.email_notification_jbarkhuizen_gmail_com
+      data:
+        title: "Pool Pump ON — PV sufficient"
+        message: >-
+          Pool pump turned ON because PV stayed above {{ threshold_on }} W for 15 minutes.
+          Current PV: {{ pv_now | round(0) }} W.
+          Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+
+          Managed by: Solar pool pump automation
+          Local: {{ local_url }}
+          Cloud: {{ cloud_url }}
+
+    # System log
+    - service: system_log.write
+      data:
+        message: >-
+          Pool Pump ON due to sufficient PV: {{ pv_now | round(0) }} W (> {{ threshold_on }} W for 15 min)
+          at {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+        level: info
+
+  mode: single
