@@ -1,0 +1,159 @@
+title: Battery
+views:
+  - title: Overview
+    path: overview
+    icon: mdi:battery-heart-variant
+    badges: []
+    cards:
+      - type: markdown
+        title: Battery Health Summary
+        content: |
+          - System Battery Health Score: {{ states('sensor.battery_system_health_score') }}%
+          - Devices — Total: {{ states('sensor.battery_devices_total_count') }}, Low: {{ states('sensor.battery_devices_low_count') }}, Critical: {{ states('sensor.battery_devices_critical_count') }}
+          - Alerts Active: {{ states('binary_sensor.battery_alert_active') }}
+          - Next Replacement Suggested: {{ states('sensor.battery_next_replacement_needed') }}
+          - Alerts Enabled: {{ states('input_boolean.battery_alerts_enabled') }} | Weekly Report: {{ states('input_boolean.battery_weekly_report_enabled') }}
+
+      - type: entities
+        title: Controls & Thresholds
+        entities:
+          - input_boolean.battery_alerts_enabled
+          - input_boolean.battery_weekly_report_enabled
+          - input_number.battery_warning_threshold
+          - input_number.battery_low_threshold
+          - input_number.battery_critical_threshold
+
+      - type: glance
+        title: Key Status
+        entities:
+          - entity: sensor.battery_devices_total_count
+            name: Total
+          - entity: sensor.battery_devices_low_count
+            name: Low
+          - entity: sensor.battery_devices_critical_count
+            name: Critical
+          - entity: binary_sensor.battery_alert_active
+            name: Alerts Active
+
+      - type: entities
+        title: Highlighted Devices (Most Relevant)
+        entities:
+          - sensor.sonoff_a4800986e6_battery # Front Door Motion Sensor Battery
+          - sensor.back_door_sensor_battery_plus
+          - binary_sensor.back_door_sensor_battery_plus_low
+          - sensor.braai_door_sensor_new_battery_plus
+          - binary_sensor.braai_door_sensor_new_battery_plus_low
+          - sensor.sonoff_a480098890_battery # Front Door Sensor Battery
+          - sensor.sonoff_a4800d7025_battery # Back Door Sensor Battery
+          - sensor.temperature_humidity_sensor_battery_2 # Bedroom TH Sensor Battery
+
+  - title: Devices
+    path: devices
+    icon: mdi:battery
+    badges: []
+    cards:
+      - type: markdown
+        title: Door & Motion Sensors
+        content: |
+          This section lists common door/motion battery sensors. Unavailable entries indicate the device is offline or has not reported.
+
+      - type: entities
+        title: Sonoff / Door & Window / Motion
+        entities:
+          - sensor.sonoff_a4800986e6_battery
+          - sensor.sonoff_a4800d7025_battery
+          - sensor.sonoff_a480098890_battery
+          - sensor.sonoff_1000fd4860_battery_voltage
+          - sensor.braai_door_sensor_new_battery_plus
+          - binary_sensor.braai_door_sensor_new_battery_plus_low
+          - sensor.study_window_1_battery_plus
+          - binary_sensor.study_window_1_battery_plus_low
+          - sensor.snzb_05p_battery_plus
+          - binary_sensor.snzb_05p_battery_plus_low
+
+      - type: entities
+        title: Temperature / Humidity
+        entities:
+          - sensor.sonoff_a4800986dd_battery
+          - sensor.temperature_humidity_sensor_battery_2
+          - sensor.temperature_humidity_sensor_humidity_2
+          - sensor.temperature_humidity_sensor_temperature_2
+
+      - type: markdown
+        title: Notes
+        content: |
+          - Use the Replacement & Types tab to record a replacement event using the buttons.
+          - Thresholds above define warning/low/critical levels that power your battery automations.
+
+  - title: Replacement & Types
+    path: replacement
+    icon: mdi:battery-plus
+    badges: []
+    cards:
+      - type: markdown
+        title: Replacement Actions
+        content: |
+          Use these buttons to log a battery replacement and track the last replaced date.
+
+      - type: entities
+        title: Replacement — Door Sensors
+        entities:
+          - button.back_door_sensor_battery_replaced
+          - sensor.back_door_sensor_battery_type
+          - sensor.back_door_sensor_battery_last_replaced
+
+          - button.braai_door_sensor_battery_replaced
+          - sensor.braai_door_sensor_battery_type
+          - sensor.braai_door_sensor_battery_last_replaced
+
+          - button.braai_door_sensor_new_battery_replaced
+          - sensor.braai_door_sensor_new_battery_type
+          - sensor.braai_door_sensor_new_battery_last_replaced
+
+          - button.garage_mid_door_sensor_battery_replaced
+          - sensor.garage_mid_door_sensor_battery_type
+          - sensor.garage_mid_door_sensor_battery_last_replaced
+
+          - button.salon_front_door_sensor_battery_replaced
+          - sensor.salon_front_door_sensor_battery_type
+          - sensor.salon_front_door_sensor_battery_last_replaced
+
+          - button.study_window_1_battery_replaced
+          - sensor.study_window_1_battery_type
+          - sensor.study_window_1_battery_last_replaced
+
+          - button.snzb_05p_battery_replaced
+          - sensor.snzb_05p_battery_type
+          - sensor.snzb_05p_battery_last_replaced
+
+      - type: markdown
+        title: Guidance
+        content: |
+          - Battery types (e.g., 2× AAA, CR2477) are shown next to each device.
+          - After pressing the "Battery replaced" button, verify the "last replaced" timestamp updates.
+
+  - title: Trends
+    path: trends
+    icon: mdi:chart-line
+    badges: []
+    cards:
+      - type: statistics-graph
+        title: Key Battery Trends (14 days)
+        chart_type: line
+        period: day
+        days_to_show: 14
+        stat_types:
+          - mean
+        entities:
+          - sensor.sonoff_a4800986e6_battery
+          - sensor.back_door_sensor_battery_plus
+          - sensor.braai_door_sensor_new_battery_plus
+
+      - type: history-graph
+        title: Battery Alerts & Thresholds (48h)
+        hours_to_show: 48
+        entities:
+          - binary_sensor.battery_alert_active
+          - input_number.battery_warning_threshold
+          - input_number.battery_low_threshold
+          - input_number.battery_critical_threshold

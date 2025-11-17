@@ -27,11 +27,51 @@
         title: >-
           {% set is_mon = (now().weekday() == 0) %}
           {% if is_mon %}
+            {# --- Solar badge --- #}
             {% set pv7 = states('sensor.solar_pv_energy_change_7d') | float(0) %}
             {% set load7 = states('sensor.solar_load_energy_change_7d') | float(0) %}
             {% set imp7 = states('sensor.solar_grid_import_energy_change_7d') | float(0) %}
             {% set dep = (100 * imp7 / load7) if load7 > 0 else 0 %}
-            🧭 System Overview — {{ now().strftime('%Y-%m-%d') }} | Weekly Solar: PV {{ '{:.1f}'.format(pv7) }}kWh, GridDep {{ '{:.0f}'.format(dep) }}%
+
+            {# --- Battery weekly deltas (7d vs prior 7d) --- #}
+            {% set low7 = states('sensor.battery_low_count_change_7d') | float(0) %}
+            {% set low14 = states('sensor.battery_low_count_change_14d') | float(0) %}
+            {% set low_prev = (low14 - low7) if (low14 - low7) > 0 else 0 %}
+            {% set low_delta = (low7 - low_prev) | round(0) %}
+            {% set low_delta_s = (('+' ~ low_delta|string) if low_delta > 0 else (low_delta|string)) %}
+
+            {% set crit7 = states('sensor.battery_critical_count_change_7d') | float(0) %}
+            {% set crit14 = states('sensor.battery_critical_count_change_14d') | float(0) %}
+            {% set crit_prev = (crit14 - crit7) if (crit14 - crit7) > 0 else 0 %}
+            {% set crit_delta = (crit7 - crit_prev) | round(0) %}
+            {% set crit_delta_s = (('+' ~ crit_delta|string) if crit_delta > 0 else (crit_delta|string)) %}
+
+            {# --- Lowest battery % among known devices --- #}
+            {% set batt_ents = [
+              'sensor.sonoff_a4800986e6_battery',             # Front Door Motion Sensor Battery
+              'sensor.sonoff_a4800d7025_battery',             # Back Door Sensor Battery
+              'sensor.sonoff_a480098890_battery',             # Front Door Sensor Battery
+              'sensor.study_window_1_battery_plus',           # Study Window 1 Battery+
+              'sensor.snzb_05p_battery_plus',                 # SNZB-05P Battery+
+              'sensor.braai_door_sensor_new_battery_plus',    # Braai Door Sensor New Battery+
+              'sensor.sonoff_a4800986dd_battery',             # Bedroom TH Sensor Battery
+              'sensor.temperature_humidity_sensor_battery_2'  # Bedroom TH Sensor (2)
+            ] %}
+            {% set minv = 999 %}
+            {% for e in batt_ents %}
+              {% set raw = states(e) %}
+              {% if raw not in ['unknown','unavailable','None',''] %}
+                {% set vf = raw | float(999) %}
+                {% if vf < minv %}
+                  {% set minv = vf %}
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+            {% set top_min = (None if minv == 999 else minv) %}
+
+            🧭 System Overview — {{ now().strftime('%Y-%m-%d') }}
+            | Weekly Solar: PV {{ '%.1f'|format(pv7) }}kWh, GridDep {{ '%.0f'|format(dep) }}%
+            | Battery: LowΔ {{ low_delta_s }}, CritΔ {{ crit_delta_s }}, Top {{ 'N/A' if top_min is none else '%.0f'|format(top_min) }}%
           {% else %}
             🧭 System Overview — {{ now().strftime('%Y-%m-%d') }}
           {% endif %}
@@ -39,11 +79,11 @@
           {% from 'system_overview_notifications.jinja' import system_morning_overview_email %}
           {{ system_morning_overview_email() }}
 
-    # Telegram — replace 6167623299 with your real chat_id, or use !secret telegram_chat_id
+    # Telegram — replace 123456789 with your real chat_id, or use !secret telegram_chat_id
     - service: telegram_bot.send_message
       data:
         target:
-          - 6167623299
+          - 123456789
         message: >-
           {% from 'system_overview_notifications.jinja' import system_morning_overview_telegram %}
           {{ system_morning_overview_telegram() }}

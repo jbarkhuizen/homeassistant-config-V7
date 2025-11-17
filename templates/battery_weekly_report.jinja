@@ -1,0 +1,142 @@
+{# =============================================================================
+BATTERY WEEKLY SUMMARY MACROS
+File: /config/templates/battery_weekly_report.jinja
+Purpose: Weekly battery health email/telegram message (Mon 08:32)
+Updated: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+============================================================================= #}
+
+{# ------------------------------- HELPERS ---------------------------------- #}
+{%- macro _fmt(v, default='N/A') -%}
+  {{ (v if v not in [None, 'unknown', 'unavailable', 'None', ''] else default) }}
+{%- endmacro -%}
+
+{%- macro _num(v, prec=1, default='0') -%}
+  {%- set x = (v | float(default)) -%}
+  {{ ('{0:.' ~ prec ~ 'f}').format(x) }}
+{%- endmacro -%}
+
+{%- macro _pct(v, prec=0) -%}{{ _num(v, prec, 0) }}%{%- endmacro -%}
+
+{%- macro _safe_sub(a, b) -%}
+  {%- set a1 = (a | float(0)) -%}
+  {%- set b1 = (b | float(0)) -%}
+  {{ (a1 - b1) }}
+{%- endmacro -%}
+
+{%- macro _delta_and_pct(new, old) -%}
+  {%- set d = (new | float(0)) - (old | float(0)) -%}
+  {%- set p = (100.0 * d / (old | float(0))) if (old | float(0)) > 0 else 0 -%}
+  {{ d }},{{ p }}
+{%- endmacro -%}
+
+{# ----------------------------- DATA LOOKUPS ------------------------------- #}
+{# Counts & settings #}
+{%- set total = states('sensor.battery_devices_total_count') %}
+{%- set low = states('sensor.battery_devices_low_count') %}
+{%- set crit = states('sensor.battery_devices_critical_count') %}
+{%- set warn_thr = states('input_number.battery_warning_threshold') %}
+{%- set low_thr = states('input_number.battery_low_threshold') %}
+{%- set crit_thr = states('input_number.battery_critical_threshold') %}
+{%- set alerts_on = states('binary_sensor.battery_alert_active') %}
+
+{# 7d vs prior 7d using statistics change over 7/14 days #}
+{%- set low_7 = states('sensor.battery_low_count_change_7d') %}
+{%- set low_14 = states('sensor.battery_low_count_change_14d') %}
+{%- set crit_7 = states('sensor.battery_critical_count_change_7d') %}
+{%- set crit_14 = states('sensor.battery_critical_count_change_14d') %}
+
+{%- set low_prev = [(_safe_sub(low_14, low_7) | float(0)), 0] | max %}
+{%- set crit_prev = [(_safe_sub(crit_14, crit_7) | float(0)), 0] | max %}
+
+{%- set low_delta, low_delta_pct = _delta_and_pct(low_7, low_prev).split(',') %}
+{%- set crit_delta, crit_delta_pct = _delta_and_pct(crit_7, crit_prev).split(',') %}
+
+{# Hours alert ON in last 7 days #}
+{%- set alert_hours_7d = states('sensor.battery_alert_on_hours_7d') %}
+
+{# Top-5 lowest devices — curated known battery sensors in your setup #}
+{%- set device_list = [
+  {'name':'Front Door Motion Sensor','e':'sensor.sonoff_a4800986e6_battery'},
+  {'name':'Back Door Sensor','e':'sensor.sonoff_a4800d7025_battery'},
+  {'name':'Front Door Sensor','e':'sensor.sonoff_a480098890_battery'},
+  {'name':'Study Window 1 Battery+','e':'sensor.study_window_1_battery_plus'},
+  {'name':'SNZB-05P Battery+','e':'sensor.snzb_05p_battery_plus'},
+  {'name':'Braai Door Sensor New Battery+','e':'sensor.braai_door_sensor_new_battery_plus'},
+  {'name':'Bedroom TH Sensor','e':'sensor.sonoff_a4800986dd_battery'},
+  {'name':'Bedroom TH Sensor (2)','e':'sensor.temperature_humidity_sensor_battery_2'}
+] %}
+
+{%- set ns = namespace(items=[]) %}
+{%- for d in device_list %}
+  {%- set v = states(d.e) %}
+  {%- set f = (v | float(999)) %}
+  {%- set ns.items = ns.items + [ {'name': d.name, 'entity': d.e, 'val': f, 'raw': v } ] %}
+{%- endfor %}
+
+{# sort ascending by val and take 5 #}
+{%- set top5 = (ns.items | sort(attribute='val'))[:5] %}
+
+{%- set ts = now().strftime('%Y-%m-%d %H:%M:%S') %}
+{%- set ip = '192.168.1.30:8123' %}
+{%- set cloud = 'https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/' %}
+
+{# Verdict #}
+{%- set verdict = (
+  'Improving' if ((low_delta | float(0)) < 0 and (crit_delta | float(0)) <= 0) else
+  'Worsening' if ((low_delta | float(0)) > 0 or (crit_delta | float(0)) > 0) else
+  'Stable'
+) %}
+
+{# ------------------------------ EMAIL VERSION ------------------------------ #}
+{% macro battery_weekly_email() -%}
+BATTERY — WEEKLY SUMMARY (Mon {{ now().strftime('%Y-%m-%d %H:%M') }})
+===============================================================================
+
+SUMMARY
+-------
+- Verdict: {{ verdict }}
+- Devices: Total {{ _fmt(total,'0') }}, Low {{ _fmt(low,'0') }}, Critical {{ _fmt(crit,'0') }}
+- Alert active now: {{ alerts_on }}
+- Battery alert hours (last 7d): {{ _fmt(alert_hours_7d,'0') }} h
+
+TRENDS (Last 7d vs Prior 7d)
+----------------------------
+- Low count change: {{ _num(low_7,1,0) }} vs {{ _num(low_prev,1,0) }} (Δ {{ _num(low_delta,1,0) }}, {{ _pct(low_delta_pct,0) }})
+- Critical count change: {{ _num(crit_7,1,0) }} vs {{ _num(crit_prev,1,0) }} (Δ {{ _num(crit_delta,1,0) }}, {{ _pct(crit_delta_pct,0) }})
+
+THRESHOLDS
+----------
+- Warning: {{ _fmt(warn_thr,'0') }}%
+- Low: {{ _fmt(low_thr,'0') }}%
+- Critical: {{ _fmt(crit_thr,'0') }}%
+
+TOP-5 LOWEST (by %)
+-------------------
+{%- for d in top5 %}
+- {{ '%-30s' % d.name }}  {{ _fmt(d.raw,'N/A') }}{% if d.val|float(999) < 101 %}%{% endif %} ({{ d.entity }})
+{%- endfor %}
+
+LINKS
+-----
+- Local: http://{{ ip }}
+- Cloud: {{ cloud }}
+
+Generated: {{ ts }}
+===============================================================================
+{%- endmacro %}
+
+{# ---------------------------- TELEGRAM VERSION ----------------------------- #}
+{% macro battery_weekly_telegram() -%}
+🔋 *Battery — Weekly Summary*  
+Verdict: {{ verdict }}  
+Devices T/L/C: {{ _fmt(total,'0') }}/{{ _fmt(low,'0') }}/{{ _fmt(crit,'0') }}  
+Alert hours (7d): {{ _fmt(alert_hours_7d,'0') }}h
+
+Low chg 7d vs prior: {{ _num(low_7,1,0) }} vs {{ _num(low_prev,1,0) }} (Δ {{ _num(low_delta,1,0) }}, {{ _pct(low_delta_pct,0) }})  
+Crit chg 7d vs prior: {{ _num(crit_7,1,0) }} vs {{ _num(crit_prev,1,0) }} (Δ {{ _num(crit_delta,1,0) }}, {{ _pct(crit_delta_pct,0) }})
+
+Top-5 lowest:
+{%- for d in top5 %}
+• {{ d.name }} — {{ _fmt(d.raw,'N/A') }}{% if d.val|float(999) < 101 %}%{% endif %}
+{%- endfor %}
+{%- endmacro %}

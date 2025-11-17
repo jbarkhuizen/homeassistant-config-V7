@@ -1,0 +1,56 @@
+#===============================================================================
+# BATTERY: Weekly Summary (Mondays 08:32) — Email + Telegram
+# - Requires: templates/battery_weekly_report.jinja and package sensors.
+# - Guards: Maintenance Mode OFF, Weekly Report switch ON
+#===============================================================================
+- id: battery_weekly_summary_0832
+  alias: "Battery: Weekly Summary (Mon 08:32)"
+  description: >
+    Sends a weekly battery summary (trends + top-5 lowest devices) via Email and
+    Telegram on Mondays at 08:32. Requires Weekly Battery Report to be enabled.
+
+  trigger:
+    - platform: time
+      at: "08:32:00"
+
+  condition:
+    - condition: state
+      entity_id: input_boolean.maintenance_mode
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.battery_weekly_report_enabled
+      state: "on"
+    - condition: time
+      weekday:
+        - mon
+
+  action:
+    # slight delay to ensure morning stats are updated
+    - delay:
+        seconds: 10
+
+    # Email
+    - service: notify.email_notification_jbarkhuizen_gmail_com
+      data:
+        title: "🔋 Battery — Weekly Summary {{ now().strftime('%Y-%m-%d') }}"
+        message: >-
+          {% from 'battery_weekly_report.jinja' import battery_weekly_email %}
+          {{ battery_weekly_email() }}
+
+    # Telegram — replace 123456789 with your chat_id or use !secret telegram_chat_id
+    - service: telegram_bot.send_message
+      data:
+        target:
+          - 123456789
+        message: >-
+          {% from 'battery_weekly_report.jinja' import battery_weekly_telegram %}
+          {{ battery_weekly_telegram() }}
+        parse_mode: markdown
+
+    # Audit log
+    - service: system_log.write
+      data:
+        message: "Battery Weekly Summary sent at {{ now().strftime('%Y-%m-%d %H:%M:%S') }}."
+        level: info
+
+  mode: single

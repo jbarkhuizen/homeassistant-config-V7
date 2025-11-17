@@ -468,3 +468,11 @@ lovelace:
       show_in_sidebar: true
       require_admin: false
       filename: dashboards/alerts.yaml
+    # (7) ADDED: Battery Dashboard
+    battery-dashboard:
+      mode: yaml
+      title: "Battery"
+      icon: mdi:battery-heart-variant
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/battery.yaml
