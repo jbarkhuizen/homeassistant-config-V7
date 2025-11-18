@@ -1,0 +1,156 @@
+#===============================================================================
+# PACKAGE: Solar Forecast Model (Derived Metrics + Notifications Support)
+#===============================================================================
+# (1) ADDED: Template sensors deriving forecast KPIs from existing Solcast sensors
+# Uses existing sensors you already have:
+#   energy_production_today, energy_production_today_remaining,
+#   energy_production_tomorrow, power_highest_peak_time_today,
+#   power_highest_peak_time_tomorrow, power_production_now,
+#   deyeinvertercombined_summary_day_pv (actual PV so far).
+#
+# Classification thresholds:
+#   High  >=25 kWh
+#   Medium 15–24.99 kWh
+#   Low   <15 kWh
+#
+# Recommended load slots:
+#   - Morning slot (pre-peak) = peak_time_today - 1h
+#   - Peak window             = peak_time_today ± 1h
+#   - Afternoon slot          = peak_time_today + 1–2h
+#
+# Accuracy so far = (Actual PV so far / Forecast total today) * 100
+#
+#===============================================================================
+
+template:
+  - sensor:
+      #-----------------------------------------------------------------------
+      # Total Forecast Today (kWh) - simple alias for clarity
+      #-----------------------------------------------------------------------
+      - name: "Solar Forecast Total Today"
+        unique_id: solar_forecast_total_today
+        unit_of_measurement: kWh
+        state: >
+          {{ states('sensor.energy_production_today') | float(0) | round(2) }}
+
+      # Remaining forecast today (kWh)
+      - name: "Solar Forecast Remaining Today"
+        unique_id: solar_forecast_remaining_today
+        unit_of_measurement: kWh
+        state: >
+          {{ states('sensor.energy_production_today_remaining') | float(0) | round(2) }}
+
+      # Tomorrow total forecast (kWh)
+      - name: "Solar Forecast Total Tomorrow"
+        unique_id: solar_forecast_total_tomorrow
+        unit_of_measurement: kWh
+        state: >
+          {{ states('sensor.energy_production_tomorrow') | float(0) | round(2) }}
+
+      # Peak time today (timestamp -> string for convenience)
+      - name: "Solar Forecast Peak Time Today"
+        unique_id: solar_forecast_peak_time_today
+        icon: mdi:clock
+        state: >
+          {{ states('sensor.power_highest_peak_time_today') }}
+
+      # Peak time tomorrow
+      - name: "Solar Forecast Peak Time Tomorrow"
+        unique_id: solar_forecast_peak_time_tomorrow
+        icon: mdi:clock
+        state: >
+          {{ states('sensor.power_highest_peak_time_tomorrow') }}
+
+      # Forecast Quality Classification Today
+      - name: "Solar Forecast Quality Today"
+        unique_id: solar_forecast_quality_today
+        icon: >
+          {% set total = states('sensor.energy_production_today')|float(0) %}
+          {% if total >= 25 %}mdi:weather-sunny
+          {% elif total >= 15 %}mdi:weather-partly-cloudy
+          {% else %}mdi:weather-cloudy{% endif %}
+        state: >
+          {% set total = states('sensor.energy_production_today')|float(0) %}
+          {% if total >= 25 %}
+            High
+          {% elif total >= 15 %}
+            Medium
+          {% else %}
+            Low
+          {% endif %}
+
+      # Forecast Accuracy So Far (%)
+      - name: "Solar Forecast Accuracy So Far"
+        unique_id: solar_forecast_accuracy_so_far
+        unit_of_measurement: "%"
+        icon: mdi:percent
+        state: >
+          {% set actual = states('sensor.deyeinvertercombined_summary_day_pv')|float(0) %}
+          {% set forecast = states('sensor.energy_production_today')|float(0) %}
+          {% if forecast > 0 %}
+            {{ (actual / forecast * 100) | round(1) }}
+          {% else %}
+            0
+          {% endif %}
+        attributes:
+          actual_pv_so_far_kwh: "{{ states('sensor.deyeinvertercombined_summary_day_pv')|float(0)|round(2) }}"
+          forecast_total_kwh: "{{ states('sensor.energy_production_today')|float(0)|round(2) }}"
+
+      # Recommended Load Slots (human-readable)
+      - name: "Solar Recommended Load Slots Today"
+        unique_id: solar_recommended_load_slots_today
+        icon: mdi:calendar-clock
+        state: >
+          {% set peak_raw = states('sensor.power_highest_peak_time_today') %}
+          {% if peak_raw in ['unknown','unavailable','None',''] %}
+            Unavailable
+          {% else %}
+            {% set peak = as_datetime(peak_raw) %}
+            {% set morning = (peak - timedelta(hours=1)).strftime('%H:%M') %}
+            {% set peak_h = peak.strftime('%H:%M') %}
+            {% set peak_plus1 = (peak + timedelta(hours=1)).strftime('%H:%M') %}
+            {% set peak_plus2 = (peak + timedelta(hours=2)).strftime('%H:%M') %}
+            Morning {{ morning }}–{{ peak_h }}, Peak {{ peak_h }}–{{ peak_plus1 }}, Afternoon {{ peak_plus1 }}–{{ peak_plus2 }}
+          {% endif %}
+        attributes:
+          peak_time: "{{ states('sensor.power_highest_peak_time_today') }}"
+          classification: "{{ states('sensor.solar_forecast_quality_today') }}"
+          total_forecast_kwh: "{{ states('sensor.energy_production_today')|float(0)|round(2) }}"
+          remaining_kwh: "{{ states('sensor.energy_production_today_remaining')|float(0)|round(2) }}"
+
+      # PV Peak Power Estimate (uses next hour if available or current production)
+      - name: "Solar Forecast Peak Power Estimate"
+        unique_id: solar_forecast_peak_power_estimate
+        unit_of_measurement: W
+        icon: mdi:solar-power
+        state: >
+          {% set now_power = states('sensor.power_production_now')|float(0) %}
+          {% set next_hour_power = states('sensor.power_production_next_hour')|float(0) %}
+          {% if next_hour_power > now_power %}
+            {{ next_hour_power | round(0) }}
+          {% else %}
+            {{ now_power | round(0) }}
+          {% endif %}
+
+      # Simple action recommendation text
+      - name: "Solar Forecast Action Recommendation"
+        unique_id: solar_forecast_action_recommendation
+        icon: mdi:hand-pointing-up
+        state: >
+          {% set quality = states('sensor.solar_forecast_quality_today') %}
+          {% set remaining = states('sensor.energy_production_today_remaining')|float(0) %}
+          {% if quality == 'High' %}
+            Proceed with all discretionary loads in recommended slots.
+          {% elif quality == 'Medium' %}
+            Prioritize essential or battery-supporting loads during peak window.
+          {% else %}
+            Defer non-essential heavy loads; re-evaluate after midday; protect battery.
+          {% endif %}
+        attributes:
+          quality: "{{ states('sensor.solar_forecast_quality_today') }}"
+          remaining_kwh: "{{ states('sensor.energy_production_today_remaining')|float(0)|round(2) }}"
+          accuracy_so_far_pct: "{{ states('sensor.solar_forecast_accuracy_so_far')|float(0)|round(1) }}"
+
+#===============================================================================
+# END PACKAGE
+#===============================================================================

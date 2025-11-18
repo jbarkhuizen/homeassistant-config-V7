@@ -1,0 +1,89 @@
+title: Solar Forecast
+views:
+  - title: Summary
+    path: summary
+    icon: mdi:solar-power
+    cards:
+      - type: markdown
+        title: Forecast KPIs
+        content: |
+          **Today**
+          - Total: {{ states('sensor.solar_forecast_total_today') }} kWh
+          - Remaining: {{ states('sensor.solar_forecast_remaining_today') }} kWh
+          - Quality: {{ states('sensor.solar_forecast_quality_today') }}
+          - Peak Time: {{ states('sensor.solar_forecast_peak_time_today') }}
+          - Peak Power Est.: {{ states('sensor.solar_forecast_peak_power_estimate') }} W
+          - Accuracy So Far: {{ states('sensor.solar_forecast_accuracy_so_far') }} %
+
+          **Tomorrow**
+          - Total: {{ states('sensor.solar_forecast_total_tomorrow') }} kWh
+          - Peak (Tomorrow): {{ states('sensor.solar_forecast_peak_time_tomorrow') }}
+
+      - type: entities
+        title: Load Planning & Recommendations
+        entities:
+          - sensor.solar_recommended_load_slots_today
+          - sensor.solar_forecast_action_recommendation
+
+      - type: entities
+        title: Accuracy & Classification
+        entities:
+          - sensor.solar_forecast_quality_today
+          - sensor.solar_forecast_accuracy_so_far
+          - sensor.solar_forecast_peak_power_estimate
+          - sensor.solar_forecast_total_today
+          - sensor.solar_forecast_remaining_today
+
+      - type: statistics-graph
+        title: Forecast Energy (Today vs Remaining, 24h)
+        chart_type: line
+        period: hour
+        days_to_show: 1
+        stat_types:
+          - mean
+        entities:
+          - sensor.solar_forecast_total_today
+          - sensor.solar_forecast_remaining_today
+
+      - type: markdown
+        title: Action Recommendation
+        content: |
+          {{ states('sensor.solar_forecast_action_recommendation') }}
+
+  - title: Trend
+    path: trend
+    icon: mdi:chart-line
+    cards:
+      - type: statistics-graph
+        title: Accuracy So Far (Day)
+        chart_type: line
+        period: hour
+        days_to_show: 1
+        stat_types:
+          - mean
+        entities:
+          - sensor.solar_forecast_accuracy_so_far
+
+      - type: statistics-graph
+        title: Forecast vs Actual PV (Day)
+        chart_type: line
+        period: hour
+        days_to_show: 1
+        stat_types:
+          - mean
+        entities:
+          - sensor.deyeinvertercombined_summary_day_pv
+          - sensor.solar_forecast_total_today
+
+      - type: entities
+        title: Raw Solcast Base Sensors
+        entities:
+          - sensor.energy_production_today
+          - sensor.energy_production_today_remaining
+          - sensor.energy_production_tomorrow
+          - sensor.power_highest_peak_time_today
+          - sensor.power_highest_peak_time_tomorrow
+          - sensor.power_production_now
+          - sensor.power_production_next_hour
+          - sensor.power_production_next_12hours
+          - sensor.power_production_next_24hours

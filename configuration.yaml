@@ -366,6 +366,15 @@ recorder:
       - sensor.deyeinverterslave_today_energy_bought
       - sensor.deyeinverterslave_today_energy_sold
       - sensor.deyeinverterslave_today_load_consumption
+    # (4) ADDED: Solar Forecast new sensors for trend persistence
+      - sensor.solar_forecast_total_today
+      - sensor.solar_forecast_remaining_today
+      - sensor.solar_forecast_total_tomorrow
+      - sensor.solar_forecast_quality_today
+      - sensor.solar_forecast_accuracy_so_far
+      - sensor.solar_recommended_load_slots_today
+      - sensor.solar_forecast_peak_power_estimate
+      - sensor.solar_forecast_action_recommendation
     entity_globs:
       - sensor.deyeinverter*_pv_power
       - sensor.deyeinverter*_inverter_output_power
@@ -476,3 +485,11 @@ lovelace:
       show_in_sidebar: true
       require_admin: false
       filename: dashboards/battery.yaml
+    # (5) ADDED: Solar Forecast Dashboard
+    solar-forecast:
+      mode: yaml
+      title: "Solar Forecast"
+      icon: mdi:weather-sunny-alert
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/solar_forecast.yaml

@@ -1,0 +1,111 @@
+#===============================================================================
+# SOLAR FORECAST NOTIFICATIONS
+# (2) ADDED: Main daily forecast + Low day alert
+#===============================================================================
+# Automation 1: Daily Solar Forecast Summary (06:30)
+- id: solar_forecast_daily_summary_0630
+  alias: "Solar Forecast: Daily Summary 06:30"
+  description: >
+    Sends daily solar forecast summary (Email, Telegram, Persistent Notification)
+    at 06:30 if Maintenance Mode is OFF.
+  trigger:
+    - platform: time
+      at: "06:30:00"
+  condition:
+    - condition: state
+      entity_id: input_boolean.maintenance_mode
+      state: "off"
+  action:
+    - variables:
+        quality: "{{ states('sensor.solar_forecast_quality_today') }}"
+        total_today: "{{ states('sensor.solar_forecast_total_today') }}"
+        remaining_today: "{{ states('sensor.solar_forecast_remaining_today') }}"
+    # Persistent Notification
+    - service: persistent_notification.create
+      data:
+        title: "Solar Forecast Daily Summary"
+        message: >-
+          Total Today: {{ total_today }} kWh
+          Remaining: {{ remaining_today }} kWh
+          Quality: {{ quality }}
+          Peak: {{ states('sensor.solar_forecast_peak_time_today') }}
+          Recommended Slots: {{ states('sensor.solar_recommended_load_slots_today') }}
+          Accuracy: {{ states('sensor.solar_forecast_accuracy_so_far') }}%
+          Action: {{ states('sensor.solar_forecast_action_recommendation') }}
+        notification_id: "solar_forecast_daily"
+    # Email
+    - service: notify.email_notification_jbarkhuizen_gmail_com
+      data:
+        title: "☀️ Solar Forecast — Daily Summary"
+        message: >-
+          {% from 'solar_forecast_notifications.jinja' import solar_forecast_email_main %}
+          {{ solar_forecast_email_main() }}
+    # Telegram (replace 123456789)
+    - service: telegram_bot.send_message
+      data:
+        target:
+          - 123456789
+        message: >-
+          {% from 'solar_forecast_notifications.jinja' import solar_forecast_telegram_main %}
+          {{ solar_forecast_telegram_main() }}
+        parse_mode: markdown
+    # System log
+    - service: system_log.write
+      data:
+        message: >-
+          Solar Forecast Daily Summary sent at {{ now().strftime('%Y-%m-%d %H:%M:%S') }}.
+        level: info
+  mode: single
+
+# Automation 2: Low Solar Day Alert (08:10)
+- id: solar_forecast_low_day_alert_0810
+  alias: "Solar Forecast: Low Day Alert 08:10"
+  description: >
+    Sends a low solar day alert at 08:10 if classification is Low and remaining
+    energy < 8 kWh. Maintenance Mode OFF required.
+  trigger:
+    - platform: time
+      at: "08:10:00"
+  condition:
+    - condition: state
+      entity_id: input_boolean.maintenance_mode
+      state: "off"
+    - condition: template
+      value_template: "{{ states('sensor.solar_forecast_quality_today') == 'Low' }}"
+    - condition: template
+      value_template: "{{ states('sensor.solar_forecast_remaining_today')|float(0) < 8 }}"
+  action:
+    - variables:
+        remaining_today: "{{ states('sensor.solar_forecast_remaining_today') }}"
+    # Persistent Notification
+    - service: persistent_notification.create
+      data:
+        title: "Low Solar Day Alert"
+        message: >-
+          Remaining forecast: {{ remaining_today }} kWh (<8 kWh).
+          Peak: {{ states('sensor.solar_forecast_peak_time_today') }}
+          Action: {{ states('sensor.solar_forecast_action_recommendation') }}
+        notification_id: "solar_forecast_low_alert"
+    # Email
+    - service: notify.email_notification_jbarkhuizen_gmail_com
+      data:
+        title: "⚠️ Low Solar Day Alert"
+        message: >-
+          {% from 'solar_forecast_notifications.jinja' import solar_forecast_email_low_alert %}
+          {{ solar_forecast_email_low_alert() }}
+    # Telegram
+    - service: telegram_bot.send_message
+      data:
+        target:
+          - 123456789
+        message: >-
+          {% from 'solar_forecast_notifications.jinja' import solar_forecast_telegram_low_alert %}
+          {{ solar_forecast_telegram_low_alert() }}
+        parse_mode: markdown
+    # System log
+    - service: system_log.write
+      data:
+        message: >-
+          Low Solar Day Alert sent at {{ now().strftime('%Y-%m-%d %H:%M:%S') }} (Remaining {{ remaining_today }} kWh).
+        level: warning
+  mode: single

@@ -1,0 +1,69 @@
+{#==============================================================================
+SOLAR FORECAST NOTIFICATION TEMPLATES
+Updated: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+==============================================================================#}
+
+{% macro solar_forecast_email_main() -%}
+SOLAR FORECAST — DAILY SUMMARY
+Date: {{ now().strftime('%Y-%m-%d %H:%M') }}
+
+TOTAL & CLASSIFICATION
+- Forecast Total Today: {{ states('sensor.solar_forecast_total_today') }} kWh
+- Remaining Today: {{ states('sensor.solar_forecast_remaining_today') }} kWh
+- Tomorrow Forecast: {{ states('sensor.solar_forecast_total_tomorrow') }} kWh
+- Quality Today: {{ states('sensor.solar_forecast_quality_today') }}
+
+PEAK & WINDOWS
+- Peak Time Today: {{ states('sensor.solar_forecast_peak_time_today') }}
+- Peak Power Estimate: {{ states('sensor.solar_forecast_peak_power_estimate') }} W
+- Recommended Slots: {{ states('sensor.solar_recommended_load_slots_today') }}
+
+ACCURACY & ACTION
+- Accuracy So Far: {{ states('sensor.solar_forecast_accuracy_so_far') }} %
+- Action Recommendation: {{ states('sensor.solar_forecast_action_recommendation') }}
+
+LINKS
+- Local: http://192.168.1.30:8123
+- Cloud: https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/
+
+Generated: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+{%- endmacro %}
+
+{% macro solar_forecast_telegram_main() -%}
+☀️ *Solar Forecast — Daily*  
+Total: {{ states('sensor.solar_forecast_total_today') }} kWh  
+Remaining: {{ states('sensor.solar_forecast_remaining_today') }} kWh  
+Quality: {{ states('sensor.solar_forecast_quality_today') }}  
+Peak: {{ states('sensor.solar_forecast_peak_time_today') }} (≈ {{ states('sensor.solar_forecast_peak_power_estimate') }} W)  
+Slots: {{ states('sensor.solar_recommended_load_slots_today') }}  
+Accuracy: {{ states('sensor.solar_forecast_accuracy_so_far') }}%  
+Action: {{ states('sensor.solar_forecast_action_recommendation') }}
+{%- endmacro %}
+
+{% macro solar_forecast_telegram_low_alert() -%}
+⚠️ *Low Solar Day Alert*  
+Total: {{ states('sensor.solar_forecast_total_today') }} kWh  
+Remaining: {{ states('sensor.solar_forecast_remaining_today') }} kWh  
+Peak: {{ states('sensor.solar_forecast_peak_time_today') }}  
+Recommendation: {{ states('sensor.solar_forecast_action_recommendation') }}
+Consider deferring high-load devices until peak window.
+{%- endmacro %}
+
+{% macro solar_forecast_email_low_alert() -%}
+LOW SOLAR DAY ALERT
+Date: {{ now().strftime('%Y-%m-%d %H:%M') }}
+
+Current Forecast:
+- Total Today: {{ states('sensor.solar_forecast_total_today') }} kWh
+- Remaining: {{ states('sensor.solar_forecast_remaining_today') }} kWh
+- Quality: {{ states('sensor.solar_forecast_quality_today') }}
+- Peak Time: {{ states('sensor.solar_forecast_peak_time_today') }}
+
+Recommendation:
+{{ states('sensor.solar_forecast_action_recommendation') }}
+
+Suggestion:
+Defer non-essential loads (pool pump, optional heavy appliances) until peak window to conserve battery capacity.
+
+Generated: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+{%- endmacro %}

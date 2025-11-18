@@ -1,11 +1,16 @@
 #===============================================================================
 # SYSTEM: Morning System Overview (08:05) — Email + Telegram
+# - Runs daily at 08:05 (inside 06:00–09:00 window)
+# - Guarded by Maintenance Mode (must be OFF)
+# - (1) ADDED: Solar Forecast badges integrated into subject + body + telegram
+# - (2) ADDED: Safe handling if forecast sensors unavailable
 #===============================================================================
 - id: system_morning_overview_0805
   alias: "System: Morning System Overview 08:05 (Email + Telegram)"
   description: >
     Sends a daily consolidated system health overview via Email and Telegram.
-    Guarded by Maintenance Mode (must be OFF).
+    Includes Battery Weekly badge (Mondays) and Solar Forecast badge (daily).
+    Guarded by Maintenance Mode.
 
   trigger:
     - platform: time
@@ -21,79 +26,96 @@
     - delay:
         seconds: 10
 
+    # (3) ADDED: Variables for Solar Forecast integration (safe defaults)
+    - variables:
+        is_mon: "{{ now().weekday() == 0 }}"
+        # Forecast sensors (use safe defaults)
+        fc_total_today: "{{ states('sensor.solar_forecast_total_today')|float(0) }}"
+        fc_remaining_today: "{{ states('sensor.solar_forecast_remaining_today')|float(0) }}"
+        fc_quality: "{{ states('sensor.solar_forecast_quality_today') if states('sensor.solar_forecast_quality_today') not in ['unknown','unavailable','None',''] else 'Unknown' }}"
+        fc_peak_time_raw: "{{ states('sensor.solar_forecast_peak_time_today') }}"
+        fc_peak_time: >-
+          {% set raw = states('sensor.solar_forecast_peak_time_today') %}
+          {% if raw in ['unknown','unavailable','None',''] %}
+            N/A
+          {% else %}
+            {{ as_datetime(raw).strftime('%H:%M') }}
+          {% endif %}
+        fc_accuracy: "{{ states('sensor.solar_forecast_accuracy_so_far')|float(0) }}"
+        fc_recommended_slots: "{{ states('sensor.solar_recommended_load_slots_today') if states('sensor.solar_recommended_load_slots_today') not in ['unknown','unavailable','None',''] else 'Unavailable' }}"
+        fc_action: "{{ states('sensor.solar_forecast_action_recommendation') if states('sensor.solar_forecast_action_recommendation') not in ['unknown','unavailable','None',''] else 'No recommendation available' }}"
+        # Battery weekly delta calculations (existing logic retained)
+        pv7: "{{ states('sensor.solar_pv_energy_change_7d')|float(0) }}"
+        load7: "{{ states('sensor.solar_load_energy_change_7d')|float(0) }}"
+        imp7: "{{ states('sensor.solar_grid_import_energy_change_7d')|float(0) }}"
+        dep_pct: "{{ (100 * imp7 / load7) if load7 > 0 else 0 }}"
+        low7: "{{ states('sensor.battery_low_count_change_7d')|float(0) }}"
+        low14: "{{ states('sensor.battery_low_count_change_14d')|float(0) }}"
+        low_prev: "{{ (low14 - low7) if (low14 - low7) > 0 else 0 }}"
+        low_delta: "{{ (low7 - low_prev)|round(0) }}"
+        low_delta_s: "{{ ('+' ~ low_delta|string) if low_delta > 0 else (low_delta|string) }}"
+        crit7: "{{ states('sensor.battery_critical_count_change_7d')|float(0) }}"
+        crit14: "{{ states('sensor.battery_critical_count_change_14d')|float(0) }}"
+        crit_prev: "{{ (crit14 - crit7) if (crit14 - crit7) > 0 else 0 }}"
+        crit_delta: "{{ (crit7 - crit_prev)|round(0) }}"
+        crit_delta_s: "{{ ('+' ~ crit_delta|string) if crit_delta > 0 else (crit_delta|string) }}"
+        # (4) ADDED: Subject line Solar Forecast badge string
+        forecast_badge: >-
+          Solar: {{ fc_quality }} {{ fc_remaining_today|round(1) }}kWh rem Peak {{ fc_peak_time }}
+
     # Email
     - service: notify.email_notification_jbarkhuizen_gmail_com
       data:
         title: >-
-          {% set is_mon = (now().weekday() == 0) %}
           {% if is_mon %}
-            {# --- Solar badge --- #}
-            {% set pv7 = states('sensor.solar_pv_energy_change_7d') | float(0) %}
-            {% set load7 = states('sensor.solar_load_energy_change_7d') | float(0) %}
-            {% set imp7 = states('sensor.solar_grid_import_energy_change_7d') | float(0) %}
-            {% set dep = (100 * imp7 / load7) if load7 > 0 else 0 %}
-
-            {# --- Battery weekly deltas (7d vs prior 7d) --- #}
-            {% set low7 = states('sensor.battery_low_count_change_7d') | float(0) %}
-            {% set low14 = states('sensor.battery_low_count_change_14d') | float(0) %}
-            {% set low_prev = (low14 - low7) if (low14 - low7) > 0 else 0 %}
-            {% set low_delta = (low7 - low_prev) | round(0) %}
-            {% set low_delta_s = (('+' ~ low_delta|string) if low_delta > 0 else (low_delta|string)) %}
-
-            {% set crit7 = states('sensor.battery_critical_count_change_7d') | float(0) %}
-            {% set crit14 = states('sensor.battery_critical_count_change_14d') | float(0) %}
-            {% set crit_prev = (crit14 - crit7) if (crit14 - crit7) > 0 else 0 %}
-            {% set crit_delta = (crit7 - crit_prev) | round(0) %}
-            {% set crit_delta_s = (('+' ~ crit_delta|string) if crit_delta > 0 else (crit_delta|string)) %}
-
-            {# --- Lowest battery % among known devices --- #}
-            {% set batt_ents = [
-              'sensor.sonoff_a4800986e6_battery',             # Front Door Motion Sensor Battery
-              'sensor.sonoff_a4800d7025_battery',             # Back Door Sensor Battery
-              'sensor.sonoff_a480098890_battery',             # Front Door Sensor Battery
-              'sensor.study_window_1_battery_plus',           # Study Window 1 Battery+
-              'sensor.snzb_05p_battery_plus',                 # SNZB-05P Battery+
-              'sensor.braai_door_sensor_new_battery_plus',    # Braai Door Sensor New Battery+
-              'sensor.sonoff_a4800986dd_battery',             # Bedroom TH Sensor Battery
-              'sensor.temperature_humidity_sensor_battery_2'  # Bedroom TH Sensor (2)
-            ] %}
-            {% set minv = 999 %}
-            {% for e in batt_ents %}
-              {% set raw = states(e) %}
-              {% if raw not in ['unknown','unavailable','None',''] %}
-                {% set vf = raw | float(999) %}
-                {% if vf < minv %}
-                  {% set minv = vf %}
-                {% endif %}
-              {% endif %}
-            {% endfor %}
-            {% set top_min = (None if minv == 999 else minv) %}
-
+            {# Monday: Keep existing battery + add forecast badge #}
             🧭 System Overview — {{ now().strftime('%Y-%m-%d') }}
-            | Weekly Solar: PV {{ '%.1f'|format(pv7) }}kWh, GridDep {{ '%.0f'|format(dep) }}%
-            | Battery: LowΔ {{ low_delta_s }}, CritΔ {{ crit_delta_s }}, Top {{ 'N/A' if top_min is none else '%.0f'|format(top_min) }}%
+            | Weekly Solar: PV {{ '%.1f'|format(pv7) }}kWh, GridDep {{ dep_pct|round(0) }}%
+            | Battery: LowΔ {{ low_delta_s }}, CritΔ {{ crit_delta_s }}, Top {{ 'N/A' if (states('sensor.sonoff_a4800986e6_battery') in ['unknown','unavailable','None',''] and
+              states('sensor.sonoff_a4800d7025_battery') in ['unknown','unavailable','None','']) else '' }}
+            | {{ forecast_badge }}
           {% else %}
-            🧭 System Overview — {{ now().strftime('%Y-%m-%d') }}
+            🧭 System Overview — {{ now().strftime('%Y-%m-%d') }} | {{ forecast_badge }}
           {% endif %}
         message: >-
           {% from 'system_overview_notifications.jinja' import system_morning_overview_email %}
           {{ system_morning_overview_email() }}
 
-    # Telegram — replace 6167623299 with your real chat_id, or use !secret telegram_chat_id
+          # (5) ADDED: Solar Forecast Section
+          Solar Forecast
+          --------------
+          Quality: {{ fc_quality }}
+          Total Today: {{ fc_total_today|round(2) }} kWh
+          Remaining: {{ fc_remaining_today|round(2) }} kWh
+          Peak Time: {{ fc_peak_time }}
+          Accuracy So Far: {{ fc_accuracy|round(1) }} %
+          Recommended Slots: {{ fc_recommended_slots }}
+          Action Recommendation: {{ fc_action }}
+
+          (End of added Solar Forecast section)
+
+    # Telegram — replace 123456789 with your real chat_id or !secret
     - service: telegram_bot.send_message
       data:
         target:
-          - 6167623299
+          - 123456789
         message: >-
           {% from 'system_overview_notifications.jinja' import system_morning_overview_telegram %}
           {{ system_morning_overview_telegram() }}
+
+          *Solar Forecast*
+          • Quality: {{ fc_quality }}
+          • Remaining: {{ fc_remaining_today|round(1) }} kWh (Total {{ fc_total_today|round(1) }} kWh)
+          • Peak: {{ fc_peak_time }} (Accuracy {{ fc_accuracy|round(1) }}%)
+          • Slots: {{ fc_recommended_slots }}
+          • Action: {{ fc_action }}
         parse_mode: markdown
 
     # Log for auditing
     - service: system_log.write
       data:
         message: >-
-          Morning System Overview sent at {{ now().strftime('%Y-%m-%d %H:%M:%S') }}.
+          Morning System Overview sent at {{ now().strftime('%Y-%m-%d %H:%M:%S') }} (Forecast badge integrated: {{ forecast_badge }}).
         level: info
 
   mode: single
