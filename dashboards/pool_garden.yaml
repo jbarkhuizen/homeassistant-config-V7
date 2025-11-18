@@ -1,0 +1,62 @@
+title: Pool & Garden
+views:
+  - title: Pool
+    path: pool
+    icon: mdi:pool
+    cards:
+      - type: markdown
+        title: Pool Pump Summary
+        content: |
+          - Pump: {{ states('switch.pool_pump') }}
+          - Pump Power: {{ states('sensor.sonoff_10009ce3f9_power') }} W
+          - PV Now: {{ states('sensor.deyeinvertercombined_pv_power') }} W
+          - Battery SOC: {{ states('sensor.deyeinvertercombined_battery_soc') }}%
+          - Automation thresholds: OFF < 2500 W (15 min), ON > 3599 W (15 min), active 06:00–18:00
+          - Forecast Today: {{ states('sensor.solar_forecast_total_today') }} kWh (Remaining {{ states('sensor.solar_forecast_remaining_today') }} kWh, Quality {{ states('sensor.solar_forecast_quality_today') }})
+          - Recommended Slots: {{ states('sensor.solar_recommended_load_slots_today') }}
+      - type: entities
+        title: Controls
+        entities:
+          - switch.pool_pump
+          - switch.pool_lights
+          - sensor.sonoff_10009ce3f9_power
+          - sensor.sonoff_10009ce3f9_energy
+          - sensor.sonoff_10009ce3f9_voltage
+      - type: entities
+        title: Solar Context
+        entities:
+          - sensor.deyeinvertercombined_pv_power
+          - sensor.deyeinvertercombined_battery_output_power
+          - sensor.deyeinvertercombined_grid_power_ct_clamp
+          - sensor.deyeinvertercombined_battery_soc
+      - type: history-graph
+        title: Pump vs PV (Today)
+        hours_to_show: 24
+        entities:
+          - switch.pool_pump
+          - sensor.deyeinvertercombined_pv_power
+      - type: entities
+        title: Related Automations (State)
+        entities:
+          - automation.pool_pump_off_on_low_pv
+          - automation.pool_pump_on_on_high_pv
+          - automation.solar_power_turn_on_sonoff_device_priority_1
+          - automation.solar_power_turn_off_sonoff_device_when_solar_low
+          - automation.solar_power_morning_check_at_07_15
+          - automation.solar_power_safety_turn_off_at_17_00
+      - title: Garden
+        path: garden
+        icon: mdi:flower
+        cards:
+          - type: markdown
+            title: Garden Notes
+            content: |
+              Add irrigation controllers or moisture sensors here when you want to visualize them.
+      # (ADDED) Cameras & Security Dashboard
+      cameras-security:
+        mode: yaml
+        title: "Cameras & Security"
+        icon: mdi:cctv
+        show_in_sidebar: true
+        require_admin: false
+        filename: dashboards/cameras_security.yaml

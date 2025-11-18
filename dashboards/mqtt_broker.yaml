@@ -1,0 +1,192 @@
+title: MQTT & Broker
+views:
+  - title: Overview
+    path: overview
+    icon: mdi:mqtt
+    cards:
+      - type: markdown
+        title: Broker Summary
+        content: |
+          **Status**
+          - Broker Running: {{ states('binary_sensor.mosquitto_broker_running') }}
+          - Version: {{ states('sensor.mosquitto_broker_version') }} / Newest: {{ states('sensor.mosquitto_broker_newest_version') }}
+          - Update Entity: {{ states('update.mosquitto_broker_update') }}
+          - CPU: {{ states('sensor.mosquitto_broker_cpu_percent') }}%
+          - Memory: {{ states('sensor.mosquitto_broker_memory_percent') }}%
+          - Host Load (1/5/15): {{ states('sensor.system_monitor_load_1_min') }}/{{ states('sensor.system_monitor_load_5_min') }}/{{ states('sensor.system_monitor_load_15_min') }}
+          - Network In (enp2s0): {{ states('sensor.system_monitor_network_in_enp2s0') }} MiB | Out: {{ states('sensor.system_monitor_network_out_enp2s0') }} MiB
+
+          **Clients (Selected Presence Proxies)**
+          - Pool Pump Device: {{ states('device_tracker.espressif_9d_c2_27') }}
+          - Inverter Logger Master: {{ states('sensor.deyeinvertermaster_wifi_ip_address') }}
+          - Inverter Logger Slave: {{ states('sensor.deyeinverterslave_wifi_ip_address') }}
+          - Sonoff Bridge: {{ states('binary_sensor.sonoff_a4800986e6') }}
+          - Sample Tuya Device: {{ states('device_tracker.tuya_smart_ad_5f_af') }}
+
+          **Alerts**
+          - Updates Available: {{ states('binary_sensor.updates_available') }}
+          - System Critical: {{ states('binary_sensor.system_health_critical') }}
+          - Battery Alert Active: {{ states('binary_sensor.battery_alert_active') }}
+
+      - type: glance
+        title: Health Flags
+        entities:
+          - binary_sensor.mosquitto_broker_running
+          - binary_sensor.system_health_critical
+          - binary_sensor.updates_available
+          - binary_sensor.remote_ui
+          - binary_sensor.battery_alert_active
+
+      - type: entities
+        title: Broker Version & Update
+        entities:
+          - sensor.mosquitto_broker_version
+          - sensor.mosquitto_broker_newest_version
+          - update.mosquitto_broker_update
+
+      - type: entities
+        title: Resource Utilization
+        entities:
+          - sensor.mosquitto_broker_cpu_percent
+          - sensor.mosquitto_broker_memory_percent
+          - sensor.system_monitor_processor_use
+          - sensor.system_monitor_memory_usage
+          - sensor.system_monitor_load_1_min
+          - sensor.system_monitor_load_5_min
+          - sensor.system_monitor_load_15_min
+
+      - type: markdown
+        title: Recommended Actions
+        content: |
+          {% set cpu = states('sensor.mosquitto_broker_cpu_percent')|float(0) %}
+          {% set mem = states('sensor.mosquitto_broker_memory_percent')|float(0) %}
+          {% if cpu > 50 %}
+          - CPU elevated (>{{ cpu }}%). Consider:
+            1) Check Node-RED flows causing publish storms.
+            2) Audit retained topics count.
+            3) Temporarily disable verbose logging.
+          {% endif %}
+          {% if mem > 25 %}
+          - Memory usage high (>{{ mem }}%). Actions:
+            1) Review large retained payloads (images, JSON dumps).
+            2) Verify no runaway test scripts.
+          {% endif %}
+          {% if cpu <= 50 and mem <= 25 %}
+          - Broker operating within normal parameters.
+          {% endif %}
+          - Use Network Trending below to correlate bursts.
+
+      - type: statistics-graph
+        title: Broker CPU & Memory (24h)
+        chart_type: line
+        period: hour
+        days_to_show: 1
+        stat_types:
+          - mean
+        entities:
+          - sensor.mosquitto_broker_cpu_percent
+          - sensor.mosquitto_broker_memory_percent
+
+      - type: statistics-graph
+        title: Host Load vs Broker CPU (24h)
+        chart_type: line
+        period: hour
+        days_to_show: 1
+        stat_types:
+          - mean
+        entities:
+          - sensor.system_monitor_load_1_min
+          - sensor.mosquitto_broker_cpu_percent
+
+      - type: statistics-graph
+        title: Network Throughput In/Out (24h)
+        chart_type: line
+        period: hour
+        days_to_show: 1
+        stat_types:
+          - mean
+        entities:
+          - sensor.system_monitor_network_throughput_in_enp2s0
+          - sensor.system_monitor_network_throughput_out_enp2s0
+
+  - title: Clients
+    path: clients
+    icon: mdi:account-network
+    cards:
+      - type: markdown
+        title: Presence Proxies
+        content: |
+          These device_tracker entities serve as indirect MQTT client health indicators (ESP / Tuya / Sonoff device connectivity).
+          - A device going 'not_home' unexpectedly could reflect MQTT or network issues.
+      - type: entities
+        title: Selected Devices
+        entities:
+          - device_tracker.espressif_9d_c2_27
+          - device_tracker.espressif_98_b7_35
+          - device_tracker.espressif_58_62_dc
+          - device_tracker.tuya_smart_ad_5f_af
+          - device_tracker.tuya_smart_78_66_b3
+          - device_tracker.tuya_smart_e0_b5_3d
+          - device_tracker.huawei_device_7b_5e_60
+          - device_tracker.netgear_bb_07_e0
+
+      - type: history-graph
+        title: Client Presence (24h)
+        hours_to_show: 24
+        entities:
+          - device_tracker.espressif_9d_c2_27
+          - device_tracker.tuya_smart_ad_5f_af
+          - device_tracker.espressif_98_b7_35
+          - device_tracker.tuya_smart_e0_b5_3d
+
+  - title: Performance
+    path: performance
+    icon: mdi:chart-line
+    cards:
+      - type: statistics-graph
+        title: CPU vs Network Out (24h)
+        chart_type: line
+        period: hour
+        days_to_show: 1
+        stat_types:
+          - mean
+        entities:
+          - sensor.mosquitto_broker_cpu_percent
+          - sensor.system_monitor_network_throughput_out_enp2s0
+
+      - type: statistics-graph
+        title: Memory vs Network In (24h)
+        chart_type: line
+        period: hour
+        days_to_show: 1
+        stat_types:
+          - mean
+        entities:
+          - sensor.mosquitto_broker_memory_percent
+          - sensor.system_monitor_network_throughput_in_enp2s0
+
+      - type: markdown
+        title: Interpretation Guide
+        content: |
+          - High CPU + High Out Throughput: Many publishes (possible retained floods or telemetry loops).
+          - High Memory + Persistent In Throughput: Large inbound payloads (camera snapshots, big JSON).
+          - Spikes without matching throughput: Likely local container resource contention (check other add-ons).
+
+  - title: Updates & Maintenance
+    path: updates
+    icon: mdi:update
+    cards:
+      - type: entities
+        title: Update State
+        entities:
+          - update.mosquitto_broker_update
+          - sensor.mosquitto_broker_version
+          - sensor.mosquitto_broker_newest_version
+          - binary_sensor.updates_available
+
+      - type: markdown
+        title: Maintenance Steps
+        content: |
+          - If CPU stays >60% for >1h: Export topic list; prune unnecessary retained topics.
+          - If memory >35%: Inspect large retained messages; compress or remove legacy discovery topics.
+          - Schedule a soft restart during solar peak to avoid battery draw.

@@ -1,0 +1,55 @@
+title: AdGuard & DNS
+views:
+  - title: Overview
+    path: overview
+    icon: mdi:dns
+    cards:
+      - type: markdown
+        title: DNS Summary
+        content: |
+          - AdGuard Running: {{ states('binary_sensor.adguard_home_running') }}
+          - Protection: {{ states('switch.adguard_home_protection') }}
+          - Query Log: {{ states('switch.adguard_home_query_log') }}
+          - Safe Browsing: {{ states('switch.adguard_home_safe_browsing') }}
+          - Safe Search: {{ states('switch.adguard_home_safe_search') }}
+          - Parental Control: {{ states('switch.adguard_home_parental_control') }}
+          - DNS Queries: {{ states('sensor.adguard_home_dns_queries') }} | Blocked: {{ states('sensor.adguard_home_dns_queries_blocked') }} ({{ states('sensor.adguard_home_dns_queries_blocked_ratio') }}%)
+          - Avg Processing: {{ states('sensor.adguard_home_average_processing_speed') }} ms
+          - Rules: {{ states('sensor.adguard_home_rules_count') }}
+
+      - type: glance
+        title: Controls
+        columns: 4
+        entities:
+          - switch.adguard_home_protection
+          - switch.adguard_home_query_log
+          - switch.adguard_home_safe_browsing
+          - switch.adguard_home_safe_search
+          - switch.adguard_home_parental_control
+
+      - type: entities
+        title: Status & Versions
+        entities:
+          - binary_sensor.adguard_home_running
+          - sensor.adguard_home_version
+          - sensor.adguard_home_newest_version
+          - update.adguard_home_update
+
+      - type: statistics-graph
+        title: DNS Queries & Block Ratio (24h)
+        chart_type: line
+        period: hour
+        days_to_show: 1
+        stat_types:
+          - mean
+        entities:
+          - sensor.adguard_home_dns_queries
+          - sensor.adguard_home_dns_queries_blocked_ratio
+
+      - type: entities
+        title: WAN Connectivity
+        entities:
+          - binary_sensor.internet_home_gateway_device_wan_status
+          - sensor.internet_home_gateway_device_external_ip
+          - sensor.192_168_1_1_round_trip_time_average
+          - sensor.192_168_1_1_jitter

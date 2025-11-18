@@ -1,0 +1,90 @@
+title: GDACS
+views:
+  - title: Overview
+    path: overview
+    icon: mdi:earth
+    cards:
+      - type: markdown
+        title: GDACS Summary
+        content: |
+          - Radius: {{ states('input_number.gdacs_radius_km') }} km
+          - Minimum Severity: {{ states('input_select.gdacs_min_severity') }}
+          - Highest Severity (within radius): {{ states('sensor.gdacs_highest_severity_within_radius') }}
+          - Nearest Event: {{ states('sensor.gdacs_nearest_event') }}
+
+          Counts within radius:
+          - Total: {{ states('sensor.gdacs_events_within_radius') }}
+          - 🔴 Red: {{ states('sensor.gdacs_events_red_within_radius') }}
+          - 🟠 Orange: {{ states('sensor.gdacs_events_orange_within_radius') }}
+          - 🟢 Green: {{ states('sensor.gdacs_events_green_within_radius') }}
+
+      - type: entities
+        title: Controls
+        entities:
+          - input_number.gdacs_radius_km
+          - input_select.gdacs_min_severity
+          - binary_sensor.gdacs_alert_active
+
+      - type: markdown
+        title: Events Nearby (Top 15 within {{ states('input_number.gdacs_radius_km')|round(0) }} km)
+        content: >
+          {% set r = states('input_number.gdacs_radius_km')|float(200) %}
+          {% set minsev = states('input_select.gdacs_min_severity') %}
+          {% set geos = states.geo_location
+              | rejectattr('state','in',['unknown','unavailable',''])
+              | selectattr('name','search','GDACS') | list %}
+          {% set items = [] %}
+          {% for e in geos %}
+            {% set d = e.state|float(999999) %}
+            {% set sev = (e.attributes.alert_level or e.attributes.severity or e.name) | string %}
+            {% if d <= r %}
+              {% set items = items + [ {'name': e.name, 'd': d, 'sev': sev, 'eid': e.entity_id} ] %}
+            {% endif %}
+          {% endfor %}
+          {% set items = items | sort(attribute='d') %}
+          {% if items | count == 0 %}
+          No GDACS geo_location entities reported yet.
+          {% else %}
+          {% for it in items[:15] %}
+          • {{ '%-60s' % it.name }} — {{ it.d|round(1) }} km ({{ 'Red' if it.sev|regex_search('(?i)red') else ('Orange' if it.sev|regex_search('(?i)orange') else ('Green' if it.sev|regex_search('(?i)green') else 'Unknown')) }})
+          {% endfor %}
+          {% endif %}
+
+      - type: entities
+        title: Related Automations
+        entities:
+          - automation.gdacs_daily_summary_0635
+          - automation.gdacs_high_severity_alert_0805
+          - automation.alert_gdacs_disaster_notification
+
+  - title: Map
+    path: map
+    icon: mdi:map
+    cards:
+      - type: custom:auto-entities
+        card:
+          type: map
+          aspect_ratio: 80%
+          default_zoom: 5
+        filter:
+          include:
+            - domain: geo_location
+              name: "/GDACS/"
+          exclude: []
+
+  - title: Trends
+    path: trends
+    icon: mdi:chart-line
+    cards:
+      - type: statistics-graph
+        title: Event Counts (24h)
+        chart_type: line
+        period: hour
+        days_to_show: 1
+        stat_types:
+          - mean
+        entities:
+          - sensor.gdacs_events_within_radius
+          - sensor.gdacs_events_red_within_radius
+          - sensor.gdacs_events_orange_within_radius
+          - sensor.gdacs_events_green_within_radius

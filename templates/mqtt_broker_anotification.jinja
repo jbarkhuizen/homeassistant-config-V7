@@ -1,0 +1,50 @@
+{# =============================================================================
+MQTT Broker Notifications Macros
+Updated: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+============================================================================= #}
+
+{% macro mqtt_broker_email(is_critical=False) -%}
+MQTT BROKER ALERT
+Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+
+Health State: {{ states('sensor.mqtt_broker_health_state') }}
+CPU Detail: {{ states('sensor.mqtt_broker_cpu_state_detail') }} ({{ states('sensor.mosquitto_broker_cpu_percent') }}%)
+Memory Detail: {{ states('sensor.mqtt_broker_memory_state_detail') }} ({{ states('sensor.mosquitto_broker_memory_percent') }}%)
+
+Thresholds:
+- CPU Alert: {{ states('input_number.mqtt_broker_cpu_alert_threshold') }}%
+- CPU Critical: {{ states('input_number.mqtt_broker_cpu_critical_threshold') }}%
+- Memory Alert: {{ states('input_number.mqtt_broker_memory_alert_threshold') }}%
+- Memory Critical: {{ states('input_number.mqtt_broker_memory_critical_threshold') }}%
+
+{% if is_critical %}
+CRITICAL ACTIONS RECOMMENDED:
+1) Inspect Node-RED flows for loops.
+2) Check retained topic count (use mosquitto_sub -R to audit).
+3) Consider a broker container restart during solar peak.
+{% else %}
+RECOMMENDED ACTIONS:
+1) Monitor CPU/Memory next 30 min.
+2) Review recent device additions or firmware pushes.
+3) Prune unused retained topics if growth continues.
+{% endif %}
+
+Links:
+Local: http://192.168.1.30:8123
+Cloud: https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/
+
+Generated: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+{%- endmacro %}
+
+{% macro mqtt_broker_telegram(is_critical=False) -%}
+🐝 *MQTT Broker Alert*
+State: {{ states('sensor.mqtt_broker_health_state') }}
+CPU: {{ states('sensor.mosquitto_broker_cpu_percent') }}% ({{ states('sensor.mqtt_broker_cpu_state_detail') }})
+Mem: {{ states('sensor.mosquitto_broker_memory_percent') }}% ({{ states('sensor.mqtt_broker_memory_state_detail') }})
+
+{% if is_critical -%}
+*Critical:* Investigate loops / retained floods / consider restart.
+{%- else -%}
+*Elevated:* Monitor, review recent device changes, prune unused topics.
+{%- endif %}
+{%- endmacro %}

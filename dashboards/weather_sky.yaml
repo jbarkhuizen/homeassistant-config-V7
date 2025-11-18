@@ -1,0 +1,67 @@
+title: Weather & Sky
+views:
+  - title: Today
+    path: today
+    icon: mdi:weather-partly-cloudy
+    cards:
+      - type: weather-forecast
+        entity: weather.openweathermap
+        name: OpenWeatherMap (Local)
+
+      - type: weather-forecast
+        entity: weather.forecast_home
+        name: Forecast (HA)
+
+      - type: markdown
+        title: OWM Snapshot
+        content: |
+          - Condition: {{ states('sensor.openweathermap_condition') }} | Code: {{ states('sensor.openweathermap_weather_code') }}
+          - Temp: {{ states('sensor.openweathermap_temperature') }} °C (Feels: {{ states('sensor.openweathermap_feels_like_temperature') }} °C)
+          - Humidity: {{ states('sensor.openweathermap_humidity') }}%
+          - Wind: {{ states('sensor.openweathermap_wind_speed') }} km/h ({{ states('sensor.openweathermap_wind_bearing') }}°)
+          - UV: {{ states('sensor.openweathermap_uv_index') }}
+          - Clouds: {{ states('sensor.openweathermap_cloud_coverage') }}%
+          - Rain: {{ states('sensor.openweathermap_rain') }} mm/h
+
+      - type: entities
+        title: Sun & Sky (AstroWeather)
+        entities:
+          - sensor.astroweather_backyard_cloud_cover
+          - sensor.astroweather_backyard_transparency
+          - sensor.astroweather_backyard_seeing_percentage
+          - sensor.astroweather_backyard_sun_altitude
+          - sensor.astroweather_backyard_sun_azimuth
+          - sensor.astroweather_backyard_sun_next_setting
+          - sensor.astroweather_backyard_sun_next_rising
+
+      - type: statistics-graph
+        title: Cloud & Wind (24h)
+        chart_type: line
+        period: hour
+        days_to_show: 1
+        stat_types:
+          - mean
+        entities:
+          - sensor.openweathermap_cloud_coverage
+          - sensor.openweathermap_wind_speed
+
+  - title: Night Sky
+    path: night
+    icon: mdi:weather-night
+    cards:
+      - type: entities
+        title: Astro Night Conditions
+        entities:
+          - sensor.astroweather_backyard_deepsky_forecast_today
+          - sensor.astroweather_backyard_deepsky_forecast_today_description
+          - sensor.astroweather_backyard_deepsky_forecast_tomorrow
+          - sensor.astroweather_backyard_deepsky_forecast_tomorrow_description
+          - sensor.astroweather_backyard_moon_phase
+          - sensor.astroweather_backyard_moon_next_dark_night
+          - sensor.astroweather_backyard_moon_next_full_moon
+          - sensor.astroweather_backyard_moon_next_new_moon
+
+      - type: markdown
+        title: Notes
+        content: |
+          Use this to plan discretionary loads (pool pump, geysers, appliances) around weather and clear sky windows.

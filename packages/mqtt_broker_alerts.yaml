@@ -1,0 +1,72 @@
+# =============================================================================
+# PACKAGE: MQTT Broker Health & Alert Sensors
+# (2) ADDED: Derived health classification and binary alert flag.
+# =============================================================================
+
+template:
+  - sensor:
+      - name: "MQTT Broker Health State"
+        unique_id: mqtt_broker_health_state
+        icon: mdi:heart-pulse
+        state: >
+          {% set cpu = states('sensor.mosquitto_broker_cpu_percent')|float(0) %}
+          {% set mem = states('sensor.mosquitto_broker_memory_percent')|float(0) %}
+          {% set cpu_alert = states('input_number.mqtt_broker_cpu_alert_threshold')|float(55) %}
+          {% set mem_alert = states('input_number.mqtt_broker_memory_alert_threshold')|float(30) %}
+          {% set cpu_crit = states('input_number.mqtt_broker_cpu_critical_threshold')|float(70) %}
+          {% set mem_crit = states('input_number.mqtt_broker_memory_critical_threshold')|float(45) %}
+          {% if cpu >= cpu_crit or mem >= mem_crit %}
+            Critical
+          {% elif cpu >= cpu_alert*1.15 or mem >= mem_alert*1.15 %}
+            High
+          {% elif cpu >= cpu_alert or mem >= mem_alert %}
+            Elevated
+          {% else %}
+            Normal
+          {% endif %}
+        attributes:
+          cpu_percent: "{{ states('sensor.mosquitto_broker_cpu_percent') }}"
+          memory_percent: "{{ states('sensor.mosquitto_broker_memory_percent') }}"
+          cpu_alert_threshold: "{{ states('input_number.mqtt_broker_cpu_alert_threshold') }}"
+          memory_alert_threshold: "{{ states('input_number.mqtt_broker_memory_alert_threshold') }}"
+          cpu_critical_threshold: "{{ states('input_number.mqtt_broker_cpu_critical_threshold') }}"
+          memory_critical_threshold: "{{ states('input_number.mqtt_broker_memory_critical_threshold') }}"
+      - name: "MQTT Broker CPU State Detail"
+        unique_id: mqtt_broker_cpu_state_detail
+        icon: mdi:cpu-64-bit
+        state: >
+          {% set cpu = states('sensor.mosquitto_broker_cpu_percent')|float(0) %}
+          {% set t = states('input_number.mqtt_broker_cpu_alert_threshold')|float(55) %}
+          {% set c = states('input_number.mqtt_broker_cpu_critical_threshold')|float(70) %}
+          {% if cpu >= c %}Critical{% elif cpu >= t*1.15 %}High{% elif cpu >= t %}Elevated{% else %}Normal{% endif %}
+        attributes:
+          current_cpu_percent: "{{ states('sensor.mosquitto_broker_cpu_percent') }}"
+      - name: "MQTT Broker Memory State Detail"
+        unique_id: mqtt_broker_memory_state_detail
+        icon: mdi:memory
+        state: >
+          {% set mem = states('sensor.mosquitto_broker_memory_percent')|float(0) %}
+          {% set t = states('input_number.mqtt_broker_memory_alert_threshold')|float(30) %}
+          {% set c = states('input_number.mqtt_broker_memory_critical_threshold')|float(45) %}
+          {% if mem >= c %}Critical{% elif mem >= t*1.15 %}High{% elif mem >= t %}Elevated{% else %}Normal{% endif %}
+        attributes:
+          current_memory_percent: "{{ states('sensor.mosquitto_broker_memory_percent') }}"
+
+  - binary_sensor:
+      - name: "MQTT Broker Alert Active"
+        unique_id: mqtt_broker_alert_active
+        icon: mdi:alert
+        state: >
+          {% set cpu = states('sensor.mosquitto_broker_cpu_percent')|float(0) %}
+          {% set mem = states('sensor.mosquitto_broker_memory_percent')|float(0) %}
+          {% set cpu_alert = states('input_number.mqtt_broker_cpu_alert_threshold')|float(55) %}
+          {% set mem_alert = states('input_number.mqtt_broker_memory_alert_threshold')|float(30) %}
+          {% if cpu >= cpu_alert or mem >= mem_alert %}
+            on
+          {% else %}
+            off
+          {% endif %}
+        attributes:
+          cpu_percent: "{{ states('sensor.mosquitto_broker_cpu_percent') }}"
+          memory_percent: "{{ states('sensor.mosquitto_broker_memory_percent') }}"
+          health_state: "{{ states('sensor.mqtt_broker_health_state') }}"

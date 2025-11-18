@@ -40,11 +40,11 @@
         message: >-
           {% from 'solar_forecast_notifications.jinja' import solar_forecast_email_main %}
           {{ solar_forecast_email_main() }}
-    # Telegram (replace 123456789)
+    # Telegram (replace 6167623299)
     - service: telegram_bot.send_message
       data:
         target:
-          - 123456789
+          - 6167623299
         message: >-
           {% from 'solar_forecast_notifications.jinja' import solar_forecast_telegram_main %}
           {{ solar_forecast_telegram_main() }}
@@ -97,7 +97,7 @@
     - service: telegram_bot.send_message
       data:
         target:
-          - 123456789
+          - 6167623299
         message: >-
           {% from 'solar_forecast_notifications.jinja' import solar_forecast_telegram_low_alert %}
           {{ solar_forecast_telegram_low_alert() }}

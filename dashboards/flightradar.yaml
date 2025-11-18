@@ -1,0 +1,123 @@
+title: FlightRadar
+views:
+  - title: Overview
+    path: overview
+    icon: mdi:airplane
+    cards:
+      - type: markdown
+        title: FlightRadar Summary
+        content: |
+          - Current in area: {{ states('sensor.flightradar24_current_in_area') }}
+          - Entered area (today): {{ states('sensor.flightradar24_entered_area') }}
+          - Exited area (today): {{ states('sensor.flightradar24_exited_area') }}
+          - Most tracked (global): {{ states('sensor.flightradar24_most_tracked') }}
+          - Additional tracked (yours): {{ states('sensor.flightradar24_additional_tracked') }}
+
+          Tips:
+          - Use the Tracking Controls to add/remove a HEX/callsign to follow.
+          - Toggle API data fetching if you want to temporarily reduce polling.
+
+      - type: glance
+        title: Key Metrics
+        columns: 5
+        entities:
+          - entity: sensor.flightradar24_current_in_area
+            name: In Area
+          - entity: sensor.flightradar24_entered_area
+            name: Entered
+          - entity: sensor.flightradar24_exited_area
+            name: Exited
+          - entity: sensor.flightradar24_most_tracked
+            name: Most Tracked
+          - entity: sensor.flightradar24_additional_tracked
+            name: Additional
+
+      - type: entities
+        title: Tracking Controls
+        entities:
+          - switch.api_data_fetching
+          - text.flightradar24_add_to_track
+          - text.flightradar24_remove_from_track
+          - button.clear_additional_tracked
+
+      - type: statistics-graph
+        title: Flights & Tracking (24h)
+        chart_type: line
+        period: hour
+        days_to_show: 1
+        stat_types:
+          - mean
+        entities:
+          - sensor.flightradar24_current_in_area
+          - sensor.flightradar24_entered_area
+          - sensor.flightradar24_exited_area
+          - sensor.flightradar24_most_tracked
+          - sensor.flightradar24_additional_tracked
+
+      - type: entities
+        title: Host Correlation (for spikes)
+        entities:
+          - sensor.system_monitor_processor_use
+          - sensor.system_monitor_network_throughput_in_enp2s0
+          - sensor.system_monitor_network_throughput_out_enp2s0
+
+  - title: Trends
+    path: trends
+    icon: mdi:chart-line
+    cards:
+      - type: statistics-graph
+        title: Flights in Area (7 days)
+        chart_type: line
+        period: day
+        days_to_show: 7
+        stat_types:
+          - mean
+        entities:
+          - sensor.flightradar24_current_in_area
+
+      - type: statistics-graph
+        title: Entered vs Exited (7 days)
+        chart_type: line
+        period: day
+        days_to_show: 7
+        stat_types:
+          - mean
+        entities:
+          - sensor.flightradar24_entered_area
+          - sensor.flightradar24_exited_area
+
+      - type: statistics-graph
+        title: Most/Additional Tracked (7 days)
+        chart_type: line
+        period: day
+        days_to_show: 7
+        stat_types:
+          - mean
+        entities:
+          - sensor.flightradar24_most_tracked
+          - sensor.flightradar24_additional_tracked
+
+  - title: Tracking
+    path: tracking
+    icon: mdi:radar
+    cards:
+      - type: markdown
+        title: How to Track Aircraft
+        content: |
+          - Enter a HEX or callsign in "Add to track", then clear/add as you need.
+          - Use "Remove from track" to stop following a particular aircraft.
+          - "Clear additional tracked" resets your custom list.
+
+      - type: entities
+        title: Manage List
+        entities:
+          - text.flightradar24_add_to_track
+          - text.flightradar24_remove_from_track
+          - button.clear_additional_tracked
+
+      - type: history-graph
+        title: Activity (24h)
+        hours_to_show: 24
+        entities:
+          - sensor.flightradar24_current_in_area
+          - sensor.flightradar24_additional_tracked

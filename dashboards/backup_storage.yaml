@@ -1,0 +1,57 @@
+title: Backups & Storage
+views:
+  - title: Overview
+    path: overview
+    icon: mdi:backup-restore
+    cards:
+      - type: markdown
+        title: Backup Summary
+        content: |
+          - Backup Manager: {{ states('sensor.backup_backup_manager_state') }}
+          - Last Success: {{ states('sensor.backup_last_successful_automatic_backup') }}
+          - Last Attempt: {{ states('sensor.backup_last_attempted_automatic_backup') }}
+          - Next Scheduled: {{ states('sensor.backup_next_scheduled_automatic_backup') }}
+
+      - type: entities
+        title: Backup Health & DB/Log
+        entities:
+          - sensor.backup_backup_manager_state
+          - sensor.backup_last_successful_automatic_backup
+          - sensor.backup_last_attempted_automatic_backup
+          - sensor.backup_next_scheduled_automatic_backup
+          - sensor.homeassistant_db_size_mb
+          - sensor.home_assistant_log_size
+
+      - type: statistics-graph
+        title: DB Size Trend (7 days)
+        chart_type: line
+        period: day
+        days_to_show: 7
+        stat_types:
+          - mean
+        entities:
+          - sensor.homeassistant_db_size_mb
+
+      - type: markdown
+        title: Disk Usage (Host)
+        content: |
+          - Total: {{ states('sensor.home_assistant_host_disk_total') }} GB
+          - Used: {{ states('sensor.home_assistant_host_disk_used') }} GB
+          - Free: {{ states('sensor.home_assistant_host_disk_free') }} GB
+
+      - type: entities
+        title: Disk Usage (System Monitor)
+        entities:
+          - sensor.system_monitor_disk_use
+          - sensor.system_monitor_disk_free
+          - sensor.system_monitor_disk_usage
+
+      - type: statistics-graph
+        title: Disk Usage % (7 days)
+        chart_type: line
+        period: day
+        days_to_show: 7
+        stat_types:
+          - mean
+        entities:
+          - sensor.system_monitor_disk_usage

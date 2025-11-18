@@ -1,0 +1,170 @@
+title: Cameras & Security
+views:
+  - title: Overview
+    path: overview
+    icon: mdi:shield-home
+    cards:
+      - type: markdown
+        title: Security Summary
+        content: |
+          - MotionEye Running: {{ states('binary_sensor.motioneye_running') }}
+          - IP Camera 1 Motion: {{ states('binary_sensor.ip_camera_motion_alarm') }} | Tamper: {{ states('binary_sensor.ip_camera_tamper_detection') }}
+          - IP Camera 2 Motion: {{ states('binary_sensor.ip_camera_motion_alarm_2') }} | Tamper: {{ states('binary_sensor.ip_camera_tamper_detection_2') }}
+          - Doors — Front: {{ states('binary_sensor.sonoff_1000fd4860') }}, Back: {{ states('binary_sensor.sonoff_a4800d7025') }}, Braai: {{ states('binary_sensor.sonoff_100150e8d2') }}, Braai New: {{ states('binary_sensor.sonoff_1002357bda') }}
+          - Bad Logins: {{ states('sensor.badlogin') }} | IP Bans: {{ states('sensor.home_assistant_ip_bans_count') }}
+          - Updates Available: {{ states('binary_sensor.updates_available') }}
+
+      - type: glance
+        title: Critical Flags
+        columns: 5
+        entities:
+          - entity: binary_sensor.system_health_critical
+            name: System Critical
+          - entity: binary_sensor.updates_available
+            name: Updates
+          - entity: binary_sensor.battery_alert_active
+            name: Battery Alert
+          - entity: binary_sensor.remote_ui
+            name: Remote UI
+          - entity: binary_sensor.motioneye_running
+            name: MotionEye
+
+      - type: glance
+        title: Doors
+        columns: 4
+        entities:
+          - entity: binary_sensor.sonoff_1000fd4860
+            name: Salon Front Door
+          - entity: binary_sensor.sonoff_a4800d7025
+            name: Back Door
+          - entity: binary_sensor.sonoff_100150e8d2
+            name: Braai Door
+          - entity: binary_sensor.sonoff_1002357bda
+            name: Braai Door New
+          - entity: binary_sensor.sonoff_1002357619
+            name: Study Window 1
+          - entity: binary_sensor.sonoff_a480098890
+            name: Front Door
+
+      - type: glance
+        title: Motion & Camera Alerts
+        columns: 4
+        entities:
+          - binary_sensor.sonoff_a4800986e6
+          - binary_sensor.ip_camera_motion_alarm
+          - binary_sensor.ip_camera_tamper_detection
+          - binary_sensor.ip_camera_digital_input
+          - binary_sensor.ip_camera_motion_alarm_2
+          - binary_sensor.ip_camera_tamper_detection_2
+          - binary_sensor.ip_camera_digital_input_2
+
+      - type: entities
+        title: Security Counters
+        entities:
+          - sensor.badlogin
+          - sensor.home_assistant_ip_bans_count
+          - input_boolean.maintenance_mode
+
+      - type: history-graph
+        title: Doors & Motion (24h)
+        hours_to_show: 24
+        entities:
+          - binary_sensor.sonoff_1000fd4860
+          - binary_sensor.sonoff_a4800d7025
+          - binary_sensor.sonoff_100150e8d2
+          - binary_sensor.sonoff_1002357bda
+          - binary_sensor.sonoff_a4800986e6
+
+  - title: Cameras
+    path: cameras
+    icon: mdi:cctv
+    cards:
+      - type: picture-glance
+        title: IP Camera 1
+        camera_image: camera.ip_camera_mainstream
+        camera_view: live
+        entities:
+          - binary_sensor.ip_camera_motion_alarm
+          - binary_sensor.ip_camera_tamper_detection
+          - binary_sensor.ip_camera_digital_input
+
+      - type: entities
+        title: Camera 1 Controls
+        entities:
+          - switch.ip_camera_ir_lamp
+          - switch.ip_camera_wiper
+          - switch.ip_camera_autofocus
+
+      - type: picture-glance
+        title: IP Camera 2
+        camera_image: camera.ip_camera_mainstream_2
+        camera_view: live
+        entities:
+          - binary_sensor.ip_camera_motion_alarm_2
+          - binary_sensor.ip_camera_tamper_detection_2
+          - binary_sensor.ip_camera_digital_input_2
+
+      - type: entities
+        title: Camera 2 Controls
+        entities:
+          - switch.ip_camera_ir_lamp_2
+          - switch.ip_camera_wiper_2
+          - switch.ip_camera_autofocus_2
+
+  - title: NVR & Add-on
+    path: nvr
+    icon: mdi:server
+    cards:
+      - type: entities
+        title: MotionEye Status
+        entities:
+          - binary_sensor.motioneye_running
+          - sensor.motioneye_version
+          - sensor.motioneye_newest_version
+          - update.motioneye_update
+          - sensor.motioneye_cpu_percent
+          - sensor.motioneye_memory_percent
+
+      - type: entities
+        title: Camera Health
+        entities:
+          - binary_sensor.ip_camera_motion_alarm
+          - binary_sensor.ip_camera_tamper_detection
+          - binary_sensor.ip_camera_cell_motion_detection
+          - binary_sensor.ip_camera_motion_alarm_2
+          - binary_sensor.ip_camera_tamper_detection_2
+          - binary_sensor.ip_camera_cell_motion_detection_2
+
+      - type: statistics-graph
+        title: MotionEye CPU / Memory (24h)
+        chart_type: line
+        period: hour
+        days_to_show: 1
+        stat_types:
+          - mean
+        entities:
+          - sensor.motioneye_cpu_percent
+          - sensor.motioneye_memory_percent
+
+  - title: Events & History
+    path: events
+    icon: mdi:history
+    cards:
+      - type: history-graph
+        title: Camera Alerts (48h)
+        hours_to_show: 48
+        entities:
+          - binary_sensor.ip_camera_motion_alarm
+          - binary_sensor.ip_camera_tamper_detection
+          - binary_sensor.ip_camera_motion_alarm_2
+          - binary_sensor.ip_camera_tamper_detection_2
+
+      - type: history-graph
+        title: Doors (48h)
+        hours_to_show: 48
+        entities:
+          - binary_sensor.sonoff_1000fd4860
+          - binary_sensor.sonoff_a4800d7025
+          - binary_sensor.sonoff_100150e8d2
+          - binary_sensor.sonoff_1002357bda
+          - binary_sensor.sonoff_a480098890

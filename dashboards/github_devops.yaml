@@ -1,0 +1,41 @@
+title: GitHub & DevOps
+views:
+  - title: Repos
+    path: repos
+    icon: mdi:github
+    cards:
+      - type: markdown
+        title: V5 Repo
+        content: |
+          - Latest Commit: {{ states('sensor.jbarkhuizen_homeassistant_config_v5_latest_commit') }}
+          - Stars: {{ states('sensor.jbarkhuizen_homeassistant_config_v5_stars') }}
+          - Watchers: {{ states('sensor.jbarkhuizen_homeassistant_config_v5_watchers') }}
+          - Forks: {{ states('sensor.jbarkhuizen_homeassistant_config_v5_forks') }}
+          - Issues: {{ states('sensor.jbarkhuizen_homeassistant_config_v5_issues') }}
+          - PRs: {{ states('sensor.jbarkhuizen_homeassistant_config_v5_pull_requests') }}
+
+      - type: markdown
+        title: SmartHome Repo
+        content: |
+          - Latest Commit: {{ states('sensor.jbarkhuizen_smarthome_latest_commit') }}
+          - Stars: {{ states('sensor.jbarkhuizen_smarthome_stars') }}
+          - Watchers: {{ states('sensor.jbarkhuizen_smarthome_watchers') }}
+          - Forks: {{ states('sensor.jbarkhuizen_smarthome_forks') }}
+          - Issues: {{ states('sensor.jbarkhuizen_smarthome_issues') }}
+          - PRs: {{ states('sensor.jbarkhuizen_smarthome_pull_requests') }}
+
+      - type: entities
+        title: Add-on / Component Updates (Highlights)
+        entities:
+          - update.home_assistant_core_update
+          - update.home_assistant_supervisor_update
+          - update.home_assistant_operating_system_update
+          - update.studio_code_server_update
+          - update.modern_circular_gauge_update
+          - sensor.home_assistant_updates_summary
+
+      - type: markdown
+        title: Notes
+        content: |
+          - Use this to watch repo health and pending updates.
+          - Your 08:05 and 08:15 routines already notify; this page provides manual inspection.

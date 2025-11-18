@@ -1,0 +1,186 @@
+# =============================================================================
+# PACKAGE: GDACS (Global Disaster Alert and Coordination System) Helpers
+# - Radius and severity controls
+# - Derived sensors for counts, nearest event, and highest severity within radius
+# Notes:
+#   The GDACS integration creates geo_location entities (e.g., "GDACS ...")
+#   with state as distance (km) and attributes containing severity/alert level.
+# =============================================================================
+
+input_number:
+  gdacs_radius_km:
+    name: GDACS Radius (km)
+    min: 50
+    max: 1000
+    step: 50
+    mode: slider
+    icon: mdi:map-marker-radius
+    initial: 200
+
+input_select:
+  gdacs_min_severity:
+    name: GDACS Minimum Severity
+    icon: mdi:alert-octagon-outline
+    options:
+      - Green
+      - Orange
+      - Red
+      - Any
+    initial: Orange
+
+template:
+  - sensor:
+      # Total events within radius
+      - name: "GDACS Events Within Radius"
+        unique_id: gdacs_events_within_radius
+        icon: mdi:earth
+        state: >
+          {% set r = states('input_number.gdacs_radius_km')|float(200) %}
+          {% set geos = states.geo_location
+              | rejectattr('state','in',['unknown','unavailable',''])
+              | selectattr('name','search','GDACS') | list %}
+          {% set ns = namespace(count=0) %}
+          {% for e in geos %}
+            {% set d = e.state|float(999999) %}
+            {% if d <= r %}{% set ns.count = ns.count + 1 %}{% endif %}
+          {% endfor %}
+          {{ ns.count }}
+
+      # Severity-aware counts
+      - name: "GDACS Events Red Within Radius"
+        unique_id: gdacs_events_red_within_radius
+        icon: mdi:alert-octagon
+        state: >
+          {% set r = states('input_number.gdacs_radius_km')|float(200) %}
+          {% set geos = states.geo_location
+              | rejectattr('state','in',['unknown','unavailable',''])
+              | selectattr('name','search','GDACS') | list %}
+          {% set ns = namespace(count=0) %}
+          {% for e in geos %}
+            {% set d = e.state|float(999999) %}
+            {% set sev = (e.attributes.alert_level or e.attributes.severity or e.name) | string %}
+            {% if d <= r and sev | regex_search('(?i)red') %}{% set ns.count = ns.count + 1 %}{% endif %}
+          {% endfor %}
+          {{ ns.count }}
+
+      - name: "GDACS Events Orange Within Radius"
+        unique_id: gdacs_events_orange_within_radius
+        icon: mdi:alert
+        state: >
+          {% set r = states('input_number.gdacs_radius_km')|float(200) %}
+          {% set geos = states.geo_location
+              | rejectattr('state','in',['unknown','unavailable',''])
+              | selectattr('name','search','GDACS') | list %}
+          {% set ns = namespace(count=0) %}
+          {% for e in geos %}
+            {% set d = e.state|float(999999) %}
+            {% set sev = (e.attributes.alert_level or e.attributes.severity or e.name) | string %}
+            {% if d <= r and sev | regex_search('(?i)orange') %}{% set ns.count = ns.count + 1 %}{% endif %}
+          {% endfor %}
+          {{ ns.count }}
+
+      - name: "GDACS Events Green Within Radius"
+        unique_id: gdacs_events_green_within_radius
+        icon: mdi:check-decagram
+        state: >
+          {% set r = states('input_number.gdacs_radius_km')|float(200) %}
+          {% set geos = states.geo_location
+              | rejectattr('state','in',['unknown','unavailable',''])
+              | selectattr('name','search','GDACS') | list %}
+          {% set ns = namespace(count=0) %}
+          {% for e in geos %}
+            {% set d = e.state|float(999999) %}
+            {% set sev = (e.attributes.alert_level or e.attributes.severity or e.name) | string %}
+            {% if d <= r and sev | regex_search('(?i)green') %}{% set ns.count = ns.count + 1 %}{% endif %}
+          {% endfor %}
+          {{ ns.count }}
+
+      # Highest severity classification within radius
+      - name: "GDACS Highest Severity Within Radius"
+        unique_id: gdacs_highest_severity_within_radius
+        icon: mdi:alarm-light
+        state: >
+          {% set r = states('input_number.gdacs_radius_km')|float(200) %}
+          {% set geos = states.geo_location
+              | rejectattr('state','in',['unknown','unavailable',''])
+              | selectattr('name','search','GDACS') | list %}
+          {% set level = 'None' %}
+          {% for e in geos %}
+            {% set d = e.state|float(999999) %}
+            {% if d <= r %}
+              {% set sev = (e.attributes.alert_level or e.attributes.severity or e.name) | string %}
+              {% if sev | regex_search('(?i)red') %}{% set level = 'Red' %}{% break %}
+              {% elif sev | regex_search('(?i)orange') and level not in ['Red'] %}{% set level = 'Orange' %}
+              {% elif sev | regex_search('(?i)green') and level == 'None' %}{% set level = 'Green' %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+          {{ level }}
+
+      # Nearest event (name + distance)
+      - name: "GDACS Nearest Event"
+        unique_id: gdacs_nearest_event
+        icon: mdi:map-marker-alert
+        state: >
+          {% set r = states('input_number.gdacs_radius_km')|float(200) %}
+          {% set geos = states.geo_location
+              | rejectattr('state','in',['unknown','unavailable',''])
+              | selectattr('name','search','GDACS') | list %}
+          {% set near = None %}
+          {% set mind = 999999 %}
+          {% for e in geos %}
+            {% set d = e.state|float(999999) %}
+            {% if d <= r and d < mind %}
+              {% set near = e %}
+              {% set mind = d %}
+            {% endif %}
+          {% endfor %}
+          {% if near is not none %}
+            {{ near.name }} ({{ mind | round(1) }} km)
+          {% else %}
+            None within {{ r|round(0) }} km
+          {% endif %}
+        attributes:
+          distance_km: >
+            {% set r = states('input_number.gdacs_radius_km')|float(200) %}
+            {% set geos = states.geo_location
+                | rejectattr('state','in',['unknown','unavailable',''])
+                | selectattr('name','search','GDACS') | list %}
+            {% set mind = 999999 %}
+            {% for e in geos %}
+              {% set d = e.state|float(999999) %}
+              {% if d <= r and d < mind %}{% set mind = d %}{% endif %}
+            {% endfor %}
+            {{ (mind if mind < 999999 else 0) | round(1) }}
+
+  - binary_sensor:
+      - name: "GDACS Alert Active"
+        unique_id: gdacs_alert_active
+        icon: mdi:alarm-light
+        state: >
+          {% set r = states('input_number.gdacs_radius_km')|float(200) %}
+          {% set minsev = states('input_select.gdacs_min_severity') %}
+          {% set geos = states.geo_location
+              | rejectattr('state','in',['unknown','unavailable',''])
+              | selectattr('name','search','GDACS') | list %}
+          {% set pass = False %}
+          {% for e in geos %}
+            {% set d = e.state|float(999999) %}
+            {% if d <= r %}
+              {% set sev = (e.attributes.alert_level or e.attributes.severity or e.name) | string %}
+              {% if minsev == 'Any' %}
+                {% set pass = True %}
+              {% elif minsev == 'Red' and sev | regex_search('(?i)red') %}
+                {% set pass = True %}
+              {% elif minsev == 'Orange' and (sev | regex_search('(?i)red|orange')) %}
+                {% set pass = True %}
+              {% elif minsev == 'Green' and (sev | regex_search('(?i)red|orange|green')) %}
+                {% set pass = True %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+          {{ 'on' if pass else 'off' }}
+        attributes:
+          radius_km: "{{ states('input_number.gdacs_radius_km') }}"
+          min_severity: "{{ states('input_select.gdacs_min_severity') }}"
+          highest_severity: "{{ states('sensor.gdacs_highest_severity_within_radius') }}"

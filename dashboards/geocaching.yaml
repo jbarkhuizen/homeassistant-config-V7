@@ -1,0 +1,98 @@
+title: Geocaching
+views:
+  - title: Overview
+    path: overview
+    icon: mdi:treasure-chest
+    cards:
+      - type: markdown
+        title: Geocaching Summary
+        content: |
+          - Total Finds: {{ states('sensor.geocaching_johanba_total_finds') }}
+          - Total Hides: {{ states('sensor.geocaching_johanba_total_hides') }}
+          - Souvenirs: {{ states('sensor.geocaching_johanba_total_souvenirs') }}
+          - Favorite Points: {{ states('sensor.geocaching_johanba_favorite_points') }}
+          - Favorite Points Awarded: {{ states('sensor.geocaching_johanba_awarded_favorite_points') }}
+          - Nearest Cache (within {{ states('input_number.geocaching_radius_km')|round(0) }} km): {{ states('sensor.geocaching_nearest_cache') }}
+          - Caches within radius: {{ states('sensor.geocaching_caches_within_radius_count') }}
+
+      - type: entities
+        title: Controls
+        entities:
+          - input_number.geocaching_radius_km
+
+      - type: markdown
+        title: Nearby Caches (Top 20 within {{ states('input_number.geocaching_radius_km')|round(0) }} km)
+        content: >
+          {% set r = states('input_number.geocaching_radius_km')|float(200) %}
+          {% set geos = states.geo_location
+              | rejectattr('state','in',['unknown','unavailable',''])
+              | selectattr('entity_id','search','geocach') | list %}
+          {% set items = [] %}
+          {% for e in geos %}
+            {% set d = e.state|float(999999) %}
+            {% if d <= r %}
+              {% set items = items + [ {'name': e.name, 'd': d, 'eid': e.entity_id} ] %}
+            {% endif %}
+          {% endfor %}
+          {% set items = items | sort(attribute='d') %}
+          {% if items | count == 0 %}
+          No nearby cache entities reported yet by the integration.
+          {% else %}
+          {% for it in items[:20] %}
+          • {{ '%-48s' % it.name }} — {{ it.d|round(1) }} km ({{ it.eid }})
+          {% endfor %}
+          {% endif %}
+
+      # Dynamic map of geocache geo_location entities (requires HACS auto-entities)
+      - type: custom:auto-entities
+        card:
+          type: map
+          aspect_ratio: 75%
+          default_zoom: 7
+        filter:
+          include:
+            - domain: geo_location
+              # match names that include geocach/cache (varies by integration)
+              name: "/[Gg]eocach|[Cc]ache/"
+          exclude: []
+
+  - title: Trends
+    path: trends
+    icon: mdi:chart-line
+    cards:
+      - type: statistics-graph
+        title: Finds & Hides (30 days)
+        chart_type: line
+        period: day
+        days_to_show: 30
+        stat_types:
+          - mean
+        entities:
+          - sensor.geocaching_johanba_total_finds
+          - sensor.geocaching_johanba_total_hides
+
+      - type: statistics-graph
+        title: Favorites & Souvenirs (30 days)
+        chart_type: line
+        period: day
+        days_to_show: 30
+        stat_types:
+          - mean
+        entities:
+          - sensor.geocaching_johanba_favorite_points
+          - sensor.geocaching_johanba_total_souvenirs
+
+  - title: Map
+    path: map
+    icon: mdi:map-marker
+    cards:
+      - type: custom:auto-entities
+        card:
+          type: map
+          aspect_ratio: 80%
+          default_zoom: 8
+        filter:
+          include:
+            - domain: geo_location
+              name: "/[Gg]eocach|[Cc]ache/"
+          exclude: []

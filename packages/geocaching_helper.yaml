@@ -1,0 +1,65 @@
+# =============================================================================
+# PACKAGE: Geocaching Helpers (Radius + Nearby/Nearest)
+# - input_number.geocaching_radius_km: adjustable search radius (default 200 km)
+# - sensor.geocaching_caches_within_radius_count: count geo_location "geocache" within radius
+# - sensor.geocaching_nearest_cache: name + distance of nearest cache
+# Notes:
+#   This expects geolocation entities created by your Geocaching integration.
+#   Most geolocation entities use state as distance (km) to Home.
+# =============================================================================
+
+input_number:
+  geocaching_radius_km:
+    name: Geocaching Radius (km)
+    min: 10
+    max: 500
+    step: 10
+    mode: slider
+    icon: mdi:map-marker-radius
+    initial: 200
+
+template:
+  - sensor:
+      - name: "Geocaching Caches Within Radius Count"
+        unique_id: geocaching_caches_within_radius_count
+        icon: mdi:map-marker-multiple
+        state: >
+          {% set r = states('input_number.geocaching_radius_km')|float(200) %}
+          {% set geos = states.geo_location
+              | rejectattr('state','in',['unknown','unavailable',''])
+              | selectattr('entity_id','search','geocach') | list %}
+          {% set ns = namespace(count=0) %}
+          {% for e in geos %}
+            {% set d = e.state|float(999999) %}
+            {% if d <= r %}
+              {% set ns.count = ns.count + 1 %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.count }}
+
+      - name: "Geocaching Nearest Cache"
+        unique_id: geocaching_nearest_cache
+        icon: mdi:map-marker
+        state: >
+          {% set r = states('input_number.geocaching_radius_km')|float(200) %}
+          {% set geos = states.geo_location
+              | rejectattr('state','in',['unknown','unavailable',''])
+              | selectattr('entity_id','search','geocach') | list %}
+          {% if geos | count == 0 %}
+            Unavailable
+          {% else %}
+            {% set near = None %}
+            {% set mind = 999999 %}
+            {% for e in geos %}
+              {% set d = e.state|float(999999) %}
+              {% if d < mind and d <= r %}
+                {% set near = e %}
+                {% set mind = d %}
+              {% endif %}
+            {% endfor %}
+            {% if near is not none %}
+              {{ near.name }} ({{ mind | round(1) }} km)
+            {% else %}
+              None within {{ r|round(0) }} km
+            {% endif %}
+          {% endif %}

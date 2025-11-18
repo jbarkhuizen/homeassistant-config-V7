@@ -1,0 +1,155 @@
+# =============================================================================
+# AUTOMATION: MQTT Broker Alerts
+# (4) ADDED: Multi-trigger alert system (06:00–09:00 window)
+# - Triggers:
+#     a) Scheduled evaluation at 06:45
+#     b) CPU sustained above alert threshold for 10 min
+#     c) Memory sustained above alert threshold for 10 min
+# - Conditions: Maintenance Mode OFF, Time between 06:00 and 09:00
+# - Distinguishes Elevated vs Critical using critical thresholds
+# - Notifications: Persistent, Email, Telegram, System Log
+# =============================================================================
+
+- id: mqtt_broker_alerts_manager
+  alias: "MQTT Broker: Health Alerts (06:00–09:00)"
+  description: >
+    Sends alerts if Mosquitto CPU or Memory exceed configured thresholds.
+    Evaluates at 06:45 and on sustained threshold crossings (10 min).
+    Critical thresholds escalate messaging.
+
+  trigger:
+    # Scheduled daily evaluation
+    - platform: time
+      at: "06:45:00"
+    # CPU sustained high
+    - platform: numeric_state
+      entity_id: sensor.mosquitto_broker_cpu_percent
+      above: input_number.mqtt_broker_cpu_alert_threshold
+      for:
+        minutes: 10
+    # Memory sustained high
+    - platform: numeric_state
+      entity_id: sensor.mosquitto_broker_memory_percent
+      above: input_number.mqtt_broker_memory_alert_threshold
+      for:
+        minutes: 10
+
+  condition:
+    - condition: state
+      entity_id: input_boolean.maintenance_mode
+      state: "off"
+    - condition: time
+      after: "06:00:00"
+      before: "09:00:00"
+    # Ensure either alert active or scheduled run (the scheduled run passes anyway; numeric triggers guarantee active)
+    - condition: template
+      value_template: >
+        {{ trigger.platform == 'time' or is_state('binary_sensor.mqtt_broker_alert_active','on') }}
+
+  action:
+    - variables:
+        cpu: "{{ states('sensor.mosquitto_broker_cpu_percent')|float(0) }}"
+        mem: "{{ states('sensor.mosquitto_broker_memory_percent')|float(0) }}"
+        cpu_alert: "{{ states('input_number.mqtt_broker_cpu_alert_threshold')|float(55) }}"
+        mem_alert: "{{ states('input_number.mqtt_broker_memory_alert_threshold')|float(30) }}"
+        cpu_crit: "{{ states('input_number.mqtt_broker_cpu_critical_threshold')|float(70) }}"
+        mem_crit: "{{ states('input_number.mqtt_broker_memory_critical_threshold')|float(45) }}"
+        is_critical: "{{ cpu >= cpu_crit or mem >= mem_crit }}"
+        health: "{{ states('sensor.mqtt_broker_health_state') }}"
+        local_url: "http://192.168.1.30:8123"
+        cloud_url: "https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/"
+
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ is_critical == 'True' or is_critical == True }}"
+          sequence:
+            # Critical notification set
+            - service: persistent_notification.create
+              data:
+                title: "CRITICAL MQTT Broker Alert"
+                message: >-
+                  Critical state detected.
+                  CPU: {{ cpu|round(1) }}% (Crit {{ cpu_crit }}%)
+                  Memory: {{ mem|round(1) }}% (Crit {{ mem_crit }}%)
+                  Health: {{ health }}
+
+                  Actions:
+                  • Inspect Node-RED flows (infinite loops).
+                  • Check retained topics size.
+                  • Consider broker restart mid solar peak.
+
+                  Local: {{ local_url }}
+                  Cloud: {{ cloud_url }}
+                notification_id: "mqtt_broker_alert"
+
+            - service: notify.email_notification_jbarkhuizen_gmail_com
+              data:
+                title: "🚨 CRITICAL MQTT Broker Alert"
+                message: >-
+                  {% from 'mqtt_broker_notifications.jinja' import mqtt_broker_email %}
+                  {{ mqtt_broker_email(True) }}
+
+            - service: telegram_bot.send_message
+              data:
+                target:
+                  - 6167623299
+                message: >-
+                  {% from 'mqtt_broker_notifications.jinja' import mqtt_broker_telegram %}
+                  {{ mqtt_broker_telegram(True) }}
+                parse_mode: markdown
+
+            - service: system_log.write
+              data:
+                message: >-
+                  CRITICAL MQTT Broker Alert: CPU={{ cpu|round(1) }}% Mem={{ mem|round(1) }}%
+                  Health={{ health }} at {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+                level: critical
+
+        - conditions:
+            - condition: template
+              value_template: "{{ is_critical != 'True' and is_critical != True }}"
+          sequence:
+            # Elevated / High notification set
+            - service: persistent_notification.create
+              data:
+                title: "MQTT Broker Elevated"
+                message: >-
+                  Elevated MQTT resource usage.
+                  CPU: {{ cpu|round(1) }}% (Alert {{ cpu_alert }}%)
+                  Memory: {{ mem|round(1) }}% (Alert {{ mem_alert }}%)
+                  Health: {{ health }}
+
+                  Recommendations:
+                  • Monitor next 30 min.
+                  • Review new device messages / firmware updates.
+                  • Prune unused retained topics.
+
+                  Local: {{ local_url }}
+                  Cloud: {{ cloud_url }}
+                notification_id: "mqtt_broker_alert"
+
+            - service: notify.email_notification_jbarkhuizen_gmail_com
+              data:
+                title: "⚠️ MQTT Broker Elevated Usage"
+                message: >-
+                  {% from 'mqtt_broker_notifications.jinja' import mqtt_broker_email %}
+                  {{ mqtt_broker_email(False) }}
+
+            - service: telegram_bot.send_message
+              data:
+                target:
+                  - 6167623299
+                message: >-
+                  {% from 'mqtt_broker_notifications.jinja' import mqtt_broker_telegram %}
+                  {{ mqtt_broker_telegram(False) }}
+                parse_mode: markdown
+
+            - service: system_log.write
+              data:
+                message: >-
+                  MQTT Broker Elevated: CPU={{ cpu|round(1) }}% Mem={{ mem|round(1) }}%
+                  Health={{ health }} at {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
+                level: warning
+
+  mode: single

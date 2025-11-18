@@ -206,6 +206,39 @@ input_number:
     mode: slider
     icon: mdi:chart-line
     # Default threshold (20%) will be set manually after restart if needed.
+# (1) ADDED: MQTT Broker Alert Thresholds
+  mqtt_broker_cpu_alert_threshold:
+    name: MQTT CPU Alert Threshold %
+    min: 0
+    max: 100
+    step: 1
+    mode: slider
+    icon: mdi:cpu-64-bit
+    initial: 55
+  mqtt_broker_memory_alert_threshold:
+    name: MQTT Memory Alert Threshold %
+    min: 0
+    max: 100
+    step: 1
+    mode: slider
+    icon: mdi:memory
+    initial: 30
+  mqtt_broker_cpu_critical_threshold:
+    name: MQTT CPU Critical Threshold %
+    min: 0
+    max: 100
+    step: 1
+    mode: slider
+    icon: mdi:alert
+    initial: 70
+  mqtt_broker_memory_critical_threshold:
+    name: MQTT Memory Critical Threshold %
+    min: 0
+    max: 100
+    step: 1
+    mode: slider
+    icon: mdi:alert-octagon
+    initial: 45
 
 # ==============================================================================
 # Added with GitHib Copilot GPT 5 on 9 Nov 2025
@@ -375,6 +408,18 @@ recorder:
       - sensor.solar_recommended_load_slots_today
       - sensor.solar_forecast_peak_power_estimate
       - sensor.solar_forecast_action_recommendation
+    # (ADDED MQTT Dashboard) Persist key MQTT resource sensors
+      - sensor.mosquitto_broker_cpu_percent
+      - sensor.mosquitto_broker_memory_percent
+      - sensor.system_monitor_network_in_enp2s0
+      - sensor.system_monitor_network_out_enp2s0
+      - sensor.system_monitor_network_throughput_in_enp2s0
+      - sensor.system_monitor_network_throughput_out_enp2s0
+    # (5) ADDED: MQTT Health Sensors for history/trend
+      - sensor.mqtt_broker_health_state
+      - sensor.mqtt_broker_cpu_state_detail
+      - sensor.mqtt_broker_memory_state_detail
+      - binary_sensor.mqtt_broker_alert_active
     entity_globs:
       - sensor.deyeinverter*_pv_power
       - sensor.deyeinverter*_inverter_output_power
@@ -429,7 +474,6 @@ lovelace:
       show_in_sidebar: true
       require_admin: false
       filename: dashboards/weekly_solar.yaml
-        # (1) ADDED: System Health Dashboard
     system-health:
       mode: yaml
       title: "System Health"
@@ -437,7 +481,6 @@ lovelace:
       show_in_sidebar: true
       require_admin: false
       filename: dashboards/system_health.yaml
-    # (2) ADDED: Security & Maintenance Dashboard
     security-maintenance:
       mode: yaml
       title: "Security & Maintenance"
@@ -445,7 +488,6 @@ lovelace:
       show_in_sidebar: true
       require_admin: false
       filename: dashboards/security_maintenance.yaml
-    # (3) ADDED: Solar & Energy Dashboard
     solar-energy:
       mode: yaml
       title: "Solar & Energy"
@@ -453,7 +495,6 @@ lovelace:
       show_in_sidebar: true
       require_admin: false
       filename: dashboards/solar_energy.yaml
-    # (4) ADDED: Automation & Updates Dashboard
     automation-updates:
       mode: yaml
       title: "Automation & Updates"
@@ -461,7 +502,6 @@ lovelace:
       show_in_sidebar: true
       require_admin: false
       filename: dashboards/automation_updates.yaml
-    # (5) ADDED: Network & Devices Dashboard
     network-devices:
       mode: yaml
       title: "Network & Devices"
@@ -469,7 +509,6 @@ lovelace:
       show_in_sidebar: true
       require_admin: false
       filename: dashboards/network_devices.yaml
-    # (6) ADDED: Alerts Dashboard
     alerts-dashboard:
       mode: yaml
       title: "Alerts"
@@ -477,7 +516,6 @@ lovelace:
       show_in_sidebar: true
       require_admin: false
       filename: dashboards/alerts.yaml
-    # (7) ADDED: Battery Dashboard
     battery-dashboard:
       mode: yaml
       title: "Battery"
@@ -485,7 +523,6 @@ lovelace:
       show_in_sidebar: true
       require_admin: false
       filename: dashboards/battery.yaml
-    # (5) ADDED: Solar Forecast Dashboard
     solar-forecast:
       mode: yaml
       title: "Solar Forecast"
@@ -493,3 +530,74 @@ lovelace:
       show_in_sidebar: true
       require_admin: false
       filename: dashboards/solar_forecast.yaml
+    adguard-dns:
+      mode: yaml
+      title: "AdGuard & DNS"
+      icon: mdi:dns
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/adguard_dns.yaml
+    weather-sky:
+      mode: yaml
+      title: "Weather & Sky"
+      icon: mdi:weather-cloudy-clock
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/weather_sky.yaml
+    backups-storage:
+      mode: yaml
+      title: "Backups & Storage"
+      icon: mdi:backup-restore
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/backups_storage.yaml
+    github-devops:
+      mode: yaml
+      title: "GitHub & DevOps"
+      icon: mdi:github
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/github_devops.yaml
+    pool-garden:
+      mode: yaml
+      title: "Pool & Garden"
+      icon: mdi:pool
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/pool_garden.yaml
+    cameras-security:
+      mode: yaml
+      title: "Cameras & Security"
+      icon: mdi:cctv
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/cameras_security.yaml
+    mqtt-broker:
+      mode: yaml
+      title: "MQTT & Broker"
+      icon: mdi:mqtt
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/mqtt_broker.yaml
+    flight-radar:            # was: flightradar (must contain a hyphen)
+      mode: yaml
+      title: "FlightRadar"
+      icon: mdi:airplane
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/flightradar.yaml
+    geo-caching:            # was: geocaching (must contain a hyphen)
+      mode: yaml
+      title: "Geocaching"
+      icon: mdi:treasure-chest
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/geocaching.yaml
+    # ADDED: GDACS dashboard
+    global-disaster:
+      mode: yaml
+      title: "GDACS"
+      icon: mdi:earth-alert
+      show_in_sidebar: true
+      require_admin: false
+      filename: dashboards/gdacs.yaml

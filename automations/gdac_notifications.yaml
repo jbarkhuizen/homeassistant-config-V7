@@ -1,0 +1,104 @@
+# =============================================================================
+# AUTOMATIONS: GDACS Notifications (06:00–09:00 window)
+# - 06:35 Daily Summary
+# - 08:05 High Severity Alert (if any event meets min severity within radius)
+# - Guarded by Maintenance Mode
+# =============================================================================
+
+# Daily Summary at 06:35
+- id: gdacs_daily_summary_0635
+  alias: "GDACS: Daily Summary (06:35)"
+  description: "Sends a daily GDACS summary via Email, Telegram, and Persistent Notification."
+  trigger:
+    - platform: time
+      at: "06:35:00"
+  condition:
+    - condition: state
+      entity_id: input_boolean.maintenance_mode
+      state: "off"
+  action:
+    - service: persistent_notification.create
+      data:
+        title: "GDACS — Daily Summary"
+        message: >-
+          Radius: {{ states('input_number.gdacs_radius_km') }} km
+          Min Severity: {{ states('input_select.gdacs_min_severity') }}
+
+          Counts:
+          • Total: {{ states('sensor.gdacs_events_within_radius') }}
+          • Red: {{ states('sensor.gdacs_events_red_within_radius') }}
+          • Orange: {{ states('sensor.gdacs_events_orange_within_radius') }}
+          • Green: {{ states('sensor.gdacs_events_green_within_radius') }}
+          • Highest: {{ states('sensor.gdacs_highest_severity_within_radius') }}
+          • Nearest: {{ states('sensor.gdacs_nearest_event') }}
+        notification_id: gdacs_daily_summary
+
+    - service: notify.email_notification_jbarkhuizen_gmail_com
+      data:
+        title: "🌍 GDACS — Daily Summary"
+        message: >-
+          {% from 'gdacs_notifications.jinja' import gdacs_daily_email %}
+          {{ gdacs_daily_email() }}
+
+    - service: telegram_bot.send_message
+      data:
+        target:
+          - 6167623299
+        message: >-
+          {% from 'gdacs_notifications.jinja' import gdacs_daily_telegram %}
+          {{ gdacs_daily_telegram() }}
+        parse_mode: markdown
+
+    - service: system_log.write
+      data:
+        message: "GDACS Daily Summary sent at {{ now().strftime('%Y-%m-%d %H:%M:%S') }}."
+        level: info
+
+  mode: single
+
+# High Severity Alert at 08:05 if active
+- id: gdacs_high_severity_alert_0805
+  alias: "GDACS: High Severity Alert (08:05)"
+  description: "Sends a high severity GDACS alert if events within radius meet minimum severity."
+  trigger:
+    - platform: time
+      at: "08:05:00"
+  condition:
+    - condition: state
+      entity_id: input_boolean.maintenance_mode
+      state: "off"
+    - condition: state
+      entity_id: binary_sensor.gdacs_alert_active
+      state: "on"
+  action:
+    - service: persistent_notification.create
+      data:
+        title: "GDACS — High Severity Nearby"
+        message: >-
+          Min Severity: {{ states('input_select.gdacs_min_severity') }}
+          Highest: {{ states('sensor.gdacs_highest_severity_within_radius') }}
+          Nearest: {{ states('sensor.gdacs_nearest_event') }}
+        notification_id: gdacs_high_alert
+
+    - service: notify.email_notification_jbarkhuizen_gmail_com
+      data:
+        title: "🚨 GDACS High Severity Alert"
+        message: >-
+          {% from 'gdacs_notifications.jinja' import gdacs_high_alert_email %}
+          {{ gdacs_high_alert_email() }}
+
+    - service: telegram_bot.send_message
+      data:
+        target:
+          - 6167623299
+        message: >-
+          {% from 'gdacs_notifications.jinja' import gdacs_high_alert_telegram %}
+          {{ gdacs_high_alert_telegram() }}
+        parse_mode: markdown
+
+    - service: system_log.write
+      data:
+        message: "GDACS High Severity Alert sent at {{ now().strftime('%Y-%m-%d %H:%M:%S') }}."
+        level: warning
+
+  mode: single
