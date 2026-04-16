@@ -283,7 +283,7 @@ shell_command:
 # Monthly DB maintenance helpers (first Monday 06:30) 
   db_monthly_backup: >
     cp /config/home-assistant_v2.db /backup/home-assistant_v2-$(date +%Y%m%d)_monthly.sqlite && echo "/backup/home-assistant_v2-$(date +%Y%m%d)_monthly.sqlite" > /backup/db-monthly-latest.txt
-    db_monthly_checksum: >
+  db_monthly_checksum: >
     md5sum /backup/home-assistant_v2-$(date +%Y%m%d)_monthly.sqlite | awk '{print $1}' > /backup/home-assistant_v2-$(date +%Y%m%d)_monthly.md5
 
 # ==============================================================================
@@ -301,6 +301,9 @@ mobile_app:
 logger:
   default: warning
   logs:
+    # TEMP (for Deye entry_id discovery): log config entries at startup
+    homeassistant.config_entries: debug
+
     # Core Components - Set to info for better debugging
     homeassistant.core: info
     homeassistant.components.http: warning
@@ -461,7 +464,6 @@ recorder:
       - sensor.node_red_*
       - sensor.telegram_*
       - sensor.spotify_*
-
 # ==============================================================================
 # Lovelace Dashboards
 # ==============================================================================

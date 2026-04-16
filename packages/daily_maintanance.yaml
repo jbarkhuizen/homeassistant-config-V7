@@ -205,7 +205,7 @@ automation:
             {% for s in sensors %}
               {% set st = states[s] %}
               {% if st is not none %}
-                {% if st.last_changed < cutoff or st.state in ['unknown','unavailable',''] %}
+                {% if st.last_updated < cutoff or st.state in ['unknown','unavailable',''] %}
                   {% set _ = bad.append(s) %}
                 {% endif %}
               {% else %}
@@ -350,7 +350,7 @@ automation:
             {% set bad = [] %}
             {% for s in keys %}
               {% set st = states[s] %}
-              {% if st is none or st.state in ['unknown','unavailable',''] or st.last_changed < cutoff %}
+              {% if st is none or st.state in ['unknown','unavailable',''] or st.last_updated < cutoff %}
                 {% set _ = bad.append(s) %}
               {% endif %}
             {% endfor %}
@@ -365,9 +365,20 @@ automation:
                   title: "Sunsunk Inverter Data Stale"
                   message: >
                     Stale sensors detected (>10 min): {{ stale }}.
-                    Reloading Deye integration.
+                    Reloading Deye integration (Master + Slave).
                     Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
-              - service: shell_command.restart_deye_integration
+
+              # Reload MASTER inverter config entry
+              - service: homeassistant.reload_config_entry
+                data:
+                  entry_id: "01K8Z1D2A4C656PMBQRM9E3FD5"
+
+              - delay: "00:00:02"
+
+              # Reload SLAVE inverter config entry
+              - service: homeassistant.reload_config_entry
+                data:
+                  entry_id: "01K8Z1DEBRYEGPPBNWWF5RTZ6Y"
 
   # ----------------------------------------------------------------------------
   # (NEW) DB & Log Trend Alerts — 08:45
@@ -504,7 +515,7 @@ template:
       - name: "Home Assistant Log Has Errors"
         unique_id: ha_log_has_errors
         device_class: problem
-        state: "{{ states('sensor.home_assistant_log_size_mb') | float(0) > 0.25 }}"
+        state: "{{ states('sensor.homeassistant_log_size_mb') | float(0) > 0.25 }}"
         icon: >
           {% if is_state(this.entity_id, 'on') %}mdi:alert-circle{% else %}mdi:check-circle{% endif %}
 
