@@ -20,12 +20,12 @@ notify:
     platform: smtp
     server: smtp.gmail.com
     port: 587
-    sender: jbarkhuizen@gmail.com
+    sender: !secret gmail_email_address
     encryption: starttls
-    username: jbarkhuizen@gmail.com
+    username: !secret gmail_email_address
     password: !secret gmail_app_password
     recipient:
-      - jbarkhuizen@gmail.com
+      - !secret gmail_email_address
     sender_name: "Home Assistant - Email HA"
 
   # Primary email service for all notifications
@@ -33,12 +33,12 @@ notify:
     platform: smtp
     server: smtp.gmail.com
     port: 587
-    sender: jbarkhuizen@gmail.com
+    sender: !secret gmail_email_address
     encryption: starttls
-    username: jbarkhuizen@gmail.com
+    username: !secret gmail_email_address
     password: !secret gmail_app_password
     recipient:
-      - jbarkhuizen@gmail.com
+      - !secret gmail_email_address
     sender_name: "Home Assistant"
 
   # Alternative email service for general reports
@@ -46,12 +46,12 @@ notify:
     platform: smtp
     server: smtp.gmail.com
     port: 587
-    sender: jbarkhuizen@gmail.com
+    sender: !secret gmail_email_address
     encryption: starttls
-    username: jbarkhuizen@gmail.com
+    username: !secret gmail_email_address
     password: !secret gmail_app_password
     recipient:
-      - jbarkhuizen@gmail.com
+      - !secret gmail_email_address
     sender_name: "Home Assistant General Reports"
 
   # Email service for sensor reports
@@ -59,12 +59,12 @@ notify:
     platform: smtp
     server: smtp.gmail.com
     port: 587
-    sender: jbarkhuizen@gmail.com
+    sender: !secret gmail_email_address
     encryption: starttls
-    username: jbarkhuizen@gmail.com
+    username: !secret gmail_email_address
     password: !secret gmail_app_password
     recipient:
-      - jbarkhuizen@gmail.com
+      - !secret gmail_email_address
     sender_name: "Home Assistant Sensor Reports"
 
   # Email service for system alerts
@@ -72,26 +72,25 @@ notify:
     platform: smtp
     server: smtp.gmail.com
     port: 587
-    sender: jbarkhuizen@gmail.com
+    sender: !secret gmail_email_address
     encryption: starttls
-    username: jbarkhuizen@gmail.com
+    username: !secret gmail_email_address
     password: !secret gmail_app_password
     recipient:
-      - jbarkhuizen@gmail.com
+      - !secret gmail_email_address
     sender_name: "Home Assistant Alert System"
 
   - name: email_notify_jbarkhuizen_gmail_com
     platform: smtp
     server: smtp.gmail.com
     port: 587
-    sender: jbarkhuizen@gmail.com
+    sender: !secret gmail_email_address
     encryption: starttls
-    username: jbarkhuizen@gmail.com
+    username: !secret gmail_email_address
     password: !secret gmail_app_password
     recipient:
-      - jbarkhuizen@gmail.com
+      - !secret gmail_email_address
     sender_name: "Home Assistant - Smart Home"
-
 #===============================================================================
 #Disabled  - Could not get working (kept for history, not used)
 #===============================================================================
