@@ -1,0 +1,14 @@
+# Home Assistant Configuration - Code Owners
+# This file specifies who maintains each part of the configuration
+
+# Default owner for everything
+* @jbarkhuizen
+
+# Custom components
+/custom_components/ @jbarkhuizen
+/custom_components/*/manifest.json @jbarkhuizen
+
+# Automations and configurations
+/automations/ @jbarkhuizen
+/packages/ @jbarkhuizen
+/configuration.yaml @jbarkhuizen
