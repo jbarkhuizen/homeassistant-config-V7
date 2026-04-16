@@ -1,4 +1,8 @@
 {
+  "domain": "hacs_frontend_latest",
+  "name": "HACS Frontend Latest",
+  "codeowners": ["@jbarkhuizen"],
+  "version": "1.0.0",
   "entrypoint.js": "/hacsfiles/frontend/frontend_latest/entrypoint.bb9d28f38e9fba76.js",
   "extra.js": "/hacsfiles/frontend/frontend_latest/extra.fb9760592efef202.js"
 }
