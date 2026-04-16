@@ -1,7 +1,13 @@
-# Morning Test Email - Verifies System is Running
-- id: "morning_test_email_system_check"
-  alias: "Morning Test Email - System Check"
-  description: "Sends a test email every morning at 08:00 to verify the system is operational"
+# ==============================================================================
+# System Up - Telegram + HA Notification (Daily)
+# File: automations/system_up_telegram.yaml
+# Purpose: Daily smoke test that Telegram notifications are working.
+# Schedule: 08:00 (within 06:00–09:00 requirement)
+# ==============================================================================
+
+- id: "morning_test_telegram_system_check"
+  alias: "Morning Test Telegram - System Check"
+  description: "Sends a Telegram message every morning at 08:00 to verify the system + Telegram notifications are operational"
 
   trigger:
     - platform: time
@@ -10,69 +16,46 @@
   condition: []
 
   action:
-    # Email Notification Service
-    - service: notify.email_alerts_jbarkhuizen_gmail_com
+    - variables:
+        now_str: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+        uptime_str: >-
+          {% set u = states('sensor.uptime') %}
+          {% if u in ['unknown', 'unavailable', 'None', ''] %}
+            N/A
+          {% else %}
+            {{ u }}
+          {% endif %}
+
+    # Telegram
+    - service: telegram_bot.send_message
       data:
-        title: "✅ Home Assistant - System Status OK"
-        message: >
-          Good morning!
+        target:
+          - 6167623299
+        message: >-
+          ✅ *Home Assistant System Check (Telegram)*
 
-          This is your daily system check email.
+          HA is up and running.
 
-          Home Assistant is up and running successfully.
+          • Time: {{ now_str }}
+          • Uptime: {{ uptime_str }}
+          • Local: http://192.168.1.30:8123
+          • Cloud: https://gy98slwcfto2t5oia2xnqjeabx480gs6.ui.nabu.casa/
 
-          System Details:
-          - Time: {{ now().strftime('%H:%M:%S') }}
-          - Date: {{ now().strftime('%A, %d %B %Y') }}
-          - System Uptime: {{ states('sensor.uptime') if states('sensor.uptime') != 'unknown' else 'N/A' }}
+        parse_mode: markdown
 
-          All systems operational.
+    # Home Assistant Notification (Persistent)
+    - service: persistent_notification.create
+      data:
+        title: "✅ Home Assistant - Telegram Check OK"
+        message: >-
+          Telegram smoke test sent successfully at {{ now_str }}.
+          This confirms the Telegram notification channel is working.
+        notification_id: "telegram_smoke_test_ok"
 
-          ---
-          Sent from Home Assistant
-          IP: 192.168.1.30:8123
-        data:
-          html: >
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                .container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f4f4; }
-                .header { background-color: #41BDF5; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
-                .content { background-color: white; padding: 20px; border-radius: 0 0 5px 5px; }
-                .status { background-color: #4CAF50; color: white; padding: 10px; border-radius: 5px; text-align: center; margin: 15px 0; }
-                .details { background-color: #f9f9f9; padding: 15px; border-left: 4px solid #41BDF5; margin: 15px 0; }
-                .footer { text-align: center; padding: 10px; color: #777; font-size: 12px; }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="header">
-                  <h1>✅ Home Assistant System Check</h1>
-                </div>
-                <div class="content">
-                  <p>Good morning!</p>
-                  <div class="status">
-                    <strong>🟢 ALL SYSTEMS OPERATIONAL</strong>
-                  </div>
-                  <p>This is your daily system check email confirming that Home Assistant is up and running successfully.</p>
-                  <div class="details">
-                    <h3>System Details:</h3>
-                    <ul>
-                      <li><strong>Time:</strong> {{ now().strftime('%H:%M:%S') }}</li>
-                      <li><strong>Date:</strong> {{ now().strftime('%A, %d %B %Y') }}</li>
-                      <li><strong>System IP:</strong> 192.168.1.30:8123</li>
-                    </ul>
-                  </div>
-                  <p>All automation services are functioning normally.</p>
-                </div>
-                <div class="footer">
-                  <p>Automated message from Home Assistant<br>
-                  This email confirms your notification system is working correctly.</p>
-                </div>
-              </div>
-            </body>
-            </html>
+    # Audit log
+    - service: system_log.write
+      data:
+        message: "Telegram system check sent at {{ now_str }}."
+        level: info
 
   mode: single
