@@ -8,7 +8,7 @@ sensor:
     state_class: total_increasing
 
   - name: "deyeinvertermaster_essential_load"
-    state: "{{ (states('sensor.deyeinvertermaster_inverter_output_power') |float(0)  + (states('sensor.deyeinvertermaster_grid_load') |float(0) - states('sensor.deyeinvertermaster_aux_output_power[...]"
+    state: "{{ (states('sensor.deyeinvertermaster_inverter_output_power') |float(0)  + (states('sensor.deyeinvertermaster_grid_load') |float(0) - states('sensor.deyeinvertermaster_aux_output_power[...]
     unit_of_measurement: "W"
     device_class: power
     state_class: measurement
@@ -410,10 +410,23 @@ sensor:
       {% endif %}
     icon: mdi:toggle-switch
 
-# ------------------------------------------------------------------------------
-# (1) Trigger-based Template Sensor: Auto Update Status (existing)
-# ------------------------------------------------------------------------------
+# ==============================================================================
+# MODERN BINARY SENSOR TEMPLATE - Replaces Legacy network_monitoring_active
+# Migration from packages/network_devices.yaml (lines 102-106)
+# This uses the modern template syntax required for HA 2026.6+
+# ==============================================================================
 template:
+  - binary_sensor:
+    - name: "Network Monitoring Active"
+      unique_id: network_monitoring_active
+      device_class: connectivity
+      state: '{{ (as_timestamp(now()) - as_timestamp(states.sensor.network_devices_table.last_changed)) < 600 }}'
+
+# ==============================================================================
+# TRIGGER-BASED TEMPLATE SENSORS
+# ==============================================================================
+
+# (1) Trigger-based Template Sensor: Auto Update Status (existing)
   - trigger:
       - platform: event
         event_type: auto_update_cycle_complete
@@ -438,10 +451,8 @@ template:
           restart_required: "{{ trigger.event.data.restart_required }}"
           status_detail: "{{ trigger.event.data.status_detail }}"
 
-# ------------------------------------------------------------------------------
 # (2) NEW: Trigger-based Template Sensor: Backup Health Status
 #     Populated by event 'backup_health_cycle_complete'
-# ------------------------------------------------------------------------------
   - trigger:
       - platform: event
         event_type: backup_health_cycle_complete
