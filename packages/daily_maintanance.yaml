@@ -437,8 +437,7 @@ automation:
                     Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
               - service: telegram_bot.send_message
                 data:
-                  target:
-                    - 6167623299
+                  chat_id: 6167623299
                   message: >-
                     ⚠️ *Database Trend Alert (3-day)*  
                     Now: {{ db_current }} MB | Baseline: {{ db_baseline }} MB  
@@ -461,8 +460,7 @@ automation:
                     Time: {{ now().strftime('%Y-%m-%d %H:%M:%S') }}
               - service: telegram_bot.send_message
                 data:
-                  target:
-                    - 6167623299
+                  chat_id: 6167623299
                   message: >-
                     ⚠️ *Log Health Alert*  
                     Size: {{ log_mb }} MB | 48h error hours: {{ log_on_hours_48h }}h  

@@ -48,7 +48,7 @@
     # Telegram Notification Service
     - service: telegram_bot.send_message
       data:
-        config_entry_id: 01K7PH2MD1SA9VXHCP39WVCJM4
+        chat_id: 6167623299
         message: |
           🚨 *GDACS DISASTER ALERT*
           
@@ -125,7 +125,7 @@
           {% else %}
           ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
           ALERT DETAILS
-          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━���━━━━━━━━━━━
           
           Country: {{ trigger.to_state.attributes.country | default('Unknown') }}
           Event Type: {{ trigger.to_state.attributes.event_type | default('Unknown') }}
@@ -175,33 +175,6 @@
           
           Check notifications for full details.
         notification_id: "gdacs_disaster_alert_{{ now().strftime('%Y%m%d_%H%M%S') }}"
-
-            # Action 4: Create persistent notification in Home Assistant UI
-    - alias: "Create GDACS Persistent Notification"
-      service: persistent_notification.create
-      data:
-        notification_id: "gdacs_disaster_alert_{{ now().strftime('%Y%m%d_%H%M%S') }}"
-        title: "🚨 GDACS Disaster Alert"
-        message: >-
-          **{{ trigger.to_state.state }} active disaster alerts detected**
-          
-          {% if trigger.to_state.attributes.alerts is defined and trigger.to_state.attributes.alerts | length > 0 %}
-          {% for alert in trigger.to_state.attributes.alerts[:3] %}
-          
-          **Alert {{ loop.index }}:**
-          - Location: {{ alert.country | default('Unknown') }}
-          - Type: {{ alert.event_type | default('Unknown') }}
-          - Severity: {{ alert.severity | default('Unknown') }}
-          - Population: {{ alert.population | default('Unknown') }}
-          
-          {% endfor %}
-          {% else %}
-          - Country: {{ trigger.to_state.attributes.country | default('Unknown') }}
-          - Type: {{ trigger.to_state.attributes.event_type | default('Unknown') }}
-          - Severity: {{ trigger.to_state.attributes.severity | default('Unknown') }}
-          {% endif %}
-          
-          Check notifications for full details.
   
   #=============================================================================
   # AUTOMATION MODE: Allow parallel execution for multiple alerts
@@ -213,8 +186,8 @@
 # CONFIGURATION NOTES:
 #
 # 1. CRITICAL: Update entity_id on line 17 to match your actual GDACS sensor
-# 2. The automation uses your existing Telegram config_entry_id
-# 3. Email uses notify.email_notification (from your email_service.yaml)
+# 2. The automation uses chat_id for direct Telegram notification
+# 3. Email uses notify.email_alerts (from your email_service.yaml)
 # 4. Handles both single alert and multiple alerts format
 # 5. Creates persistent notification in HA interface
 # 6. Logs to system_log for troubleshooting

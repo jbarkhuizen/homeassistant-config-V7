@@ -154,6 +154,7 @@ automation:
       # Telegram Notification Service
       - service: telegram_bot.send_message
         data:
+          chat_id: 6167623299
           message: >-
             ☀️ *Solar Power Optimization*
 
@@ -209,6 +210,7 @@ automation:
             Reason: {% if now().hour >= 17 %}Outside operating hours{% else %}Solar power below threshold{% endif %}
       - service: telegram_bot.send_message
         data:
+          chat_id: 6167623299
           message: >-
             🌙 *Solar Power Optimization*
 
@@ -257,9 +259,10 @@ automation:
             Solar generation: {{ states('sensor.deyeinvertercombined_solar_power_used') | round(0) }}W
 
             ✅ SONOFF Device activated
-      #Telegram Notification Service
+      # Telegram Notification Service
       - service: telegram_bot.send_message
         data:
+          chat_id: 6167623299
           message: >-
             🌅 *Solar Power - Morning Check*
 
@@ -286,7 +289,7 @@ automation:
         target:
           entity_id: switch.sonoff_10009ce3f9
         data: {}
-        #Email Notification Service
+      # Email Notification Service
       - service: notify.email_alerts_jbarkhuizen_gmail_com
         data:
           title: "🕔 Solar Power - End of Day"
@@ -299,6 +302,7 @@ automation:
       # Telegram Notification Service
       - service: telegram_bot.send_message
         data:
+          chat_id: 6167623299
           message: >-
             🕔 *Solar Power - End of Day*
 
@@ -331,6 +335,7 @@ automation:
             Devices will not be automatically controlled until re-enabled.
       - service: telegram_bot.send_message
         data:
+          chat_id: 6167623299
           message: >-
             ⚠️ *Solar Power Optimization*
 

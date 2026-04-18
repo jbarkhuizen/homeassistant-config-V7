@@ -1,25 +1,27 @@
 #===============================================================================
 # SOLAR FORECAST NOTIFICATIONS
-# (2) ADDED: Main daily forecast + Low day alert
+# File: automations/solar)forecast_notifications.yaml
+# Purpose: Send solar forecast notifications daily at specific times
 #===============================================================================
-# Automation 1: Daily Solar Forecast Summary (06:30)
-- id: solar_forecast_daily_summary_0630
-  alias: "Solar Forecast: Daily Summary 06:30"
+
+# Automation 1: Daily Solar Forecast Summary (08:08)
+- id: solar_forecast_daily_summary_0808
+  alias: "Solar Forecast: Daily Summary 08:08"
   description: >
-    Sends daily solar forecast summary (Email, Telegram, Persistent Notification)
-    at 06:30 if Maintenance Mode is OFF.
+    Sends a solar forecast daily summary at 08:08 via persistent notification,
+    email, and Telegram. Maintenance Mode OFF required.
   trigger:
     - platform: time
-      at: "06:30:00"
+      at: "08:08:00"
   condition:
     - condition: state
       entity_id: input_boolean.maintenance_mode
       state: "off"
   action:
     - variables:
-        quality: "{{ states('sensor.solar_forecast_quality_today') }}"
         total_today: "{{ states('sensor.solar_forecast_total_today') }}"
         remaining_today: "{{ states('sensor.solar_forecast_remaining_today') }}"
+        quality: "{{ states('sensor.solar_forecast_quality_today') }}"
     # Persistent Notification
     - service: persistent_notification.create
       data:
@@ -40,11 +42,10 @@
         message: >-
           {% from 'solar_forecast_notifications.jinja' import solar_forecast_email_main %}
           {{ solar_forecast_email_main() }}
-    # Telegram (replace 6167623299)
+    # Telegram
     - service: telegram_bot.send_message
       data:
-        target:
-          - 6167623299
+        chat_id: 6167623299
         message: >-
           {% from 'solar_forecast_notifications.jinja' import solar_forecast_telegram_main %}
           {{ solar_forecast_telegram_main() }}
@@ -96,8 +97,7 @@
     # Telegram
     - service: telegram_bot.send_message
       data:
-        target:
-          - 6167623299
+        chat_id: 6167623299
         message: >-
           {% from 'solar_forecast_notifications.jinja' import solar_forecast_telegram_low_alert %}
           {{ solar_forecast_telegram_low_alert() }}

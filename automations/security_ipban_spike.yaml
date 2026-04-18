@@ -35,8 +35,7 @@
                 notification_id: "security_ip_bans_spike"
             - service: telegram_bot.send_message
               data:
-                target:
-                  - 6167623299
+                chat_id: 6167623299
                 message: >-
                   ❗ *Security: IP Ban Spike*
                   {{ detail }}

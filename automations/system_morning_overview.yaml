@@ -43,7 +43,7 @@
           {% endif %}
         fc_accuracy: "{{ states('sensor.solar_forecast_accuracy_so_far')|float(0) }}"
         fc_recommended_slots: "{{ states('sensor.solar_recommended_load_slots_today') if states('sensor.solar_recommended_load_slots_today') not in ['unknown','unavailable','None',''] else 'Unavailable' }}"
-        fc_action: "{{ states('sensor.solar_forecast_action_recommendation') if states('sensor.solar_forecast_action_recommendation') not in ['unknown','unavailable','None',''] else 'No recommendation available' }}"
+        fc_action: "{{ states('sensor.solar_forecast_action_recommendation') if states('sensor.solar_forecast_action_recommendation') not in ['unknown','unavailable','None',''] else 'No recommendation' }}"
         # Battery weekly delta calculations (existing logic retained)
         pv7: "{{ states('sensor.solar_pv_energy_change_7d')|float(0) }}"
         load7: "{{ states('sensor.solar_load_energy_change_7d')|float(0) }}"
@@ -97,8 +97,7 @@
     # Telegram — replace 6167623299 with your real chat_id or !secret
     - service: telegram_bot.send_message
       data:
-        target:
-          - 6167623299
+        chat_id: 6167623299
         message: >-
           {% from 'system_overview_notifications.jinja' import system_morning_overview_telegram %}
           {{ system_morning_overview_telegram() }}

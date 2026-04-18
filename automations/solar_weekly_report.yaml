@@ -35,8 +35,7 @@
     # Telegram — replace 6167623299 with your real chat_id, or use !secret telegram_chat_id
     - service: telegram_bot.send_message
       data:
-        target:
-          - 6167623299
+        chat_id: 6167623299
         message: >-
           {% from 'solar_weekly_report.jinja' import solar_weekly_report_telegram %}
           {{ solar_weekly_report_telegram() }}

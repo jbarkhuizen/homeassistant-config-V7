@@ -75,8 +75,7 @@
     # Telegram — replace 6167623299 with your chat_id or use !secret
     - service: telegram_bot.send_message
       data:
-        target:
-          - 6167623299
+        chat_id: 6167623299
         message: >-
           🛑 *Pool Pump OFF — PV low*
           PV: {{ pv_now | round(0) }} W (< {{ threshold_off }} W for 15 min)
@@ -170,8 +169,7 @@
     # Telegram — replace 6167623299 with your chat_id or use !secret
     - service: telegram_bot.send_message
       data:
-        target:
-          - 6167623299
+        chat_id: 6167623299
         message: >-
           ✅ *Pool Pump ON — PV sufficient*
           PV: {{ pv_now | round(0) }} W (> {{ threshold_on }} W for 15 min)

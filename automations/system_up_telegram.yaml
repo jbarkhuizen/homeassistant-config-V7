@@ -29,8 +29,7 @@
     # Telegram
     - service: telegram_bot.send_message
       data:
-        target:
-          - 6167623299
+        chat_id: 6167623299
         message: >-
           ✅ *Home Assistant System Check (Telegram)*
 
