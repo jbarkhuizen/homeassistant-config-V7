@@ -6,6 +6,7 @@
 
 # Loads default set of integrations. Do not remove.
 default_config:
+
 homeassistant:
   # Basic instance information
   name: "Smart Home - Pierre van Ryneveld"
@@ -31,31 +32,35 @@ homeassistant:
     - "/config/backup"
   # Packages configuration - This will now be loaded correctly.
   packages: !include_dir_named packages
-#=======================================================================================
+
+# ==============================================================================
 # Load frontend themes from the themes folder
-#=======================================================================================
+# ==============================================================================
 frontend:
   themes: !include_dir_merge_named themes
   extra_module_url:
     - /hacsfiles/lovelace-card-mod/card-mod.js
+
 # ==============================================================================
 # Text to Speech
 # ==============================================================================
 tts:
   - platform: google_translate  
     service_name: google_say
+
 # ==============================================================================
 # Load Automations, Scripts, Scenes, etc.
 # ==============================================================================
-# automation: !include automations.yaml
 automation: !include_dir_merge_list automations
 script: !include scripts.yaml
 scene: !include scenes.yaml
 template: !include template.yaml
 group: !include groups.yaml
-#=======================================================================================
+
+# ==============================================================================
 # SmartHome Integrations
 # https://github.com/tomatensaus/DeyeSolarDesktop/blob/main/configuration.yaml
+# ==============================================================================
 sensor:
   - platform: integration
     name: deyeinvertermaster_summary_total_battery_charge_grid
@@ -66,22 +71,18 @@ sensor:
     name: deyeinverterslave_summary_total_battery_charge_grid
     source: sensor.deyeinverterslave_battery_charge_grid_power
     method: left
-#=======================================================================================
-# The sensor below keeps the minimum soc of the battery for the last 12 hours,
-# only removed from DeyeSolarDesktop, not important
 
   - platform: statistics
     name: "min_soc_battery"
-#    entity_id: sensor.deyeinverter_battery_soc
     entity_id: sensor.deyeinvertercombined_battery_soc
     state_characteristic: value_min
     max_age:
       hours: 12
     sampling_size: 144
-#=======================================================================================
-# SmartHome Integrations
-# https://github.com/tomatensaus/DeyeSolarDesktop/blob/main/configuration.yaml
 
+# ==============================================================================
+# Utility Meter - Battery Charge Grid
+# ==============================================================================
 utility_meter:
   master_energy_battery_charge_grid:
     name: deyeinvertermaster_summary_day_battery_charge_grid
@@ -92,7 +93,7 @@ utility_meter:
     name: deyeinverterslave_summary_day_battery_charge_grid
     source: sensor.deyeinverterslave_summary_total_battery_charge_grid
     cycle: daily
-#=======================================================================================
+
 # ==============================================================================
 # HTTP Configuration - Secure and Optimized
 # ==============================================================================
@@ -128,48 +129,37 @@ pyscript:
   hass_is_global: true
 
 # ==============================================================================
-# Command Line Sensor
+# Command Line Sensors
 # ==============================================================================
 command_line:
-#  - sensor:
-#      name: Badlogin
-#      command: "grep -c 'Login attempt' /home/hass/.homeassistant/home-assistant.log"
   - sensor:
       name: Badlogin
       command: "grep 'Login attempt' /config/home-assistant.log | wc -l"
       value_template: "{{ value | int }}"
       unit_of_measurement: "events"
       scan_interval: 300
+
   - sensor:
       name: Homeassistant DB Size MB
       command: "stat -c %s /config/home-assistant_v2.db 2>/dev/null || echo 0"
       value_template: "{{ (value | int / 1048576) | round(2) }}"
       unit_of_measurement: "MB"
       scan_interval: 600
-# ==============================================================================
-  # Count of banned IPs (lines with 'ip_address' in ip_bans.yaml)
-  # Added with GitHib Copilot GPT 5 on 9 Nov 2025
-# ==============================================================================
+
   - sensor:
       name: Home Assistant IP Bans Count
       command: "grep -c 'ip_address' /config/ip_bans.yaml 2>/dev/null || echo 0"
       value_template: "{{ value | int }}"
       unit_of_measurement: "bans"
       scan_interval: 600
-# ==============================================================================
-  # Node-RED HTTP health (expects 200)
-  # Added with GitHib Copilot GPT 5 on 9 Nov 2025
-# ==============================================================================
+
   - sensor:
       name: Node-RED HTTP Status Code
       command: "curl -s -o /dev/null -w '%{http_code}' http://a0d7b954-nodered:1880/ || echo 000"
       value_template: "{{ value | int }}"
       unit_of_measurement: "code"
       scan_interval: 300
-# ==============================================================================
-  # Grafana HTTP health (expects 200)
-  # Added with GitHib Copilot GPT 5 on 9 Nov 2025
-# ==============================================================================
+
   - sensor:
       name: Grafana HTTP Status Code
       command: "curl -s -o /dev/null -w '%{http_code}' http://a0d7b954-grafana:3000/api/health || echo 000"
@@ -179,8 +169,6 @@ command_line:
 
 # ==============================================================================
 # INPUT NUMBERS
-# (4) ADDED: DB baseline
-# (5) ADDED: Growth threshold percent (adjustable)
 # ==============================================================================
 input_number:
   badlogin_previous_count:
@@ -190,6 +178,7 @@ input_number:
     step: 1
     mode: box
     icon: mdi:shield-key
+
   homeassistant_db_baseline_mb:
     name: HA DB Baseline MB
     min: 0
@@ -197,6 +186,7 @@ input_number:
     step: 0.01
     mode: box
     icon: mdi:database
+
   homeassistant_db_growth_threshold_percent:
     name: HA DB Growth Threshold %
     min: 5
@@ -204,8 +194,7 @@ input_number:
     step: 1
     mode: slider
     icon: mdi:chart-line
-    # Default threshold (20%) will be set manually after restart if needed.
-# (1) ADDED: MQTT Broker Alert Thresholds
+
   mqtt_broker_cpu_alert_threshold:
     name: MQTT CPU Alert Threshold %
     min: 0
@@ -214,6 +203,7 @@ input_number:
     mode: slider
     icon: mdi:cpu-64-bit
     initial: 55
+
   mqtt_broker_memory_alert_threshold:
     name: MQTT Memory Alert Threshold %
     min: 0
@@ -222,6 +212,7 @@ input_number:
     mode: slider
     icon: mdi:memory
     initial: 30
+
   mqtt_broker_cpu_critical_threshold:
     name: MQTT CPU Critical Threshold %
     min: 0
@@ -230,6 +221,7 @@ input_number:
     mode: slider
     icon: mdi:alert
     initial: 70
+
   mqtt_broker_memory_critical_threshold:
     name: MQTT Memory Critical Threshold %
     min: 0
@@ -239,9 +231,6 @@ input_number:
     icon: mdi:alert-octagon
     initial: 45
 
-# ==============================================================================
-# Added with GitHib Copilot GPT 5 on 9 Nov 2025
-# ==============================================================================
   ipbans_previous_count:
     name: IP Bans Previous Count
     min: 0
@@ -279,7 +268,6 @@ shell_command:
   cleanup_sensor_reports: >
     find /config/sensor_reports -type f -name "sensors_*" -mtime +14 -delete &&
     echo "Sensor reports older than 14 days deleted"
-# Monthly DB maintenance helpers (first Monday 06:30) 
   db_monthly_backup: >
     cp /config/home-assistant_v2.db /backup/home-assistant_v2-$(date +%Y%m%d)_monthly.sqlite && echo "/backup/home-assistant_v2-$(date +%Y%m%d)_monthly.sqlite" > /backup/db-monthly-latest.txt
   db_monthly_checksum: >
@@ -288,10 +276,6 @@ shell_command:
 # ==============================================================================
 # Other Integrations
 # ==============================================================================
-#duckdns:
-#  domain: !secret duckdns_domain
-#  access_token: !secret duckdns_token
-
 mobile_app:
 
 # ==============================================================================
@@ -401,7 +385,7 @@ recorder:
       - sensor.deyeinverterslave_today_energy_bought
       - sensor.deyeinverterslave_today_energy_sold
       - sensor.deyeinverterslave_today_load_consumption
-    # (4) ADDED: Solar Forecast new sensors for trend persistence
+      # Solar Forecast sensors for trend persistence
       - sensor.solar_forecast_total_today
       - sensor.solar_forecast_remaining_today
       - sensor.solar_forecast_total_tomorrow
@@ -410,14 +394,14 @@ recorder:
       - sensor.solar_recommended_load_slots_today
       - sensor.solar_forecast_peak_power_estimate
       - sensor.solar_forecast_action_recommendation
-    # (ADDED MQTT Dashboard) Persist key MQTT resource sensors
+      # MQTT resource sensors
       - sensor.mosquitto_broker_cpu_percent
       - sensor.mosquitto_broker_memory_percent
       - sensor.system_monitor_network_in_enp2s0
       - sensor.system_monitor_network_out_enp2s0
       - sensor.system_monitor_network_throughput_in_enp2s0
       - sensor.system_monitor_network_throughput_out_enp2s0
-    # (5) ADDED: MQTT Health Sensors for history/trend
+      # MQTT Health Sensors
       - sensor.mqtt_broker_health_state
       - sensor.mqtt_broker_cpu_state_detail
       - sensor.mqtt_broker_memory_state_detail
@@ -463,6 +447,7 @@ recorder:
       - sensor.node_red_*
       - sensor.telegram_*
       - sensor.spotify_*
+
 # ==============================================================================
 # Lovelace Dashboards
 # ==============================================================================
@@ -580,21 +565,20 @@ lovelace:
       show_in_sidebar: true
       require_admin: false
       filename: dashboards/mqtt_broker.yaml
-    flight-radar:            # was: flightradar (must contain a hyphen)
+    flight-radar:
       mode: yaml
       title: "FlightRadar"
       icon: mdi:airplane
       show_in_sidebar: true
       require_admin: false
       filename: dashboards/flightradar.yaml
-    geo-caching:            # was: geocaching (must contain a hyphen)
+    geo-caching:
       mode: yaml
       title: "Geocaching"
       icon: mdi:treasure-chest
       show_in_sidebar: true
       require_admin: false
       filename: dashboards/geocaching.yaml
-    # ADDED: GDACS dashboard
     global-disaster:
       mode: yaml
       title: "GDACS"

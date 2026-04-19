@@ -53,7 +53,7 @@ template:
               'services': 'HA, InfluxDB, Grafana',
               'last_seen': now().strftime('%Y-%m-%d %H:%M')
             } %}
-            {{ devices.append(ha_device) }}
+            {% set devices = devices + [ha_device] %}
 
             {# Add Router #}
             {% set router_device = {
@@ -67,7 +67,7 @@ template:
               'services': 'HTTP, HTTPS, DHCP, DNS',
               'last_seen': now().strftime('%Y-%m-%d %H:%M')
             } %}
-            {{ devices.append(router_device) }}
+            {% set devices = devices + [router_device] %}
 
             {# Add discovered device tracker entities #}
             {% for entity in states.device_tracker %}
@@ -86,7 +86,7 @@ template:
                   'services': 'Unknown',
                   'last_seen': entity.last_changed.strftime('%Y-%m-%d %H:%M') if entity.last_changed else 'Unknown'
                 } %}
-                {% set device_list = device_list + [device] %}
+                {% set devices = devices + [device] %}
               {% endif %}
             {% endfor %}
 
@@ -102,5 +102,4 @@ template:
             {{ devices | selectattr('status', 'equalto', 'Online') | list | length }}
           router_status: "{{ 'Online' if is_state('binary_sensor.nokia_router_online', 'on') else 'Offline' }}"
           internet_status: "{{ 'Connected' if is_state('binary_sensor.internet_connected', 'on') else 'Disconnected' }}"
-          last_update
-
+          last_update: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
